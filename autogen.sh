@@ -71,7 +71,7 @@ if test x$OBJ_DIR != x; then
     cd "$OBJ_DIR"
 fi
 
-conf_flags="--enable-maintainer-mode" #--enable-iso-c
+conf_flags="" #--enable-iso-c
 echo Running configure $conf_flags "$@" ...
 $srcdir/configure $conf_flags "$@"
 

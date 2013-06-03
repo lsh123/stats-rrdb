@@ -1,3 +1,11 @@
-bin_PROGRAMS=a.out
-a_out_SOURCES=stats-rrdb.cpp
+NULL=
+
+bin_PROGRAMS= \
+	statsrrdb \
+	$(NULL)
+	
+statsrrdb_SOURCES= \
+	stats-rrdb.cpp \
+	$(NULL)
+
 
