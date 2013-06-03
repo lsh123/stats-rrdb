@@ -9,10 +9,22 @@
  */
 
 #include <iostream>
+#include <string>
 
-using namespace std;
+#include "server.h"
 
-int main(void) {
-	cout << "Test" << endl; /* prints Test */
-	return 0;
+int main()
+{
+  try
+  {
+    boost::asio::io_service io_service;
+    udp_server server(io_service);
+    io_service.run();
+  }
+  catch (std::exception& e)
+  {
+    std::cerr << e.what() << std::endl;
+  }
+
+  return 0;
 }
