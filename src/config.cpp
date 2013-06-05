@@ -37,30 +37,38 @@ bool config::init(int argc, char ** argv)
   ;
   options_description config_file_desc("Config File Options");
   config_file_desc.add_options()
-      ("log.level",       value<std::string>(),   "log levels")
-      ("log.destination", value<std::string>(),   "log destination: stderr, syslog, file name")
-      ("log.time_format", value<std::string>(),   "log time format (see boost date/time docs)")
+      // log
+      ("log.level",       value<std::string>(),    "log level (default: info)")
+      ("log.destination", value<std::string>(),    "log destination: stderr, syslog, file name (default: stderr)")
+      ("log.time_format", value<std::string>(),    "log time format, see boost date/time docs: (default: %m/%d/%Y %H:%M:%S)")
+
+      // server
+      ("server.thread_pool_size",      value<std::size_t>(), "number of worker threads (default: 10)")
+      ("server.udp_address",           value<std::string>(), "udp listener address (default: 0.0.0.0)")
+      ("server.udp_port",              value<int>(),         "udp listener port (default: 9876)")
+      ("server.udp_max_message_size",  value<std::size_t>(), "udp max message size in bytes (default: 2048)")
+
   ;
 
   // parse command line
-  store(parse_command_line(argc, argv, cmd_line_desc), this->_data);
-  notify(this->_data);
+  store(parse_command_line(argc, argv, cmd_line_desc), _data);
+  notify(_data);
 
   // help?
-  if (this->_data.count("help")) {
+  if (_data.count("help")) {
       std::cout << cmd_line_desc << std::endl;
       return false;
   }
 
   // config?
-  if (this->_data.count("config")) {
-      std::string config_file = this->_data["config"].as<std::string>();
+  if (_data.count("config")) {
+      std::string config_file = _data["config"].as<std::string>();
       std::ifstream file(config_file.c_str(), std::ios_base::in);
       if(file.fail()) {
           throw exception("Unable to open file: " + config_file);
       }
 
-      store(parse_config_file(file, config_file_desc), this->_data);
+      store(parse_config_file(file, config_file_desc), _data);
       log::write(log::LEVEL_INFO, "Loaded configuration file '%s'", config_file.c_str());
   }
 

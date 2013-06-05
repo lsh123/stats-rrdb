@@ -17,8 +17,6 @@
 #include "config.h"
 #include "server.h"
 
-
-
 int main(int argc, char ** argv)
 {
   try
@@ -29,11 +27,13 @@ int main(int argc, char ** argv)
         return (0);
     }
 
-    boost::asio::io_service io_service;
-    udp_server server(io_service);
-    io_service.run();
+    boost::shared_ptr<server> main_server(new server(cfg));
+    main_server->run();
   } catch (std::exception& e) {
     log::write(log::LEVEL_ERROR, "%s", e.what());
+    return(1);
+  } catch (...) {
+    log::write(log::LEVEL_ERROR, "Unknown un-handled exception");
     return(1);
   }
 

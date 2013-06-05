@@ -9,35 +9,30 @@
 #define SERVER_H_
 
 #include <cstddef>
-#include <string>
-#include <vector>
 
-#include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/asio.hpp>
 
-class udp_server
-{
+// forward
+class config;
+class thread_pool;
+class server_udp;
+
+class server {
 public:
-  udp_server(boost::asio::io_service& io_service, std::size_t recv_buffer_size = 2048);
+  server(boost::shared_ptr<config> config);
+  virtual ~server();
+
+public:
+  void run();
 
 private:
-  void start_receive();
+  boost::shared_ptr<config>      _config;
+  boost::shared_ptr<thread_pool> _thread_pool;
+  boost::shared_ptr<server_udp>  _server_udp;
 
-  void handle_receive(
-    const boost::system::error_code & error,
-    std::size_t bytes_transferred
-  );
+  boost::asio::io_service        _io_service;
 
-  void handle_send(
-    boost::shared_ptr<std::string> message,
-    const boost::system::error_code& error,
-    std::size_t bytes_transferred
-  );
-
-private:
-  boost::asio::ip::udp::socket   socket_;
-  boost::asio::ip::udp::endpoint remote_endpoint_;
-  std::vector<char>              _recv_buffer;
-}; // udp_server
+}; // class server
 
 #endif /* SERVER_H_ */
