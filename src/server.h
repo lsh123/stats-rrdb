@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <string>
+#include <vector>
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
@@ -17,7 +18,7 @@
 class udp_server
 {
 public:
-  udp_server(boost::asio::io_service& io_service);
+  udp_server(boost::asio::io_service& io_service, std::size_t recv_buffer_size = 2048);
 
 private:
   void start_receive();
@@ -33,12 +34,10 @@ private:
     std::size_t bytes_transferred
   );
 
-  std::string make_daytime_string();
-
 private:
-  boost::asio::ip::udp::socket socket_;
+  boost::asio::ip::udp::socket   socket_;
   boost::asio::ip::udp::endpoint remote_endpoint_;
-  boost::array<char, 1> recv_buffer_;
+  std::vector<char>              _recv_buffer;
 }; // udp_server
 
 #endif /* SERVER_H_ */
