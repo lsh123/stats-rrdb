@@ -151,7 +151,7 @@ m4_pattern_allow([^BOOST_VERSION$])dnl
     #
     # I didn't indent this loop on purpose (to avoid over-indented code)
     boost_layout_system_search_list=`cd "$boost_dir" 2>/dev/null \
-        && ls -1 | "${GREP}" '^boost-' | sort -rn -t- -k2 \
+        && ls -1 | "${GREP}" '^boost' | sort -rn -t- -k2 \
         && echo .`
     for boost_inc in $boost_layout_system_search_list
     do
@@ -379,7 +379,7 @@ for boost_rtopt_ in $boost_rtopt '' -d; do
     boost_tmp_lib=$with_boost
     test x"$with_boost" = x && boost_tmp_lib=${boost_cv_inc_path%/include}
     for boost_ldpath in "$boost_tmp_lib/lib" '' \
-             /opt/local/lib* /usr/local/lib* /opt/lib* /usr/lib* \
+             /opt/local/lib* /usr/local/lib* /opt/lib* /usr/lib* /usr/lib*/boost* \
              "$with_boost" C:/Boost/lib /lib*
     do
       test -e "$boost_ldpath" || continue
