@@ -5,7 +5,6 @@
  *      Author: aleksey
  */
 #include <iostream>
-#include <stdarg.h>
 #include <stdio.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -54,7 +53,7 @@ enum log::levels log::str2level(const std::string & str)
   } else if(str_lower.compare("debug") == 0) {
     return log::LEVEL_DEBUG;
   } else {
-      throw exception("Unknown log level: " + str);
+      throw exception("Unknown log level '%s'", str.c_str());
   }
 }
 
@@ -81,20 +80,10 @@ void log::init(const config & config)
   log::_log_time_format = config.get<std::string>("log.time_format", log::_log_time_format);
 }
 
-void log::write(enum levels level, const char * msg, ...)
+void log::write(enum levels level, const char * msg, va_list args)
 {
   char buffer[4096];
-
-  // is it good enough?
-  if(log::_log_level < level) {
-      return;
-  }
-
-  // setup the error message
-  va_list args;
-  va_start(args, msg);
   vsnprintf(buffer, sizeof(buffer), msg, args);
-  va_end (args);
 
   // TODO: different log dest?
   std::cerr << log::format_time() << " - " << log::level2str(level) << " - " << buffer << std::endl;

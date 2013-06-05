@@ -25,5 +25,6 @@ server::~server()
 
 void server::run()
 {
+  _server_udp->start_receive();
   _io_service.run();
 }

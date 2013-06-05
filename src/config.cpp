@@ -65,7 +65,7 @@ bool config::init(int argc, char ** argv)
       std::string config_file = _data["config"].as<std::string>();
       std::ifstream file(config_file.c_str(), std::ios_base::in);
       if(file.fail()) {
-          throw exception("Unable to open file: " + config_file);
+          throw exception("Unable to open file '%s'", config_file.c_str());
       }
 
       store(parse_config_file(file, config_file_desc), _data);

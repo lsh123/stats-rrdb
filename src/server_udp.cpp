@@ -11,6 +11,7 @@
 #include <boost/array.hpp>
 #include <boost/bind.hpp>
 
+#include "exception.h"
 #include "log.h"
 #include "config.h"
 #include "thread_pool.h"
@@ -35,9 +36,9 @@ server_udp::server_udp(
   // create
   _recv_buffer.resize(udp_max_message_size);
   _socket.reset(new udp::socket(io_service, udp::endpoint(address_v4::from_string(udp_address), udp_port)));
-
-  // start
-  start_receive();
+  if(!_socket->is_open()) {
+      throw exception("Unable to listen to %s:%d", udp_address.c_str(), udp_port);
+  }
 
   // done
   log::write(log::LEVEL_INFO, "Listening to UDP %s:%d", udp_address.c_str(), udp_port);

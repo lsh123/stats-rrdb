@@ -9,6 +9,8 @@
 #define LOG_H_
 
 #include <string>
+#include <stdarg.h>
+
 #include <boost/shared_ptr.hpp>
 
 class config;
@@ -23,13 +25,24 @@ public:
     LEVEL_INFO     = 3,
     LEVEL_DEBUG    = 4
   };
+
 public:
   static void init(const config & config);
-  static void write(enum levels level, const char * msg, ...);
 
+  // MAIN LOGGING FUNCTION
+  inline static void write(enum levels level, const char * msg, ...) {
+    if(log::_log_level >= level) {
+      va_list args;
+      va_start(args, msg);
+      log::write(level, msg, args);
+      va_end (args);
+    }
+  }
+
+private:
+  static void write(enum levels level, const char * msg, va_list args);
   static std::string level2str(enum levels level);
   static enum levels str2level(const std::string & str);
-
   static std::string format_time();
 
 private:

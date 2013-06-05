@@ -29,14 +29,14 @@ public:
   );
   virtual ~server_udp();
 
+  void start_receive();
+
   void send_response(
    const boost::asio::ip::udp::endpoint & endpoint,
    const std::string & message
   );
 
 private:
-  void start_receive();
-
   void handle_receive(
     const boost::system::error_code & error,
     std::size_t bytes_transferred
