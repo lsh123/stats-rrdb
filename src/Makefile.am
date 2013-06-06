@@ -5,12 +5,11 @@ bin_PROGRAMS= \
 	$(NULL)
 	
 statsrrdb_SOURCES= \
-	command.cpp \
-	command_udp.cpp \
 	config.cpp \
 	exception.cpp \
 	log.cpp \
 	rrdb.cpp \
+	server_tcp.cpp \
 	server_udp.cpp \
 	server.cpp \
 	stats_rrdb.cpp \

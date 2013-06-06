@@ -16,28 +16,73 @@
 #include "config.h"
 #include "thread_pool.h"
 
-#include "command_udp.h"
-
 
 using namespace boost::asio::ip;
 
+/**
+ * One connection
+ */
+class connection_udp:
+    public thread_pool_task,
+    public boost::enable_shared_from_this<connection_udp>
+{
+public:
+  connection_udp(std::size_t buffer_size):
+    _buffer(buffer_size)
+  {
+  }
+
+  virtual ~connection_udp()
+  {
+  }
+
+  udp::endpoint & get_endpoint()
+  {
+    return _remote_endpoint;
+  }
+
+  std::vector<char>  & get_buffer()
+  {
+    return _buffer;
+  }
+
+  void set_server(boost::shared_ptr<server_udp> server_udp)
+  {
+    _server_udp = server_udp;
+  }
+
+public:
+  // thread_pool_task
+  void run() {
+    // HACK - testing
+    // sleep(rand() % 3);
+
+    _server_udp->send_response(_remote_endpoint, "OK");
+  }
+
+private:
+  udp::endpoint                 _remote_endpoint;
+  std::vector<char>             _buffer;
+  boost::shared_ptr<server_udp> _server_udp;
+}; // class connection_udp
+
+
 server_udp::server_udp(
-    boost::shared_ptr<thread_pool> thread_pool,
     boost::asio::io_service& io_service,
+    boost::shared_ptr<thread_pool> thread_pool,
     boost::shared_ptr<config> config
 ) :
   _thread_pool(thread_pool)
 {
   // load configs
-  std::string udp_address          = config->get<std::string>("server.udp_address", "0.0.0.0");
-  int         udp_port             = config->get<int>("server.udp_port", 9876);
-  std::size_t udp_max_message_size = config->get<std::size_t>("server.udp_max_message_size", 2048);
+  std::string udp_address = config->get<std::string>("server.udp_address", "0.0.0.0");
+  int         udp_port    = config->get<int>("server.udp_port", 9876);
+  _buffer_size            = config->get<std::size_t>("server.udp_max_message_size", 2048);
 
   // create
-  _recv_buffer.resize(udp_max_message_size);
   _socket.reset(new udp::socket(io_service, udp::endpoint(address_v4::from_string(udp_address), udp_port)));
   if(!_socket->is_open()) {
-      throw exception("Unable to listen to %s:%d", udp_address.c_str(), udp_port);
+      throw exception("Unable to listen to UDP %s:%d", udp_address.c_str(), udp_port);
   }
 
   // done
@@ -51,11 +96,15 @@ server_udp::~server_udp()
 
 void server_udp::start_receive()
 {
+  boost::shared_ptr<connection_udp> new_connection(new connection_udp(_buffer_size));
+
   _socket->async_receive_from(
-      boost::asio::buffer(_recv_buffer),
-      _remote_endpoint,
+      boost::asio::buffer(new_connection->get_buffer()),
+      new_connection->get_endpoint(),
       boost::bind(
-          &server_udp::handle_receive, this,
+          &server_udp::handle_receive,
+          this,
+          new_connection,
           boost::asio::placeholders::error,
           boost::asio::placeholders::bytes_transferred
       )
@@ -72,7 +121,7 @@ void server_udp::send_response(
       endpoint,
       boost::bind(
         &server_udp::handle_send,
-        this,
+        shared_from_this(),
         boost::asio::placeholders::error,
         boost::asio::placeholders::bytes_transferred
       )
@@ -80,6 +129,7 @@ void server_udp::send_response(
 }
 
 void server_udp::handle_receive(
+    boost::shared_ptr<connection_udp> new_connection,
     const boost::system::error_code& error,
     std::size_t bytes_transferred
 ) {
@@ -87,8 +137,8 @@ void server_udp::handle_receive(
   {
     log::write(log::LEVEL_DEBUG, "UDP Server received %zu bytes", bytes_transferred);
 
-    boost::shared_ptr<command_udp> cmd(new command_udp(shared_from_this(), _remote_endpoint));
-    _thread_pool->run(cmd);
+    new_connection->set_server(shared_from_this());
+    _thread_pool->run(new_connection);
 
     start_receive();
   }

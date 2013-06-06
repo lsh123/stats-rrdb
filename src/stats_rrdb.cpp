@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <string>
+#include <time.h>
 
 #include <boost/shared_ptr.hpp>
 
@@ -21,6 +22,9 @@ int main(int argc, char ** argv)
 {
   try
   {
+    // init
+    srand(time(NULL));
+
     // load config
     boost::shared_ptr<config> cfg(new config());
     if(!cfg->init(argc, argv)) {

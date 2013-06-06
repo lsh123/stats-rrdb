@@ -44,6 +44,10 @@ bool config::init(int argc, char ** argv)
 
       // server
       ("server.thread_pool_size",      value<std::size_t>(), "number of worker threads (default: 10)")
+
+      ("server.tcp_address",           value<std::string>(), "tcp listener address (default: 0.0.0.0)")
+      ("server.tcp_port",              value<int>(),         "tcp listener port (default: 9876)")
+
       ("server.udp_address",           value<std::string>(), "udp listener address (default: 0.0.0.0)")
       ("server.udp_port",              value<int>(),         "udp listener port (default: 9876)")
       ("server.udp_max_message_size",  value<std::size_t>(), "udp max message size in bytes (default: 2048)")

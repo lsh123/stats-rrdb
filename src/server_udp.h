@@ -19,12 +19,17 @@
 class config;
 class thread_pool;
 
-class server_udp : public boost::enable_shared_from_this<server_udp>
+class connection_udp;
+
+class server_udp :
+    public boost::enable_shared_from_this<server_udp>
 {
+  friend class connection_udp;
+
 public:
   server_udp(
-      boost::shared_ptr<thread_pool> thread_pool,
       boost::asio::io_service& io_service,
+      boost::shared_ptr<thread_pool> thread_pool,
       boost::shared_ptr<config> config
   );
   virtual ~server_udp();
@@ -36,8 +41,9 @@ public:
    const std::string & message
   );
 
-private:
+protected:
   void handle_receive(
+    boost::shared_ptr<connection_udp> new_connection,
     const boost::system::error_code & error,
     std::size_t bytes_transferred
   );
@@ -47,10 +53,9 @@ private:
   );
 
 private:
-  boost::shared_ptr<thread_pool> _thread_pool;
+  boost::shared_ptr<thread_pool>                  _thread_pool;
   boost::shared_ptr<boost::asio::ip::udp::socket> _socket;
-  boost::asio::ip::udp::endpoint _remote_endpoint;
-  std::vector<char>              _recv_buffer;
+  std::size_t                                     _buffer_size;
 }; // server_udp
 
 #endif /* SERVER_UDP_H_ */

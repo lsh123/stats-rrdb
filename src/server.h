@@ -16,7 +16,9 @@
 // forward
 class config;
 class thread_pool;
+
 class server_udp;
+class server_tcp;
 
 class server {
 public:
@@ -29,10 +31,11 @@ public:
 private:
   boost::shared_ptr<config>      _config;
   boost::shared_ptr<thread_pool> _thread_pool;
+
   boost::shared_ptr<server_udp>  _server_udp;
+  boost::shared_ptr<server_tcp>  _server_tcp;
 
   boost::asio::io_service        _io_service;
-
 }; // class server
 
 #endif /* SERVER_H_ */
