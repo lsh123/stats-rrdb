@@ -10,16 +10,16 @@
 #include "config.h"
 #include "thread_pool.h"
 
+#include "rrdb.h"
 #include "server_udp.h"
 #include "server_tcp.h"
 
-server::server(boost::shared_ptr<config> config) :
-  _config(config)
+server::server(boost::shared_ptr<config> config)
 {
   // init
-  _thread_pool.reset(new thread_pool(config));
-  _server_udp.reset(new server_udp(_io_service, _thread_pool, config));
-  _server_tcp.reset(new server_tcp(_io_service, _thread_pool, config));
+  _rrdb.reset(new rrdb());
+  _server_udp.reset(new server_udp(_io_service, _rrdb, config));
+  _server_tcp.reset(new server_tcp(_io_service, _rrdb, config));
 }
 
 server::~server()

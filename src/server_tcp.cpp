@@ -70,24 +70,26 @@ private:
 
 server_tcp::server_tcp(
     boost::asio::io_service& io_service,
-    boost::shared_ptr<thread_pool> thread_pool,
+    boost::shared_ptr<rrdb> rrdb,
     boost::shared_ptr<config> config
-) :
-  _thread_pool(thread_pool)
+)
 {
   // load configs
-  std::string tcp_address = config->get<std::string>("server.tcp_address", "0.0.0.0");
-  int         tcp_port    = config->get<int>("server.tcp_port", 9876);
-  _buffer_size            = config->get<std::size_t>("server.tcp_max_message_size", 4096);
+  _address     = config->get<std::string>("server_tcp.address", "0.0.0.0");
+  _port        = config->get<int>("server_tcp.port", 9876);
+  _buffer_size = config->get<std::size_t>("server_tcp.max_message_size", 4096);
 
-  // create
-  _acceptor.reset(new tcp::acceptor(io_service, tcp::endpoint(address_v4::from_string(tcp_address), tcp_port)));
+  // create threads
+  _thread_pool.reset(new thread_pool(config->get<std::size_t>("server_tcp.thread_pool_size", 5)));
+
+  // create socket
+  _acceptor.reset(new tcp::acceptor(io_service, tcp::endpoint(address_v4::from_string(_address), _port)));
   if(!_acceptor->is_open()) {
-      throw exception("Unable to listen to TCP %s:%d", tcp_address.c_str(), tcp_port);
+      throw exception("Unable to listen to TCP %s:%d", _address.c_str(), _port);
   }
 
   // done
-  log::write(log::LEVEL_INFO, "Listening to TCP %s:%d", tcp_address.c_str(), tcp_port);
+  log::write(log::LEVEL_INFO, "Listening to TCP %s:%d", _address.c_str(), _port);
 }
 
 server_tcp::~server_tcp()

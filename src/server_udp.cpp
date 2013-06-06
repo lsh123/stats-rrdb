@@ -71,24 +71,26 @@ private:
 
 server_udp::server_udp(
     boost::asio::io_service& io_service,
-    boost::shared_ptr<thread_pool> thread_pool,
+    boost::shared_ptr<rrdb> rrdb,
     boost::shared_ptr<config> config
-) :
-  _thread_pool(thread_pool)
+)
 {
   // load configs
-  std::string udp_address = config->get<std::string>("server.udp_address", "0.0.0.0");
-  int         udp_port    = config->get<int>("server.udp_port", 9876);
-  _buffer_size            = config->get<std::size_t>("server.udp_max_message_size", 2048);
+  _address     = config->get<std::string>("server_udp.address", "0.0.0.0");
+  _port        = config->get<int>("server_udp.port", 9876);
+  _buffer_size = config->get<std::size_t>("server_udp.max_message_size", 2048);
 
-  // create
-  _socket.reset(new udp::socket(io_service, udp::endpoint(address_v4::from_string(udp_address), udp_port)));
+  // create threads
+  _thread_pool.reset(new thread_pool(config->get<std::size_t>("server_udp.thread_pool_size", 5)));
+
+  // create socket
+  _socket.reset(new udp::socket(io_service, udp::endpoint(address_v4::from_string(_address), _port)));
   if(!_socket->is_open()) {
-      throw exception("Unable to listen to UDP %s:%d", udp_address.c_str(), udp_port);
+      throw exception("Unable to listen to UDP %s:%d", _address.c_str(), _port);
   }
 
   // done
-  log::write(log::LEVEL_INFO, "Listening to UDP %s:%d", udp_address.c_str(), udp_port);
+  log::write(log::LEVEL_INFO, "Listening to UDP %s:%d", _address.c_str(), _port);
 }
 
 server_udp::~server_udp()

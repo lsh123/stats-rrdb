@@ -16,7 +16,7 @@
 
 class config;
 class thread_pool;
-
+class rrdb;
 class connection_tcp;
 
 class server_tcp :
@@ -27,7 +27,7 @@ class server_tcp :
 public:
   server_tcp(
       boost::asio::io_service& io_service,
-      boost::shared_ptr<thread_pool> thread_pool,
+      boost::shared_ptr<rrdb> rrdb,
       boost::shared_ptr<config> config
   );
   virtual ~server_tcp();
@@ -45,8 +45,12 @@ protected:
 
 private:
   boost::shared_ptr<thread_pool>                    _thread_pool;
+  boost::shared_ptr<rrdb>                           _rrdb;
   boost::shared_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
-  std::size_t                                       _buffer_size;
+
+  std::string  _address;
+  int          _port;
+  std::size_t  _buffer_size;
 }; // server_tcp
 
 #endif /* SERVER_TCP_H_ */

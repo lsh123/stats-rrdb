@@ -42,17 +42,17 @@ bool config::init(int argc, char ** argv)
       ("log.destination", value<std::string>(),    "log destination: stderr, syslog, file name (default: stderr)")
       ("log.time_format", value<std::string>(),    "log time format, see boost date/time docs: (default: %m/%d/%Y %H:%M:%S)")
 
-      // server
-      ("server.thread_pool_size",      value<std::size_t>(), "number of worker threads (default: 10)")
+      // server_tcp
+      ("server_tcp.address",           value<std::string>(), "tcp listener address (default: 0.0.0.0)")
+      ("server_tcp.port",              value<int>(),         "tcp listener port (default: 9876)")
+      ("server_tcp.max_message_size",  value<std::size_t>(), "tcp max message size in bytes (default: 4096)")
+      ("server_tcp.thread_pool_size",  value<std::size_t>(), "tcp server number of worker threads (default: 10)")
 
-      ("server.tcp_address",           value<std::string>(), "tcp listener address (default: 0.0.0.0)")
-      ("server.tcp_port",              value<int>(),         "tcp listener port (default: 9876)")
-      ("server.tcp_max_message_size",  value<std::size_t>(), "tcp max message size in bytes (default: 4096)")
-
-      ("server.udp_address",           value<std::string>(), "udp listener address (default: 0.0.0.0)")
-      ("server.udp_port",              value<int>(),         "udp listener port (default: 9876)")
-      ("server.udp_max_message_size",  value<std::size_t>(), "udp max message size in bytes (default: 2048)")
-
+      // server_udp
+      ("server_udp.address",           value<std::string>(), "udp listener address (default: 0.0.0.0)")
+      ("server_udp.port",              value<int>(),         "udp listener port (default: 9876)")
+      ("server_udp.max_message_size",  value<std::size_t>(), "udp max message size in bytes (default: 2048)")
+      ("server_udp.thread_pool_size",  value<std::size_t>(), "udp server number of worker threads (default: 5)")
   ;
 
   // parse command line

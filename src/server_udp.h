@@ -18,7 +18,7 @@
 
 class config;
 class thread_pool;
-
+class rrdb;
 class connection_udp;
 
 class server_udp :
@@ -29,7 +29,7 @@ class server_udp :
 public:
   server_udp(
       boost::asio::io_service& io_service,
-      boost::shared_ptr<thread_pool> thread_pool,
+      boost::shared_ptr<rrdb> rrdb,
       boost::shared_ptr<config> config
   );
   virtual ~server_udp();
@@ -54,8 +54,12 @@ protected:
 
 private:
   boost::shared_ptr<thread_pool>                  _thread_pool;
+  boost::shared_ptr<rrdb>                         _rrdb;
   boost::shared_ptr<boost::asio::ip::udp::socket> _socket;
-  std::size_t                                     _buffer_size;
+
+  std::string  _address;
+  int          _port;
+  std::size_t  _buffer_size;
 }; // server_udp
 
 #endif /* SERVER_UDP_H_ */

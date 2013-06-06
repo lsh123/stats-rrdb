@@ -17,6 +17,7 @@
 class config;
 class thread_pool;
 
+class rrdb;
 class server_udp;
 class server_tcp;
 
@@ -29,9 +30,7 @@ public:
   void run();
 
 private:
-  boost::shared_ptr<config>      _config;
-  boost::shared_ptr<thread_pool> _thread_pool;
-
+  boost::shared_ptr<rrdb>        _rrdb;
   boost::shared_ptr<server_udp>  _server_udp;
   boost::shared_ptr<server_tcp>  _server_tcp;
 

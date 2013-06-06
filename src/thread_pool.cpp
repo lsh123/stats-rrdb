@@ -7,16 +7,13 @@
 
 #include "exception.h"
 #include "log.h"
-#include "config.h"
 #include "thread_pool.h"
 
-thread_pool::thread_pool(boost::shared_ptr<config> config) :
+thread_pool::thread_pool(std::size_t pool_size) :
    _work(_io_service),
+   _pool_size(pool_size),
    _used_threads(0)
 {
-  // load configs
-  _pool_size = config->get<std::size_t>("server.thread_pool_size", 10);
-
   // init
   for(std::size_t ii = 0; ii < _pool_size; ++ii) {
       _threads.create_thread(boost::bind(&boost::asio::io_service::run, &_io_service));

@@ -13,7 +13,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/detail/atomic_count.hpp>
 
-class config;
 
 class thread_pool_task
 {
@@ -24,7 +23,7 @@ public:
 class thread_pool
 {
 public:
-  thread_pool(boost::shared_ptr<config> config);
+  thread_pool(std::size_t pool_size);
   virtual ~thread_pool();
 
   void run(boost::shared_ptr<thread_pool_task> task);
@@ -33,7 +32,7 @@ private:
   void wrap_task_run(boost::shared_ptr<thread_pool_task> task);
 
 private:
-  boost::asio::io_service     _io_service;
+  boost::asio::io_service       _io_service;
   boost::asio::io_service::work _work;
   boost::thread_group           _threads;
   boost::detail::atomic_count   _used_threads;
