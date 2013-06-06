@@ -33,14 +33,20 @@ public:
   virtual ~server_tcp();
 
   void start_accept();
+  void send_response(
+      boost::asio::ip::tcp::socket & socket,
+      const std::string & message
+  );
 
 protected:
   void handle_accept(boost::shared_ptr<connection_tcp> new_connection, const boost::system::error_code& error);
+  void handle_read(boost::shared_ptr<connection_tcp> new_connection, const boost::system::error_code& error, std::size_t bytes_transferred);
   void handle_write(const boost::system::error_code& error, std::size_t bytes_transferred);
 
 private:
-  boost::shared_ptr<thread_pool>                      _thread_pool;
-  boost::shared_ptr<boost::asio::ip::tcp::acceptor>   _acceptor;
+  boost::shared_ptr<thread_pool>                    _thread_pool;
+  boost::shared_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
+  std::size_t                                       _buffer_size;
 }; // server_tcp
 
 #endif /* SERVER_TCP_H_ */

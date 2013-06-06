@@ -26,8 +26,9 @@ class connection_tcp:
     public boost::enable_shared_from_this<connection_tcp>
 {
 public:
-  connection_tcp(boost::asio::io_service& io_service) :
-    _socket(io_service)
+  connection_tcp(boost::asio::io_service& io_service, std::size_t buffer_size) :
+    _socket(io_service),
+    _buffer(buffer_size)
   {
   }
 
@@ -40,6 +41,11 @@ public:
     return _socket;
   }
 
+  std::vector<char> & get_buffer()
+  {
+    return _buffer;
+  }
+
   void set_server(boost::shared_ptr<server_tcp> server_tcp)
   {
     _server_tcp = server_tcp;
@@ -48,20 +54,17 @@ public:
 public:
   // thread_pool_task
   void run() {
-    boost::asio::async_write(
-        _socket,
-        boost::asio::buffer("test"),
-        boost::bind(
-            &server_tcp::handle_write,
-            _server_tcp,
-            boost::asio::placeholders::error,
-            boost::asio::placeholders::bytes_transferred
-        )
-    );
+    // TODO: test
+    std::string str(_buffer.begin(), _buffer.end());
+    log::write(log::LEVEL_DEBUG, "TCP Server received %zu bytes buffer: %s", str.size(), str.c_str());
+
+    // done
+    _server_tcp->send_response(_socket, "OK");
   }
 
 private:
-  tcp::socket _socket;
+  tcp::socket       _socket;
+  std::vector<char> _buffer;
   boost::shared_ptr<server_tcp> _server_tcp;
 }; // class connection_tcp
 
@@ -73,8 +76,9 @@ server_tcp::server_tcp(
   _thread_pool(thread_pool)
 {
   // load configs
-  std::string tcp_address          = config->get<std::string>("server.tcp_address", "0.0.0.0");
-  int         tcp_port             = config->get<int>("server.tcp_port", 9876);
+  std::string tcp_address = config->get<std::string>("server.tcp_address", "0.0.0.0");
+  int         tcp_port    = config->get<int>("server.tcp_port", 9876);
+  _buffer_size            = config->get<std::size_t>("server.tcp_max_message_size", 4096);
 
   // create
   _acceptor.reset(new tcp::acceptor(io_service, tcp::endpoint(address_v4::from_string(tcp_address), tcp_port)));
@@ -92,7 +96,7 @@ server_tcp::~server_tcp()
 
 void server_tcp::start_accept()
 {
-  boost::shared_ptr<connection_tcp> new_connection(new connection_tcp(_acceptor->io_service()));
+  boost::shared_ptr<connection_tcp> new_connection(new connection_tcp(_acceptor->io_service(), _buffer_size));
 
   _acceptor->async_accept(
       new_connection->get_socket(),
@@ -118,12 +122,60 @@ void server_tcp::handle_accept(
   // log
   log::write(log::LEVEL_DEBUG, "TCP Server accepted new connection");
 
-  // offload task for processing to the buffer pool
-  new_connection->set_server(shared_from_this());
-  _thread_pool->run(new_connection);
+  // start async read
+  async_read(
+      new_connection->get_socket(),
+      boost::asio::buffer(new_connection->get_buffer()),
+      boost::bind(
+          &server_tcp::handle_read,
+          this,
+          new_connection,
+          boost::asio::placeholders::error,
+          boost::asio::placeholders::bytes_transferred
+      )
+  );
 
   // next one, please
   start_accept();
+}
+
+void server_tcp::handle_read(
+    boost::shared_ptr<connection_tcp> new_connection,
+    const boost::system::error_code& error,
+    std::size_t bytes_transferred
+) {
+  // any errors?
+  if (error && error != boost::asio::error::eof) {
+      log::write(log::LEVEL_ERROR, "TCP Server read failed - %d: %s", error.value(), error.message().c_str());
+      return;
+  } else if(error != boost::asio::error::eof) {
+      log::write(log::LEVEL_ERROR, "TCP Server received request larger than the buffer size %zu bytes, consider increasing server.tcp_max_message_size config parameter", _buffer_size);
+      return;
+  }
+
+  // log
+  log::write(log::LEVEL_DEBUG, "TCP Server read %zu bytes", bytes_transferred);
+
+  // off-load task for processing to the buffer pool
+  new_connection->get_buffer().resize(bytes_transferred);
+  new_connection->set_server(shared_from_this());
+  _thread_pool->run(new_connection);
+}
+
+void server_tcp::send_response(
+     boost::asio::ip::tcp::socket & socket,
+     const std::string & message
+) {
+  boost::asio::async_write(
+      socket,
+      boost::asio::buffer(message),
+      boost::bind(
+          &server_tcp::handle_write,
+          this,
+          boost::asio::placeholders::error,
+          boost::asio::placeholders::bytes_transferred
+      )
+  );
 }
 
 void server_tcp::handle_write(
@@ -131,7 +183,7 @@ void server_tcp::handle_write(
     std::size_t bytes_transferred
 ) {
   // any errors?
-  if (!error) {
+  if (error) {
     log::write(log::LEVEL_ERROR, "TCP Server write failed - %d: %s", error.value(), error.message().c_str());
   }
 

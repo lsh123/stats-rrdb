@@ -11,6 +11,8 @@ if (!$fp) {
 
 fwrite($fp, $input);
 echo "Wrote:\n{$input}\n";
+stream_socket_shutdown($fp, STREAM_SHUT_WR);
+
 echo "Reply:\n";
 while (!feof($fp)) {
    echo fgets($fp, $buf_size);

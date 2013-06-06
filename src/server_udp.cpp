@@ -41,7 +41,7 @@ public:
     return _remote_endpoint;
   }
 
-  std::vector<char>  & get_buffer()
+  std::vector<char> & get_buffer()
   {
     return _buffer;
   }
@@ -54,10 +54,11 @@ public:
 public:
   // thread_pool_task
   void run() {
-    // HACK - testing
-    // sleep(rand() % 3);
+    // TODO: test
+    std::string str(_buffer.begin(), _buffer.end());
+    log::write(log::LEVEL_DEBUG, "UDP Server received %zu bytes buffer: %s", str.size(), str.c_str());
 
-    log::write(log::LEVEL_DEBUG, "UDP Server received %zu bytes buffer", _buffer.size());
+    // done
     _server_udp->send_response(_remote_endpoint, "OK");
   }
 
@@ -112,23 +113,6 @@ void server_udp::start_receive()
   );
 }
 
-void server_udp::send_response(
-   const boost::asio::ip::udp::endpoint & endpoint,
-   const std::string & message
-) {
-
-  _socket->async_send_to(
-      boost::asio::buffer(message),
-      endpoint,
-      boost::bind(
-        &server_udp::handle_send,
-        shared_from_this(),
-        boost::asio::placeholders::error,
-        boost::asio::placeholders::bytes_transferred
-      )
-  );
-}
-
 void server_udp::handle_receive(
     boost::shared_ptr<connection_udp> new_connection,
     const boost::system::error_code& error,
@@ -150,6 +134,23 @@ void server_udp::handle_receive(
 
   // next one, please
   start_receive();
+}
+
+
+void server_udp::send_response(
+   const boost::asio::ip::udp::endpoint & endpoint,
+   const std::string & message
+) {
+  _socket->async_send_to(
+      boost::asio::buffer(message),
+      endpoint,
+      boost::bind(
+        &server_udp::handle_send,
+        shared_from_this(),
+        boost::asio::placeholders::error,
+        boost::asio::placeholders::bytes_transferred
+      )
+  );
 }
 
 void server_udp::handle_send(
