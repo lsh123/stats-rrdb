@@ -105,22 +105,39 @@ void server_tcp::start_accept()
   );
 }
 
-void server_tcp::handle_accept(boost::shared_ptr<connection_tcp> new_connection, const boost::system::error_code& error)
-{
-  if (!error) {
-    log::write(log::LEVEL_DEBUG, "TCP Server accepted new connection");
-
-    new_connection->set_server(shared_from_this());
-    _thread_pool->run(new_connection);
-
-    start_accept();
+void server_tcp::handle_accept(
+    boost::shared_ptr<connection_tcp> new_connection,
+    const boost::system::error_code& error
+) {
+  // any errors?
+  if (error) {
+      log::write(log::LEVEL_ERROR, "TCP Server accept failed - %d: %s", error.value(), error.message().c_str());
+      return;
   }
+
+  // log
+  log::write(log::LEVEL_DEBUG, "TCP Server accepted new connection");
+
+  // offload task for processing to the buffer pool
+  new_connection->set_server(shared_from_this());
+  _thread_pool->run(new_connection);
+
+  // next one, please
+  start_accept();
 }
 
-void server_tcp::handle_write(const boost::system::error_code& error, std::size_t bytes_transferred)
-{
+void server_tcp::handle_write(
+    const boost::system::error_code& error,
+    std::size_t bytes_transferred
+) {
+  // any errors?
   if (!error) {
-      log::write(log::LEVEL_DEBUG, "TCP Server sent %zu bytes", bytes_transferred);
+    log::write(log::LEVEL_ERROR, "TCP Server write failed - %d: %s", error.value(), error.message().c_str());
   }
+
+  // log
+  log::write(log::LEVEL_DEBUG, "TCP Server sent %zu bytes", bytes_transferred);
+
+  // do nothing
 }
 

@@ -57,6 +57,7 @@ public:
     // HACK - testing
     // sleep(rand() % 3);
 
+    log::write(log::LEVEL_DEBUG, "UDP Server received %zu bytes buffer", _buffer.size());
     _server_udp->send_response(_remote_endpoint, "OK");
   }
 
@@ -133,20 +134,35 @@ void server_udp::handle_receive(
     const boost::system::error_code& error,
     std::size_t bytes_transferred
 ) {
-  if (!error || error == boost::asio::error::message_size)
-  {
-    log::write(log::LEVEL_DEBUG, "UDP Server received %zu bytes", bytes_transferred);
-
-    new_connection->set_server(shared_from_this());
-    _thread_pool->run(new_connection);
-
-    start_receive();
+  // any errors?
+  if (error) {
+      log::write(log::LEVEL_ERROR, "UDP Server receive failed - %d: %s", error.value(), error.message().c_str());
+      return;
   }
+
+  // log
+  log::write(log::LEVEL_DEBUG, "UDP Server received %zu bytes", bytes_transferred);
+
+  // offload task for processing to the buffer pool
+  new_connection->get_buffer().resize(bytes_transferred);
+  new_connection->set_server(shared_from_this());
+  _thread_pool->run(new_connection);
+
+  // next one, please
+  start_receive();
 }
 
 void server_udp::handle_send(
     const boost::system::error_code& error,
     std::size_t bytes_transferred
 ) {
+  // any errors?
+  if (error) {
+      log::write(log::LEVEL_ERROR, "UDP Server send failed - %d: %s", error.value(), error.message().c_str());
+  }
+
+  // log
   log::write(log::LEVEL_DEBUG, "UDP Server sent %zu bytes", bytes_transferred);
+
+  // do nothing for now
 }
