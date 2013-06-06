@@ -52,6 +52,10 @@ protected:
     std::size_t bytes_transferred
   );
 
+  inline boost::shared_ptr<rrdb> get_rrdb() const {
+    return _rrdb;
+  }
+
 private:
   boost::shared_ptr<thread_pool>                  _thread_pool;
   boost::shared_ptr<rrdb>                         _rrdb;
@@ -60,6 +64,7 @@ private:
   std::string  _address;
   int          _port;
   std::size_t  _buffer_size;
+  bool         _send_response;
 }; // server_udp
 
 #endif /* SERVER_UDP_H_ */

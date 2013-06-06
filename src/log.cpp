@@ -69,6 +69,8 @@ std::string log::format_time()
 
 void log::init(const config & config)
 {
+  log::write(log::LEVEL_INFO, "Configuring log file");
+
   // log level
   std::string log_level = config.get<std::string>("log.level", log::level2str(log::_log_level));
   log::_log_level = log::str2level(log_level);
@@ -78,6 +80,9 @@ void log::init(const config & config)
 
   // log time format
   log::_log_time_format = config.get<std::string>("log.time_format", log::_log_time_format);
+
+  //
+  log::write(log::LEVEL_INFO, "Configured log file");
 }
 
 void log::write(enum levels level, const char * msg, va_list args)

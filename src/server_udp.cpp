@@ -15,7 +15,7 @@
 #include "log.h"
 #include "config.h"
 #include "thread_pool.h"
-
+#include "rrdb.h"
 
 using namespace boost::asio::ip;
 
@@ -54,12 +54,16 @@ public:
 public:
   // thread_pool_task
   void run() {
-    // TODO: test
-    std::string str(_buffer.begin(), _buffer.end());
-    log::write(log::LEVEL_DEBUG, "UDP Server received %zu bytes buffer: %s", str.size(), str.c_str());
-
-    // done
-    _server_udp->send_response(_remote_endpoint, "OK");
+    try {
+        _server_udp->get_rrdb()->execute_short_command(_buffer);
+        _server_udp->send_response(_remote_endpoint, "OK");
+    } catch(std::exception & e) {
+        log::write(log::LEVEL_ERROR, "Exception executing short rrdb command: %s", e.what());
+        _server_udp->send_response(_remote_endpoint, "ERROR");
+    } catch(...) {
+        log::write(log::LEVEL_ERROR, "Unknown exception executing short rrdb command");
+        _server_udp->send_response(_remote_endpoint, "ERROR");
+    }
   }
 
 private:
@@ -73,12 +77,15 @@ server_udp::server_udp(
     boost::asio::io_service& io_service,
     boost::shared_ptr<rrdb> rrdb,
     boost::shared_ptr<config> config
-)
+) :
+  _rrdb(rrdb),
+  _address(config->get<std::string>("server_udp.address", "0.0.0.0")),
+  _port(config->get<int>("server_udp.port", 9876)),
+  _buffer_size(config->get<std::size_t>("server_udp.max_message_size", 2048)),
+  _send_response(config->get<bool>("server_udp.send_response", false))
 {
-  // load configs
-  _address     = config->get<std::string>("server_udp.address", "0.0.0.0");
-  _port        = config->get<int>("server_udp.port", 9876);
-  _buffer_size = config->get<std::size_t>("server_udp.max_message_size", 2048);
+  // log
+  log::write(log::LEVEL_INFO, "Starting UDP server on %s:%d", _address.c_str(), _port);
 
   // create threads
   _thread_pool.reset(new thread_pool(config->get<std::size_t>("server_udp.thread_pool_size", 5)));
@@ -143,6 +150,12 @@ void server_udp::send_response(
    const boost::asio::ip::udp::endpoint & endpoint,
    const std::string & message
 ) {
+
+  // do we bother to send UDP responses?
+  if(!_send_response) {
+      return;
+  }
+
   _socket->async_send_to(
       boost::asio::buffer(message),
       endpoint,

@@ -16,10 +16,14 @@
 
 server::server(boost::shared_ptr<config> config)
 {
+  log::write(log::LEVEL_INFO, "Starting the server");
+
   // init
-  _rrdb.reset(new rrdb());
+  _rrdb.reset(new rrdb(config));
   _server_udp.reset(new server_udp(_io_service, _rrdb, config));
   _server_tcp.reset(new server_tcp(_io_service, _rrdb, config));
+
+  log::write(log::LEVEL_INFO, "Started the server");
 }
 
 server::~server()

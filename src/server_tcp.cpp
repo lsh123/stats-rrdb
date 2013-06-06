@@ -15,6 +15,7 @@
 #include "log.h"
 #include "config.h"
 #include "thread_pool.h"
+#include "rrdb.h"
 
 using namespace boost::asio::ip;
 
@@ -54,12 +55,24 @@ public:
 public:
   // thread_pool_task
   void run() {
-    // TODO: test
-    std::string str(_buffer.begin(), _buffer.end());
-    log::write(log::LEVEL_DEBUG, "TCP Server received %zu bytes buffer: %s", str.size(), str.c_str());
+    try {
+        rrdb::t_result_buffers res = _server_tcp->get_rrdb()->execute_long_command(_buffer);
+        _server_tcp->send_response(_socket, res);
+    } catch(std::exception & e) {
+        log::write(log::LEVEL_ERROR, "Exception executing long rrdb command: %s", e.what());
+        _server_tcp->send_response(_socket, this->get_error_buffers("ERROR"));
+    } catch(...) {
+        log::write(log::LEVEL_ERROR, "Unknown exception long short rrdb command");
+        _server_tcp->send_response(_socket, this->get_error_buffers("ERROR"));
+    }
+  }
 
-    // done
-    _server_tcp->send_response(_socket, "OK");
+private:
+  rrdb::t_result_buffers get_error_buffers(const std::string & error_msg)
+  {
+    rrdb::t_result_buffers res;
+    res.push_back(boost::asio::buffer(error_msg));
+    return res;
   }
 
 private:
@@ -72,12 +85,14 @@ server_tcp::server_tcp(
     boost::asio::io_service& io_service,
     boost::shared_ptr<rrdb> rrdb,
     boost::shared_ptr<config> config
-)
+) :
+  _rrdb(rrdb),
+  _address(config->get<std::string>("server_tcp.address", "0.0.0.0")),
+  _port(config->get<int>("server_tcp.port", 9876)),
+  _buffer_size(config->get<std::size_t>("server_tcp.max_message_size", 4096))
 {
-  // load configs
-  _address     = config->get<std::string>("server_tcp.address", "0.0.0.0");
-  _port        = config->get<int>("server_tcp.port", 9876);
-  _buffer_size = config->get<std::size_t>("server_tcp.max_message_size", 4096);
+  // log
+  log::write(log::LEVEL_INFO, "Starting TCP server on %s:%d", _address.c_str(), _port);
 
   // create threads
   _thread_pool.reset(new thread_pool(config->get<std::size_t>("server_tcp.thread_pool_size", 5)));
@@ -166,11 +181,16 @@ void server_tcp::handle_read(
 
 void server_tcp::send_response(
      boost::asio::ip::tcp::socket & socket,
-     const std::string & message
+     const std::vector<boost::asio::const_buffer> & buffers
 ) {
+
+  if(buffers.size() == 0) {
+      return;
+  }
+
   boost::asio::async_write(
       socket,
-      boost::asio::buffer(message),
+      buffers,
       boost::bind(
           &server_tcp::handle_write,
           this,

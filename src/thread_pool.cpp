@@ -14,6 +14,8 @@ thread_pool::thread_pool(std::size_t pool_size) :
    _pool_size(pool_size),
    _used_threads(0)
 {
+  log::write(log::LEVEL_INFO, "Creating thread pool");
+
   // init
   for(std::size_t ii = 0; ii < _pool_size; ++ii) {
       _threads.create_thread(boost::bind(&boost::asio::io_service::run, &_io_service));

@@ -9,29 +9,27 @@
 #define RRDB_H_
 
 #include <string>
+
+#include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/unordered_map.hpp>
 
-class rrdb_series {
-
-  std::string _name;
-}; // rrdb_series
+// forward
+class config;
 
 class rrdb
 {
 public:
-  rrdb();
+  typedef std::vector<boost::asio::const_buffer> t_result_buffers;
+
+public:
+  rrdb(boost::shared_ptr<config> config);
   virtual ~rrdb();
 
-  boost::shared_ptr<rrdb_series> getMetric(const std::string & name);
-  boost::shared_ptr<rrdb_series> addMetric(const std::string & name, const std::string & definition);
-  void delMetric(const std::string & name);
-
-  void load(const std::string & filename);
-  void save(const std::string & filename);
+  t_result_buffers execute_long_command(const std::vector<char> & buffer);
+  void execute_short_command(const std::vector<char> & buffer);
 
 private:
-  boost::unordered_map<std::string, boost::shared_ptr<rrdb_series> > _series;
 }; // class rrdb
 
 #endif /* RRDB_H_ */
