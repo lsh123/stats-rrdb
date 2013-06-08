@@ -27,7 +27,7 @@
  */
 typedef boost::uint64_t interval_t;
 
-interval_t interval_parse(std::string::const_iterator beg, std::string::const_iterator end);
+interval_t interval_parse(const std::string & str);
 std::string interval_write(const interval_t & interval);
 
 std::string interval_get_name(const interval_t & unit, const interval_t & val);

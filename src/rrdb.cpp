@@ -44,15 +44,11 @@ private:
 //
 //
 rrdb::rrdb(boost::shared_ptr<config> config) :
-  _path(config->get<std::string>("rrdb.path", "/var/lib/stats-rrdb"))
+  _path(config->get<std::string>("rrdb.path", "/var/lib/stats-rrdb")),
+  _flush_interval(interval_parse(config->get<std::string>("rrdb.flush_interval", "1 min"))),
+  _default_policy(retention_policy_parse(config->get<std::string>("rrdb.default_policy", "1 min FOR 1 day")))
 {
   log::write(log::LEVEL_INFO, "Starting rrdb");
-
-  std::string flush_interval = config->get<std::string>("rrdb.flush_interval", "1 min");
-  _flush_interval = interval_parse(flush_interval.begin(), flush_interval.end());
-
-  std::string default_policy = config->get<std::string>("rrdb.default_policy", "1 min FOR 1 day");
-  _default_policy = retention_policy_parse(default_policy.begin(), default_policy.end());
 
   log::write(log::LEVEL_INFO, "Started rrdb: path='%s'", _path.c_str());
   log::write(log::LEVEL_INFO, "Started rrdb: flush_interval='%s'", interval_write(_flush_interval).c_str());
@@ -66,20 +62,15 @@ rrdb::~rrdb()
 void rrdb::start()
 {
   statement statement;
-  std::string s;
 
   // TODO:
-  s = "create metric \"test\" KEEP 10 sec FOR 1 min, 1 min for 1 month;";
-  statement = statement_parse(s.begin(), s.end());
+  statement = statement_parse("CREATE METRIC \"TEST\" KEEP 10 SEC FOR 1 MIN, 1 MIN FOR 1 MONTH;");
   boost::apply_visitor(statement_execute_visitor(shared_from_this()), statement);
 
-  s = "SHOW metric \"test\";";
-  statement = statement_parse(s.begin(), s.end());
+  statement = statement_parse("SHOW metric \"test\";");
   boost::apply_visitor(statement_execute_visitor(shared_from_this()), statement);
 
-
-  s = "drop metric \"test\";";
-  statement = statement_parse(s.begin(), s.end());
+  statement = statement_parse("drop metric \"test\";");
   boost::apply_visitor(statement_execute_visitor(shared_from_this()), statement);
 }
 

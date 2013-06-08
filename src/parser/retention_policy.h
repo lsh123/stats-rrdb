@@ -24,7 +24,7 @@ typedef struct retention_policy_elem_
 } retention_policy_elem;
 typedef std::vector<retention_policy_elem> retention_policy;
 
-retention_policy retention_policy_parse(std::string::const_iterator beg, std::string::const_iterator end);
+retention_policy retention_policy_parse(const std::string & str);
 std::string retention_policy_write(const retention_policy & r_p);
 void retention_policy_validate(const retention_policy & r_p);
 

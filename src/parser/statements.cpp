@@ -27,3 +27,7 @@ statement statement_parse(std::string::const_iterator beg, std::string::const_it
   return ret;
 }
 
+statement statement_parse(const std::string & str)
+{
+  return statement_parse(str.begin(), str.end());
+}

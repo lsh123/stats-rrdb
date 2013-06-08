@@ -12,11 +12,13 @@
 #include "log.h"
 
 
-interval_t interval_parse(std::string::const_iterator beg, std::string::const_iterator end)
+interval_t interval_parse(const std::string & str)
 {
   interval_t ret;
   interval_grammar<std::string::const_iterator> grammar;
 
+  std::string::const_iterator beg = str.begin();
+  std::string::const_iterator end = str.end();
   phrase_parse(beg, end, grammar, ascii::space, ret);
   if (beg != end) {
       throw exception("Unable to parse the interval: " + std::string(beg, end));

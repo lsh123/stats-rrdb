@@ -59,6 +59,7 @@ typedef boost::variant<
     statement_show
 > statement;
 
+statement statement_parse(const std::string & str);
 statement statement_parse(std::string::const_iterator beg, std::string::const_iterator end);
 
 #endif /* STATEMENTS_H_ */
