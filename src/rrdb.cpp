@@ -10,11 +10,17 @@
 #include "config.h"
 #include "log.h"
 
-rrdb::rrdb(boost::shared_ptr<config> config)
+#include "parser/interval.h"
+
+rrdb::rrdb(boost::shared_ptr<config> config) :
+  _path(config->get<std::string>("rrdb.path", "/var/lib/stats-rrdb"))
 {
   log::write(log::LEVEL_INFO, "Starting rrdb");
 
-  log::write(log::LEVEL_INFO, "Started rrdb");
+  std::string flush_interval = config->get<std::string>("rrdb.flush_interval", "1 min");
+  _flush_interval = interval_parse(flush_interval.begin(), flush_interval.end());
+
+  log::write(log::LEVEL_INFO, "Started rrdb: path='%s', flush_interval='%s'", _path.c_str(), interval_write(_flush_interval).c_str());
 }
 
 rrdb::~rrdb()

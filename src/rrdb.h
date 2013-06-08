@@ -14,6 +14,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/unordered_map.hpp>
 
+#include "parser/interval.h"
+
 // forward
 class config;
 
@@ -30,6 +32,9 @@ public:
   void execute_short_command(const std::vector<char> & buffer);
 
 private:
+  // config
+  std::string    _path;
+  interval_t     _flush_interval;
 }; // class rrdb
 
 #endif /* RRDB_H_ */

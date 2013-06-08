@@ -8,6 +8,7 @@ statsrrdb_SOURCES= \
 	config.cpp \
 	exception.cpp \
 	log.cpp \
+	parser/interval.cpp \
 	rrdb.cpp \
 	server_tcp.cpp \
 	server_udp.cpp \

@@ -20,8 +20,8 @@
 
 int main(int argc, char ** argv)
 {
-  try
-  {
+
+  try {
     // init
     srand(time(NULL));
 
@@ -33,7 +33,7 @@ int main(int argc, char ** argv)
 
     boost::shared_ptr<server> main_server(new server(cfg));
     main_server->run();
-  } catch (std::exception& e) {
+  } catch (std::exception & e) {
     log::write(log::LEVEL_ERROR, "%s", e.what());
     return(1);
   } catch (...) {
