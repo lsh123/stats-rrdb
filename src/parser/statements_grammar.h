@@ -36,7 +36,7 @@ class statement_grammar:
 private:
   qi::rule < Iterator, statement(), ascii::space_type >        _start;
 
-  qi::rule < Iterator, int(), ascii::space_type >      _name;
+  qi::rule < Iterator, std::string(), ascii::space_type >      _name;
   retention_policy_grammar<Iterator>                           _policy;
 
   qi::rule < Iterator, statement(),        ascii::space_type > _statement;
@@ -51,8 +51,9 @@ public:
        qi::lexeme['"' >> +(ascii::char_ - '"') >> '"'] |
        qi::lexeme["'" >> +(ascii::char_ - "'") >> "'"]
     ;
-    _statement_create %=
+    _statement_create =
         nocaselit("create") >> nocaselit("metric") >> _name >> nocaselit("KEEP") >> _policy
+        [ qi::_val = phoenix::construct<statement_create>() ]
      ;
     _statement_drop =
         nocaselit("drop") >> nocaselit("metric") >> _name
