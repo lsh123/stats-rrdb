@@ -33,6 +33,10 @@ public:
 
   void start();
 
+  void create_metric(const std::string & name, const retention_policy & policy);
+  void drop_metric(const std::string & name);
+  retention_policy get_metric_policy(const std::string & name);
+
   t_result_buffers execute_long_command(const std::vector<char> & buffer);
   void execute_short_command(const std::vector<char> & buffer);
 

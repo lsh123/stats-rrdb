@@ -25,15 +25,15 @@ public:
 
   void operator()(const statement_create & st) const
   {
-    log::write(log::LEVEL_DEBUG, "Execure 'create': '%s' => '%s'", st._name.c_str(), retention_policy_write(st._policy).c_str());
+    _rrdb->create_metric(st._name, st._policy);
   }
   void operator()(const statement_drop & st) const
   {
-    log::write(log::LEVEL_DEBUG, "Execure 'drop': '%s'", st._name.c_str());
+    _rrdb->drop_metric(st._name);
   }
   void operator()(const statement_show & st) const
   {
-    log::write(log::LEVEL_DEBUG, "Execure 'show': '%s'", st._name.c_str());
+    _rrdb->get_metric_policy(st._name);
   }
 
 private:
@@ -81,6 +81,22 @@ void rrdb::start()
   s = "drop metric \"test\";";
   statement = statement_parse(s.begin(), s.end());
   boost::apply_visitor(statement_execute_visitor(shared_from_this()), statement);
+}
+
+void rrdb::create_metric(const std::string & name, const retention_policy & policy)
+{
+  log::write(log::LEVEL_INFO, "RRDB: create metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
+}
+
+void rrdb::drop_metric(const std::string & name)
+{
+  log::write(log::LEVEL_INFO, "RRDB: drop metric '%s'", name.c_str());
+}
+
+retention_policy rrdb::get_metric_policy(const std::string & name)
+{
+  log::write(log::LEVEL_DEBUG, "RRDB: get metric '%s'", name.c_str());
+  return retention_policy();
 }
 
 rrdb::t_result_buffers rrdb::execute_long_command(const std::vector<char> & buffer)
