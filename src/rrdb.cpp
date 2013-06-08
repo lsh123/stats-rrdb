@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include "log.h"
+#include "parser/statements.h"
 
 
 rrdb::rrdb(boost::shared_ptr<config> config) :
@@ -25,6 +26,11 @@ rrdb::rrdb(boost::shared_ptr<config> config) :
   log::write(log::LEVEL_INFO, "Started rrdb: path='%s'", _path.c_str());
   log::write(log::LEVEL_INFO, "Started rrdb: flush_interval='%s'", interval_write(_flush_interval).c_str());
   log::write(log::LEVEL_INFO, "Started rrdb: default_policy='%s'", retention_policy_write(_default_policy).c_str());
+
+  // TODO:
+  std::string s = "drop metric \"test\" ;";
+  statement statement;
+  statement = statement_parse(s.begin(), s.end());
 }
 
 rrdb::~rrdb()
@@ -34,6 +40,7 @@ rrdb::~rrdb()
 rrdb::t_result_buffers rrdb::execute_long_command(const std::vector<char> & buffer)
 {
   rrdb::t_result_buffers res;
+
   res.push_back(boost::asio::buffer("OK"));
   return res;
 }

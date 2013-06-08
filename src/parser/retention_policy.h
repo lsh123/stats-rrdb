@@ -11,13 +11,17 @@
 #include <vector>
 #include "interval.h"
 
-
+/**
+ * Retention policy string representation:
+ *
+ * <interval freq> FOR <interval duration> (, <interval freq> FOR <interval duration>)*
+ *
+ */
 typedef struct retention_policy_elem_
 {
   interval_t _freq;
   interval_t _duration;
 } retention_policy_elem;
-
 typedef std::vector<retention_policy_elem> retention_policy;
 
 retention_policy retention_policy_parse(std::string::const_iterator beg, std::string::const_iterator end);

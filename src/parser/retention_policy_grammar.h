@@ -36,10 +36,8 @@ public:
   retention_policy_grammar():
     base_type(_start)
   {
-    _elem %= _interval >> nocaselit("for") >> _interval;
-    _start = _elem [ push_back(qi::_val, qi::_1) ]
-        >> *(nocaselit(",") >> _elem [ push_back(qi::_val, qi::_1) ] )
-    ;
+    _elem  %= _interval >> nocaselit("for") >> _interval;
+    _start %= _elem  >> *( nocaselit(",") >> _elem );
 
     qi::on_error<qi::fail> (
         _start,

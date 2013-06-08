@@ -12,6 +12,7 @@ statsrrdb_SOURCES= \
 	parser/grammar.cpp \
 	parser/interval.cpp \
 	parser/retention_policy.cpp \
+	parser/statements.cpp \
 	server_tcp.cpp \
 	server_udp.cpp \
 	server.cpp \
