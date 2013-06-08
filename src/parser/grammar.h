@@ -14,6 +14,8 @@
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>
 
+#include <boost/fusion/include/adapt_struct.hpp>
+
 #include "exception.h"
 
 namespace spirit = boost::spirit;
@@ -24,6 +26,20 @@ namespace phoenix = boost::phoenix;
 using phoenix::at_c;
 using phoenix::push_back;
 
+//
+// No case
+//
+typedef boost::proto::result_of::deep_copy<
+    BOOST_TYPEOF(ascii::no_case[qi::lit(std::string())])
+>::type nocaselit_return_type;
+inline nocaselit_return_type nocaselit(const std::string& keyword)
+{
+    return boost::proto::deep_copy(ascii::no_case[qi::lit(keyword)]);
+}
+
+//
+// Error handler
+//
 struct grammar_error_handler_impl
 {
    template <class, class, class, class, class>
@@ -44,6 +60,7 @@ struct grammar_error_handler_impl
      throw exception(res.str());
    }
 };
-phoenix::function<grammar_error_handler_impl> grammar_error_handler;
+
+extern phoenix::function<grammar_error_handler_impl> grammar_error_handler;
 
 #endif /* INTERVAL_GRAMMAR_H_ */

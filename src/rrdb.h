@@ -15,6 +15,7 @@
 #include <boost/unordered_map.hpp>
 
 #include "parser/interval.h"
+#include "parser/retention_policy.h"
 
 // forward
 class config;
@@ -33,8 +34,9 @@ public:
 
 private:
   // config
-  std::string    _path;
-  interval_t     _flush_interval;
+  std::string      _path;
+  interval_t       _flush_interval;
+  retention_policy _default_policy;
 }; // class rrdb
 
 #endif /* RRDB_H_ */

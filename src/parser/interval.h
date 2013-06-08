@@ -10,7 +10,6 @@
 
 #include <string>
 #include <boost/cstdint.hpp>
-#include <boost/fusion/include/adapt_struct.hpp>
 
 #define INTERVAL_SEC    1
 #define INTERVAL_MIN    (60 * INTERVAL_SEC)

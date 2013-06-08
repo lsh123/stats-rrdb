@@ -12,9 +12,9 @@
 #include "log.h"
 
 
-boost::uint64_t interval_parse(std::string::const_iterator beg, std::string::const_iterator end)
+interval_t interval_parse(std::string::const_iterator beg, std::string::const_iterator end)
 {
-  boost::uint64_t ret;
+  interval_t ret;
   interval_grammar<std::string::const_iterator> grammar;
 
   phrase_parse(beg, end, grammar, ascii::space, ret);

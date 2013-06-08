@@ -8,8 +8,10 @@ statsrrdb_SOURCES= \
 	config.cpp \
 	exception.cpp \
 	log.cpp \
-	parser/interval.cpp \
 	rrdb.cpp \
+	parser/grammar.cpp \
+	parser/interval.cpp \
+	parser/retention_policy.cpp \
 	server_tcp.cpp \
 	server_udp.cpp \
 	server.cpp \

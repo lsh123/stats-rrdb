@@ -12,6 +12,8 @@
 #include "interval.h"
 #include "exception.h"
 
+#include "interval.h"
+
 template<typename Iterator>
 class interval_grammar:
     public qi::grammar < Iterator, interval_t(), ascii::space_type >
@@ -29,20 +31,20 @@ public:
           qi::ulong_            [ qi::_val = qi::_1 ]
           >>
           (
-             qi::lit("secs")    [ qi::_val *= INTERVAL_SEC ]
-           | qi::lit("sec")     [ qi::_val *= INTERVAL_SEC ]
-           | qi::lit("mins")    [ qi::_val *= INTERVAL_MIN ]
-           | qi::lit("min")     [ qi::_val *= INTERVAL_MIN ]
-           | qi::lit("hours")   [ qi::_val *= INTERVAL_HOUR ]
-           | qi::lit("hour")    [ qi::_val *= INTERVAL_HOUR ]
-           | qi::lit("days")    [ qi::_val *= INTERVAL_DAY ]
-           | qi::lit("day")     [ qi::_val *= INTERVAL_DAY ]
-           | qi::lit("weeks")   [ qi::_val *= INTERVAL_WEEK ]
-           | qi::lit("week")    [ qi::_val *= INTERVAL_WEEK ]
-           | qi::lit("months")  [ qi::_val *= INTERVAL_MONTH ]
-           | qi::lit("month")   [ qi::_val *= INTERVAL_MONTH ]
-           | qi::lit("years")   [ qi::_val *= INTERVAL_YEAR ]
-           | qi::lit("year")    [ qi::_val *= INTERVAL_YEAR ]
+             nocaselit("secs")    [ qi::_val *= INTERVAL_SEC ]
+           | nocaselit("sec")     [ qi::_val *= INTERVAL_SEC ]
+           | nocaselit("mins")    [ qi::_val *= INTERVAL_MIN ]
+           | nocaselit("min")     [ qi::_val *= INTERVAL_MIN ]
+           | nocaselit("hours")   [ qi::_val *= INTERVAL_HOUR ]
+           | nocaselit("hour")    [ qi::_val *= INTERVAL_HOUR ]
+           | nocaselit("days")    [ qi::_val *= INTERVAL_DAY ]
+           | nocaselit("day")     [ qi::_val *= INTERVAL_DAY ]
+           | nocaselit("weeks")   [ qi::_val *= INTERVAL_WEEK ]
+           | nocaselit("week")    [ qi::_val *= INTERVAL_WEEK ]
+           | nocaselit("months")  [ qi::_val *= INTERVAL_MONTH ]
+           | nocaselit("month")   [ qi::_val *= INTERVAL_MONTH ]
+           | nocaselit("years")   [ qi::_val *= INTERVAL_YEAR ]
+           | nocaselit("year")    [ qi::_val *= INTERVAL_YEAR ]
            | qi::eps            [ qi::_val *= INTERVAL_SEC ]
           )
      ;
