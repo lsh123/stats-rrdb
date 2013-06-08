@@ -31,6 +31,10 @@ public:
   {
     log::write(log::LEVEL_DEBUG, "Execure 'drop': '%s'", st._name.c_str());
   }
+  void operator()(const statement_show & st) const
+  {
+    log::write(log::LEVEL_DEBUG, "Execure 'show': '%s'", st._name.c_str());
+  }
 
 private:
     const boost::shared_ptr<rrdb> _rrdb;
@@ -61,9 +65,20 @@ rrdb::~rrdb()
 
 void rrdb::start()
 {
-  // TODO:
-  std::string s = "create metric \"test\" KEEP 10 sec FOR 1 min, 1 min for 1 month;";
   statement statement;
+  std::string s;
+
+  // TODO:
+  s = "create metric \"test\" KEEP 10 sec FOR 1 min, 1 min for 1 month;";
+  statement = statement_parse(s.begin(), s.end());
+  boost::apply_visitor(statement_execute_visitor(shared_from_this()), statement);
+
+  s = "SHOW metric \"test\";";
+  statement = statement_parse(s.begin(), s.end());
+  boost::apply_visitor(statement_execute_visitor(shared_from_this()), statement);
+
+
+  s = "drop metric \"test\";";
   statement = statement_parse(s.begin(), s.end());
   boost::apply_visitor(statement_execute_visitor(shared_from_this()), statement);
 }

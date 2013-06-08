@@ -37,6 +37,16 @@ typedef struct statement_drop_
   std::string      _name;
 } statement_drop;
 
+/**
+ * SHOW statement string representation:
+ *
+ * SHOW METRIC "<name>" ;
+ *
+ */
+typedef struct statement_show_
+{
+  std::string      _name;
+} statement_show;
 
 
 /**
@@ -45,7 +55,8 @@ typedef struct statement_drop_
  */
 typedef boost::variant<
     statement_create,
-    statement_drop
+    statement_drop,
+    statement_show
 > statement;
 
 statement statement_parse(std::string::const_iterator beg, std::string::const_iterator end);
