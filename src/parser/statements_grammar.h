@@ -51,9 +51,9 @@ public:
        qi::lexeme['"' >> +(ascii::char_ - '"') >> '"'] |
        qi::lexeme["'" >> +(ascii::char_ - "'") >> "'"]
     ;
-    _statement_create =
+    _statement_create %=
         nocaselit("create") >> nocaselit("metric") >> _name >> nocaselit("KEEP") >> _policy
-        [ qi::_val = phoenix::construct<statement_create>() ]
+//        [ qi::_val = phoenix::construct<statement_create>() ]
      ;
     _statement_drop =
         nocaselit("drop") >> nocaselit("metric") >> _name

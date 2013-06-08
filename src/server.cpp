@@ -32,6 +32,7 @@ server::~server()
 
 void server::run()
 {
+  _rrdb->start();
   _server_udp->start_receive();
   _server_tcp->start_accept();
 

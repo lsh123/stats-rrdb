@@ -11,7 +11,34 @@
 #include "log.h"
 #include "parser/statements.h"
 
+//
+//
+//
+class statement_execute_visitor :
+    public boost::static_visitor<>
+{
+public:
+  statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb):
+    _rrdb(rrdb)
+  {
+  }
 
+  void operator()(const statement_create & st) const
+  {
+    log::write(log::LEVEL_DEBUG, "Execure 'create': '%s' => '%s'", st._name.c_str(), retention_policy_write(st._policy).c_str());
+  }
+  void operator()(const statement_drop & st) const
+  {
+    log::write(log::LEVEL_DEBUG, "Execure 'drop': '%s'", st._name.c_str());
+  }
+
+private:
+    const boost::shared_ptr<rrdb> _rrdb;
+}; // statement_execute_visitor
+
+//
+//
+//
 rrdb::rrdb(boost::shared_ptr<config> config) :
   _path(config->get<std::string>("rrdb.path", "/var/lib/stats-rrdb"))
 {
@@ -26,15 +53,19 @@ rrdb::rrdb(boost::shared_ptr<config> config) :
   log::write(log::LEVEL_INFO, "Started rrdb: path='%s'", _path.c_str());
   log::write(log::LEVEL_INFO, "Started rrdb: flush_interval='%s'", interval_write(_flush_interval).c_str());
   log::write(log::LEVEL_INFO, "Started rrdb: default_policy='%s'", retention_policy_write(_default_policy).c_str());
-
-  // TODO:
-  std::string s = "drop metric \"test\" ;";
-  statement statement;
-  statement = statement_parse(s.begin(), s.end());
 }
 
 rrdb::~rrdb()
 {
+}
+
+void rrdb::start()
+{
+  // TODO:
+  std::string s = "create metric \"test\" KEEP 10 sec FOR 1 min, 1 min for 1 month;";
+  statement statement;
+  statement = statement_parse(s.begin(), s.end());
+  boost::apply_visitor(statement_execute_visitor(shared_from_this()), statement);
 }
 
 rrdb::t_result_buffers rrdb::execute_long_command(const std::vector<char> & buffer)

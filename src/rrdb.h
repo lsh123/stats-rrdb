@@ -13,6 +13,7 @@
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/unordered_map.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #include "parser/interval.h"
 #include "parser/retention_policy.h"
@@ -20,7 +21,8 @@
 // forward
 class config;
 
-class rrdb
+class rrdb :
+    public boost::enable_shared_from_this<rrdb>
 {
 public:
   typedef std::vector<boost::asio::const_buffer> t_result_buffers;
@@ -28,6 +30,8 @@ public:
 public:
   rrdb(boost::shared_ptr<config> config);
   virtual ~rrdb();
+
+  void start();
 
   t_result_buffers execute_long_command(const std::vector<char> & buffer);
   void execute_short_command(const std::vector<char> & buffer);
