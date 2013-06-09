@@ -28,6 +28,7 @@ public:
 
 public:
   void run();
+  void stop();
 
 private:
   boost::shared_ptr<rrdb>        _rrdb;

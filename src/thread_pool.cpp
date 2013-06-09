@@ -27,6 +27,8 @@ thread_pool::thread_pool(std::size_t pool_size) :
 
 thread_pool::~thread_pool()
 {
+  log::write(log::LEVEL_INFO, "Stopping thread pool");
+
   // Force all threads to return from io_service::run().
   _io_service.stop();
 
@@ -36,6 +38,8 @@ thread_pool::~thread_pool()
   } catch (std::exception& e) {
     log::write(log::LEVEL_ERROR, "%s", e.what());
   }
+
+  log::write(log::LEVEL_INFO, "Stopped thread pool");
 }
 
 void thread_pool::run(boost::shared_ptr<thread_pool_task> task)

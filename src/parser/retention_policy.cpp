@@ -24,7 +24,7 @@ retention_policy retention_policy_parse(const std::string & str)
   std::string::const_iterator end = str.end();
   phrase_parse(beg, end, grammar, ascii::space, ret);
   if (beg != end) {
-      throw exception("Unable to parse the retention policy: " + str);
+      throw exception("Unable to parse retention policy '%s'", str.c_str());
   }
 
   retention_policy_validate(ret);
@@ -50,10 +50,10 @@ void retention_policy_validate(const retention_policy & r_p)
 {
   for(retention_policy::const_iterator it = r_p.begin(), it_prev = r_p.end(); it != r_p.end(); it_prev = (it++)) {
       if((*it)._duration % (*it)._freq != 0) {
-          throw exception("Policy duration '" + interval_write((*it)._duration) + "' does not match the frequency '" + interval_write((*it)._freq) + "'");
+          throw exception("Policy duration '%s' does not match the frequency '%s'", interval_write((*it)._duration).c_str(), interval_write((*it)._freq).c_str());
       }
       if(it_prev != r_p.end() && (*it)._freq % (*it_prev)._freq != 0) {
-          throw exception("Policy frequency '" + interval_write((*it)._freq) + "' does not match the previous policy frequency '" + interval_write((*it_prev)._freq) + "'");
+          throw exception("Policy frequency '%s' does not match the previous policy frequency '%s'", interval_write((*it)._freq).c_str(), interval_write((*it_prev)._freq).c_str());
       }
   }
 }

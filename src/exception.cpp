@@ -10,9 +10,9 @@
 
 #include "exception.h"
 
-exception::exception(const std::string & msg)
+exception::exception(const std::string & msg) :
+    _msg(msg)
 {
-  this->_msg = msg;
 }
 
 exception::exception(const char * msg, ...)
@@ -25,7 +25,7 @@ exception::exception(const char * msg, ...)
   vsnprintf(buffer, sizeof(buffer), msg, args);
   va_end (args);
 
-  this->_msg = buffer;
+  _msg = buffer;
 }
 
 exception::~exception() throw ()
@@ -36,6 +36,6 @@ exception::~exception() throw ()
 // exception
 const char * exception::what() const throw()
 {
-  return this->_msg.c_str();
+  return _msg.c_str();
 }
 

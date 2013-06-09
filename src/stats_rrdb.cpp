@@ -16,6 +16,7 @@
 
 #include "log.h"
 #include "config.h"
+#include "exception.h"
 #include "server.h"
 
 int main(int argc, char ** argv)

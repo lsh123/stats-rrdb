@@ -102,7 +102,9 @@ server_udp::server_udp(
 
 server_udp::~server_udp()
 {
-
+  if(_socket) {
+      this->stop_receive();
+  }
 }
 
 void server_udp::start_receive()
@@ -120,6 +122,19 @@ void server_udp::start_receive()
           boost::asio::placeholders::bytes_transferred
       )
   );
+}
+
+void server_udp::stop_receive()
+{
+  log::write(log::LEVEL_INFO, "Stopping UDP server");
+
+  if(_socket) {
+      _socket->close();
+  }
+  _socket.reset();
+  _thread_pool.reset();
+
+  log::write(log::LEVEL_INFO, "Stopped UDP server");
 }
 
 void server_udp::handle_receive(

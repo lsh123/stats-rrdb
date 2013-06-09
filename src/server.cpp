@@ -28,6 +28,7 @@ server::server(boost::shared_ptr<config> config)
 
 server::~server()
 {
+  this->stop();
 }
 
 void server::run()
@@ -38,3 +39,11 @@ void server::run()
 
   _io_service.run();
 }
+
+void server::stop()
+{
+  _io_service.stop();
+  _server_udp->stop_receive();
+  _server_tcp->stop_accept();
+}
+

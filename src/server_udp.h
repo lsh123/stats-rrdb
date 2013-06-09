@@ -35,6 +35,7 @@ public:
   virtual ~server_udp();
 
   void start_receive();
+  void stop_receive();
 
   void send_response(
    const boost::asio::ip::udp::endpoint & endpoint,

@@ -33,6 +33,7 @@ public:
   virtual ~server_tcp();
 
   void start_accept();
+  void stop_accept();
 
   void send_response(
       boost::asio::ip::tcp::socket & socket,

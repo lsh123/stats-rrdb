@@ -21,7 +21,7 @@ statement statement_parse(std::string::const_iterator beg, std::string::const_it
 
   phrase_parse(beg, end, grammar, ascii::space, ret);
   if (beg != end) {
-      throw exception("Unable to parse the statement: " + std::string(beg, end));
+      throw exception("Unable to parse the statement '%s'", std::string(beg, end).c_str());
   }
 
   return ret;

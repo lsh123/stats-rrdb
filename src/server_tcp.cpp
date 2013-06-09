@@ -109,6 +109,9 @@ server_tcp::server_tcp(
 
 server_tcp::~server_tcp()
 {
+  if(_acceptor) {
+      this->stop_accept();
+  }
 }
 
 void server_tcp::start_accept()
@@ -125,6 +128,20 @@ void server_tcp::start_accept()
       )
   );
 }
+
+void server_tcp::stop_accept()
+{
+  log::write(log::LEVEL_INFO, "Stopping TCP server");
+
+  if(_acceptor) {
+      _acceptor->close();
+  }
+  _acceptor.reset();
+  _thread_pool.reset();
+
+  log::write(log::LEVEL_INFO, "Stopped TCP server");
+}
+
 
 void server_tcp::handle_accept(
     boost::shared_ptr<connection_tcp> new_connection,
