@@ -17,6 +17,8 @@
 #include "spinlock.h"
 #include "parser/retention_policy.h"
 
+#define RRDB_METRIC_EXTENSION    ".rrdb"
+
 // forward
 class rrdb;
 

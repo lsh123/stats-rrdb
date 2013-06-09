@@ -104,7 +104,7 @@ std::string rrdb_metric::get_full_path(const std::string & folder, const std::st
 
   // the name should match the "a-zA-Z0-9._-" pattern so we can safely
   // use it as filename
-  return subfolder + "/" + name + ".rrdb";
+  return subfolder + "/" + name + RRDB_METRIC_EXTENSION;
 }
 
 // align by 64 bits = 8 bytes

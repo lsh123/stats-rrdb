@@ -10,6 +10,7 @@
 #include <boost/thread/locks.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
+#include <boost/filesystem.hpp>
 
 #include "rrdb.h"
 #include "rrdb_metric.h"
@@ -51,10 +52,10 @@ public:
 
   std::string operator()(const statement_show_metrics & st) const
   {
-    rrdb::t_metrics_vector metrics = _rrdb->get_metrics(st._like);
+    std::vector<std::string> metrics = _rrdb->get_metrics(st._like);
     std::ostringstream res;
-    BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, metrics){
-      res << metric->get_name() << std::endl;
+    BOOST_FOREACH(const std::string & name, metrics){
+      res << name << ";";
     }
     return res.str();
   }
@@ -324,21 +325,34 @@ void rrdb::drop_metric(const std::string & name)
   log::write(log::LEVEL_INFO, "RRDB: dropped metric '%s'", name.c_str());
 }
 
-rrdb::t_metrics_vector rrdb::get_metrics(const std::string & like)
+std::vector<std::string> rrdb::get_metrics(const std::string & like)
 {
   // force lower case for names
   std::string like_lc(like);
   boost::algorithm::to_lower(like_lc);
 
-  // lock access to _metrics
-  rrdb::t_metrics_vector res;
-  {
-    boost::lock_guard<spinlock> guard(_metrics_lock);
-    BOOST_FOREACH(t_metrics_map::value_type & v, _metrics){
-      if(v.first.find(like_lc) != std::string::npos) {
-          res.push_back(v.second);
+  // go to disk since we might not have all the metrics in memory
+  std::vector<std::string> res;
+  for(boost::filesystem::recursive_directory_iterator end, cur(_path + "/"); cur != end; ++cur) {
+      // we are looking for files
+      if((*cur).status().type() != boost::filesystem::regular_file) {
+          continue;
       }
-    }
+
+      // with specified extension
+      boost::filesystem::path file_path((*cur).path());
+      if(file_path.extension() != RRDB_METRIC_EXTENSION) {
+          continue;
+      }
+
+      // cheat here - we know names
+      std::string name = file_path.stem();
+      if(!like_lc.empty() &&  name.find(like_lc) == std::string::npos) {
+          continue;
+      }
+
+      // found!
+      res.push_back(name);
   }
 
   // done
