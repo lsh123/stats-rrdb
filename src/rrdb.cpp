@@ -24,12 +24,11 @@
 //
 //
 //
-class statement_execute_visitor :
-    public boost::static_visitor<std::string>
+class statement_execute_visitor : public boost::static_visitor<std::string>
 {
 public:
-  statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb):
-    _rrdb(rrdb)
+  statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb) :
+      _rrdb(rrdb)
   {
   }
 
@@ -55,7 +54,7 @@ public:
   {
     rrdb::t_metrics_vector metrics = _rrdb->get_metrics(st._like);
     std::ostringstream res;
-    BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, metrics) {
+    BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, metrics){
       res << metric->get_name() << std::endl;
     }
     return res.str();
@@ -63,15 +62,18 @@ public:
 
 private:
   const boost::shared_ptr<rrdb> _rrdb;
-}; // statement_execute_visitor
+};
+// statement_execute_visitor
 
 //
 //
 //
 rrdb::rrdb(boost::shared_ptr<config> config) :
-  _path(config->get<std::string>("rrdb.path", "/var/lib/rrdb")),
-  _flush_interval(interval_parse(config->get<std::string>("rrdb.flush_interval", "1 min"))),
-  _default_policy(retention_policy_parse(config->get<std::string>("rrdb.default_policy", "1 min FOR 1 day")))
+    _path(config->get<std::string>("rrdb.path", "/var/lib/rrdb")), _flush_interval(
+        interval_parse(
+            config->get<std::string>("rrdb.flush_interval", "1 min"))), _default_policy(
+        retention_policy_parse(
+            config->get<std::string>("rrdb.default_policy", "1 min FOR 1 day")))
 {
   log::write(log::LEVEL_DEBUG, "Starting rrdb");
 
@@ -81,41 +83,125 @@ rrdb::rrdb(boost::shared_ptr<config> config) :
 
 rrdb::~rrdb()
 {
+  this->stop();
 }
 
-void rrdb::start()
+void rrdb::test()
 {
-  // ensure folders exist
-  boost::filesystem::create_directories(_path);
-
   statement statement;
   std::string res;
 
   // TODO:
-  statement = statement_parse("CREATE METRIC \"TEST\" KEEP 10 SEC FOR 1 MIN, 1 MIN FOR 1 MONTH;");
-  res = boost::apply_visitor(statement_execute_visitor(shared_from_this()), statement);
-  log::write(log::LEVEL_DEBUG, "RRDB: CREATE metric returned: '%s'", res.c_str());
+  statement = statement_parse(
+      "CREATE METRIC \"TEST\" KEEP 10 SEC FOR 1 MIN, 1 MIN FOR 1 MONTH;");
+  res = boost::apply_visitor(statement_execute_visitor(shared_from_this()),
+      statement);
+  log::write(log::LEVEL_DEBUG, "RRDB: CREATE metric returned: '%s'",
+      res.c_str());
 
   statement = statement_parse("SHOW METRICS LIKE \"t\";");
-  res = boost::apply_visitor(statement_execute_visitor(shared_from_this()), statement);
-  log::write(log::LEVEL_DEBUG, "RRDB: SHOW METRICS returned: '%s'", res.c_str());
+  res = boost::apply_visitor(statement_execute_visitor(shared_from_this()),
+      statement);
+  log::write(log::LEVEL_DEBUG, "RRDB: SHOW METRICS returned: '%s'",
+      res.c_str());
 
   statement = statement_parse("SHOW metric \"test\";");
-  res = boost::apply_visitor(statement_execute_visitor(shared_from_this()), statement);
+  res = boost::apply_visitor(statement_execute_visitor(shared_from_this()),
+      statement);
   log::write(log::LEVEL_DEBUG, "RRDB: SHOW metric returned: '%s'", res.c_str());
 
   statement = statement_parse("drop metric \"test\";");
-  res = boost::apply_visitor(statement_execute_visitor(shared_from_this()), statement);
+  res = boost::apply_visitor(statement_execute_visitor(shared_from_this()),
+      statement);
   log::write(log::LEVEL_DEBUG, "RRDB: DROP metric returned: '%s'", res.c_str());
+}
+
+bool rrdb::is_running()
+{
+  return _flush_to_disk_thread;
+}
+
+void rrdb::start()
+{
+  if(this->is_running()) {
+      return;
+  }
+
+  log::write(log::LEVEL_DEBUG, "Starting RRDB server");
+
+  _flush_to_disk_thread.reset(new boost::thread(boost::bind(&rrdb::flush_to_disk_thread, this)));
+
+  // ensure folders exist
+  boost::filesystem::create_directories(_path);
+
+  log::write(log::LEVEL_INFO, "Started RRDB server");
+
+  this->test();
 }
 
 void rrdb::stop()
 {
+  if(!this->is_running()) {
+      return;
+  }
+
   log::write(log::LEVEL_DEBUG, "Stopping RRDB server");
+
+  // stop flush thread
+  _flush_to_disk_thread->interrupt();
+  _flush_to_disk_thread->join();
+  _flush_to_disk_thread.reset();
+
+  // flush one more time
+  this->flush_to_disk();
 
   log::write(log::LEVEL_INFO, "Stopped RRDB server");
 }
 
+void rrdb::flush_to_disk_thread()
+{
+  // log
+  log::write(log::LEVEL_INFO, "RRDB Flush thread started");
+
+  // try/catch to get any error reported
+  try {
+      while (!boost::this_thread::interruption_requested()) {
+          {
+            boost::this_thread::disable_interruption d;
+            this->flush_to_disk();
+          }
+
+          boost::this_thread::sleep(boost::posix_time::seconds(this->_flush_interval));
+      }
+  } catch (boost::thread_interrupted & e) {
+      log::write(log::LEVEL_DEBUG, "RRDB Flush thread was interrupted");
+  } catch (std::exception & e) {
+      log::write(log::LEVEL_ERROR, "RRDB Flush thread exception: %s", e.what());
+      throw e;
+  } catch (...) {
+      log::write(log::LEVEL_ERROR, "RRDB Flush thread un-handled exception");
+      throw;
+  }
+
+  // done
+  log::write(log::LEVEL_INFO, "RRDB Flush thread stopped");
+}
+
+void rrdb::flush_to_disk()
+{
+  log::write(log::LEVEL_DEBUG, "Flushing to disk");
+
+  t_metrics_vector dirty_metrics = this->get_dirty_metrics();
+  BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, dirty_metrics) {
+    try {
+        metric->save_file();
+    } catch(std::exception & e) {
+      log::write(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
+    }
+  }
+
+  log::write(log::LEVEL_DEBUG, "Flushed to disk");
+}
 
 boost::shared_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)
 {
@@ -123,12 +209,12 @@ boost::shared_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)
   std::string name_lc(name);
   boost::algorithm::to_lower(name_lc);
 
-  // lock access to _metrics_map
+  // lock access to _metrics
   boost::shared_ptr<rrdb_metric> res;
   {
-    boost::lock_guard<spinlock> guard(_metrics_map_lock);
-    t_metrics_map::const_iterator it = _metrics_map.find(name_lc);
-    if(it != _metrics_map.end()) {
+    boost::lock_guard<spinlock> guard(_metrics_lock);
+    t_metrics_map::const_iterator it = _metrics.find(name_lc);
+    if(it != _metrics.end()) {
         res = (*it).second;
     }
   }
@@ -154,17 +240,20 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
   std::string name_lc(name);
   boost::algorithm::to_lower(name_lc);
 
-  // lock access to _metrics_map
+  // lock access to _metrics
   boost::shared_ptr<rrdb_metric> res(new rrdb_metric(name_lc, policy));
   {
     // make sure there is always only one metric for the name
-    boost::lock_guard<spinlock> guard(_metrics_map_lock);
-    t_metrics_map::const_iterator it = _metrics_map.find(name_lc);
-    if(it != _metrics_map.end()) {
+    boost::lock_guard<spinlock> guard(_metrics_lock);
+    t_metrics_map::const_iterator it = _metrics.find(name_lc);
+    if(it != _metrics.end()) {
         throw exception("The metric '%s' already exists", name.c_str());
     }
-    _metrics_map[name_lc] = res;
+    _metrics[name_lc] = res;
   }
+
+  // create file - outside the spin lock
+  res->save_file();
 
   // log
   log::write(log::LEVEL_INFO, "RRDB: created metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
@@ -181,16 +270,20 @@ void rrdb::drop_metric(const std::string & name)
   std::string name_lc(name);
   boost::algorithm::to_lower(name_lc);
 
-  // lock access to _metrics_map
+  // lock access to _metrics
   boost::shared_ptr<rrdb_metric> res;
   {
-    boost::lock_guard<spinlock> guard(_metrics_map_lock);
-    t_metrics_map::const_iterator it = _metrics_map.find(name_lc);
-    if(it == _metrics_map.end()) {
+    boost::lock_guard<spinlock> guard(_metrics_lock);
+    t_metrics_map::const_iterator it = _metrics.find(name_lc);
+    if(it == _metrics.end()) {
         throw exception("The metric '%s' does not exist ", name.c_str());
     }
-    _metrics_map.erase(it);
+    res = (*it).second;
+    _metrics.erase(it);
   }
+
+  // delete file - outside the spin lock
+  res->delete_file();
 
   // log
   log::write(log::LEVEL_INFO, "RRDB: dropped metric '%s'", name.c_str());
@@ -202,14 +295,30 @@ rrdb::t_metrics_vector rrdb::get_metrics(const std::string & like)
   std::string like_lc(like);
   boost::algorithm::to_lower(like_lc);
 
-  // lock access to _metrics_map
+  // lock access to _metrics
   rrdb::t_metrics_vector res;
   {
-    boost::lock_guard<spinlock> guard(_metrics_map_lock);
-
-    BOOST_FOREACH(t_metrics_map::value_type & v, _metrics_map) {
+    boost::lock_guard<spinlock> guard(_metrics_lock);
+    BOOST_FOREACH(t_metrics_map::value_type & v, _metrics){
       if(v.first.find(like_lc) != std::string::npos) {
           res.push_back(v.second);
+      }
+    }
+  }
+
+  // done
+  return res;
+}
+
+rrdb::t_metrics_vector rrdb::get_dirty_metrics()
+{
+  // lock access to _metrics
+  rrdb::t_metrics_vector res;
+  {
+    boost::lock_guard<spinlock> guard(_metrics_lock);
+    BOOST_FOREACH(t_metrics_map::value_type & v, _metrics){
+      if(v.second->is_dirty()) {
+        res.push_back(v.second);
       }
     }
   }

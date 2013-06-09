@@ -37,6 +37,15 @@ public:
   std::string get_name();
   retention_policy get_policy();
 
+  bool is_dirty();
+  void set_dirty();
+
+  bool is_deleted();
+  void set_deleted();
+
+  void save_file();
+  void delete_file();
+
 private:
   spinlock          _lock;
   std::string       _name;

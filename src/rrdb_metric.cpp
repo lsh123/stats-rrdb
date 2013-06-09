@@ -48,4 +48,54 @@ retention_policy rrdb_metric::get_policy()
   return _policy;
 }
 
+bool rrdb_metric::is_dirty()
+{
+  // TODO:
+  boost::lock_guard<spinlock> guard(_lock);
+  return false;
+}
 
+void rrdb_metric::set_dirty()
+{
+  // TODO:
+  boost::lock_guard<spinlock> guard(_lock);
+}
+
+bool rrdb_metric::is_deleted()
+{
+  // TODO:
+  boost::lock_guard<spinlock> guard(_lock);
+  return false;
+}
+
+void rrdb_metric::set_deleted()
+{
+  // TODO:
+  boost::lock_guard<spinlock> guard(_lock);
+}
+
+void rrdb_metric::save_file()
+{
+  // check if deleted meantime
+  if(this->is_deleted()) {
+      return;
+  }
+
+  // start
+  log::write(log::LEVEL_DEBUG, "RRDB metric '%s' saving file", this->get_name().c_str());
+
+  // done
+  log::write(log::LEVEL_DEBUG, "RRDB metric '%s' saved file", this->get_name().c_str());
+}
+
+void rrdb_metric::delete_file()
+{
+  // mark as deleted in case the flush thread picks it up in the meantime
+  this->set_deleted();
+
+  // start
+  log::write(log::LEVEL_DEBUG, "RRDB metric '%s' deleting file", this->get_name().c_str());
+
+  // done
+  log::write(log::LEVEL_DEBUG, "RRDB metric '%s' deleted file", this->get_name().c_str());
+}

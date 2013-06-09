@@ -15,6 +15,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/thread.hpp>
 
 #include "spinlock.h"
 #include "parser/interval.h"
@@ -36,6 +37,7 @@ public:
   rrdb(boost::shared_ptr<config> config);
   virtual ~rrdb();
 
+  bool is_running();
   void start();
   void stop();
 
@@ -50,8 +52,13 @@ public:
   t_result_buffers execute_long_command(const std::vector<char> & buffer);
   void execute_short_command(const std::vector<char> & buffer);
 
-private:
 
+private:
+  void test();
+
+  void flush_to_disk_thread();
+  void flush_to_disk();
+  t_metrics_vector get_dirty_metrics();
 
 private:
   // config
@@ -59,8 +66,11 @@ private:
   interval_t       _flush_interval;
   retention_policy _default_policy;
 
-  t_metrics_map    _metrics_map;
-  spinlock         _metrics_map_lock;
+  t_metrics_map    _metrics;
+  spinlock         _metrics_lock;
+
+  // TODO: make it a pool?
+  boost::shared_ptr< boost::thread > _flush_to_disk_thread;
 }; // class rrdb
 
 #endif /* RRDB_H_ */
