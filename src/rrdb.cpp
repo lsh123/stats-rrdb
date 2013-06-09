@@ -7,7 +7,6 @@
 
 #include <sstream>
 
-#include <boost/filesystem.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
@@ -131,9 +130,6 @@ void rrdb::start()
 
   _flush_to_disk_thread.reset(new boost::thread(boost::bind(&rrdb::flush_to_disk_thread, this)));
 
-  // ensure folders exist
-  boost::filesystem::create_directories(_path);
-
   log::write(log::LEVEL_INFO, "Started RRDB server");
 
   this->test();
@@ -194,7 +190,7 @@ void rrdb::flush_to_disk()
   t_metrics_vector dirty_metrics = this->get_dirty_metrics();
   BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, dirty_metrics) {
     try {
-        metric->save_file();
+        metric->save_file(_path);
     } catch(std::exception & e) {
       log::write(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
     }
@@ -209,16 +205,48 @@ boost::shared_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)
   std::string name_lc(name);
   boost::algorithm::to_lower(name_lc);
 
-  // lock access to _metrics
-  boost::shared_ptr<rrdb_metric> res;
+  return this->find_metric_lc(name_lc);
+}
+
+boost::shared_ptr<rrdb_metric> rrdb::find_metric_lc(const std::string & name_lc)
+{
+  // search in the map first: lock access to _metrics
   {
     boost::lock_guard<spinlock> guard(_metrics_lock);
     t_metrics_map::const_iterator it = _metrics.find(name_lc);
     if(it != _metrics.end()) {
-        res = (*it).second;
+        return (*it).second;
     }
   }
 
+  // search on disk
+  boost::shared_ptr<rrdb_metric> res;
+  try {
+      log::write(log::LEVEL_DEBUG, "Trying to load metric '%s' from disk", name_lc.c_str());
+      res = rrdb_metric::load_file(_path, name_lc);
+  } catch(exception & e) {
+      // ignore any exceptions
+      log::write(log::LEVEL_ERROR, "Exception while loading metric '%s': %s", name_lc.c_str(), e.what());
+      return boost::shared_ptr<rrdb_metric>();
+  } catch(std::exception & e) {
+      // ignore any exceptions
+      log::write(log::LEVEL_DEBUG, "Exception while loading metric '%s': %s", name_lc.c_str(), e.what());
+      return boost::shared_ptr<rrdb_metric>();
+  }
+
+  // try to insert into the map, lock again
+  {
+    boost::lock_guard<spinlock> guard(_metrics_lock);
+    t_metrics_map::const_iterator it = _metrics.find(name_lc);
+    if(it != _metrics.end()) {
+        // someone already inserted it, drop the one we just loaded
+        // and use one in the metrics map
+        return (*it).second;
+    }
+
+    // insert loaded metric into map and return
+    _metrics[name_lc] = res;
+  }
   return res;
 }
 
@@ -240,20 +268,27 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
   std::string name_lc(name);
   boost::algorithm::to_lower(name_lc);
 
-  // lock access to _metrics
-  boost::shared_ptr<rrdb_metric> res(new rrdb_metric(name_lc, policy));
+  // try to find the metric
+  boost::shared_ptr<rrdb_metric> res = this->find_metric_lc(name_lc);
+  if(res) {
+      throw exception("The metric '%s' already exists", name.c_str());
+  }
+
+  // create new and try to insert into map, lock access to _metrics
+  res.reset(new rrdb_metric(name_lc, policy));
   {
     // make sure there is always only one metric for the name
     boost::lock_guard<spinlock> guard(_metrics_lock);
     t_metrics_map::const_iterator it = _metrics.find(name_lc);
     if(it != _metrics.end()) {
+        // someone inserted it in the meantime
         throw exception("The metric '%s' already exists", name.c_str());
     }
     _metrics[name_lc] = res;
   }
 
   // create file - outside the spin lock
-  res->save_file();
+  res->save_file(_path);
 
   // log
   log::write(log::LEVEL_INFO, "RRDB: created metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
@@ -270,20 +305,20 @@ void rrdb::drop_metric(const std::string & name)
   std::string name_lc(name);
   boost::algorithm::to_lower(name_lc);
 
-  // lock access to _metrics
-  boost::shared_ptr<rrdb_metric> res;
-  {
-    boost::lock_guard<spinlock> guard(_metrics_lock);
-    t_metrics_map::const_iterator it = _metrics.find(name_lc);
-    if(it == _metrics.end()) {
-        throw exception("The metric '%s' does not exist ", name.c_str());
-    }
-    res = (*it).second;
-    _metrics.erase(it);
+  // try to find the metric
+  boost::shared_ptr<rrdb_metric> res = this->find_metric_lc(name_lc);
+  if(!res) {
+      throw exception("The metric '%s' does not exists", name.c_str());
   }
 
   // delete file - outside the spin lock
-  res->delete_file();
+  res->delete_file(_path);
+
+  // lock access to _metrics
+  {
+    boost::lock_guard<spinlock> guard(_metrics_lock);
+    _metrics.erase(name_lc);
+  }
 
   // log
   log::write(log::LEVEL_INFO, "RRDB: dropped metric '%s'", name.c_str());

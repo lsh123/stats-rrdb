@@ -59,7 +59,7 @@ public:
     base_type(_start)
   {
      _name %=
-         +qi::char_("a-zA-Z0-9._--")
+         +qi::char_("a-zA-Z0-9._-")
      ;
      _quoted_name %=
          '"' >> _name >> '"' | "'" >> _name >> "'"
