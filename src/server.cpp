@@ -16,7 +16,7 @@
 
 server::server(boost::shared_ptr<config> config)
 {
-  log::write(log::LEVEL_INFO, "Starting the server");
+  log::write(log::LEVEL_DEBUG, "Starting the server");
 
   // init
   _rrdb.reset(new rrdb(config));
@@ -45,5 +45,7 @@ void server::stop()
   _io_service.stop();
   _server_udp->stop_receive();
   _server_tcp->stop_accept();
+
+  _rrdb->stop();
 }
 

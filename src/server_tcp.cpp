@@ -92,7 +92,7 @@ server_tcp::server_tcp(
   _buffer_size(config->get<std::size_t>("server_tcp.max_message_size", 4096))
 {
   // log
-  log::write(log::LEVEL_INFO, "Starting TCP server on %s:%d", _address.c_str(), _port);
+  log::write(log::LEVEL_DEBUG, "Starting TCP server on %s:%d", _address.c_str(), _port);
 
   // create threads
   _thread_pool.reset(new thread_pool(config->get<std::size_t>("server_tcp.thread_pool_size", 5)));
@@ -104,7 +104,7 @@ server_tcp::server_tcp(
   }
 
   // done
-  log::write(log::LEVEL_INFO, "Listening to TCP %s:%d", _address.c_str(), _port);
+  log::write(log::LEVEL_INFO, "Started TCP server on %s:%d", _address.c_str(), _port);
 }
 
 server_tcp::~server_tcp()
@@ -131,7 +131,7 @@ void server_tcp::start_accept()
 
 void server_tcp::stop_accept()
 {
-  log::write(log::LEVEL_INFO, "Stopping TCP server");
+  log::write(log::LEVEL_DEBUG, "Stopping TCP server");
 
   if(_acceptor) {
       _acceptor->close();

@@ -69,7 +69,7 @@ std::string log::format_time()
 
 void log::init(const config & config)
 {
-  log::write(log::LEVEL_INFO, "Configuring log file");
+  log::write(log::LEVEL_DEBUG, "Configuring log file");
 
   // log level
   std::string log_level = config.get<std::string>("log.level", log::level2str(log::_log_level));

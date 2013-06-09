@@ -85,7 +85,7 @@ server_udp::server_udp(
   _send_response(config->get<bool>("server_udp.send_response", false))
 {
   // log
-  log::write(log::LEVEL_INFO, "Starting UDP server on %s:%d", _address.c_str(), _port);
+  log::write(log::LEVEL_DEBUG, "Starting UDP server on %s:%d", _address.c_str(), _port);
 
   // create threads
   _thread_pool.reset(new thread_pool(config->get<std::size_t>("server_udp.thread_pool_size", 5)));
@@ -97,7 +97,7 @@ server_udp::server_udp(
   }
 
   // done
-  log::write(log::LEVEL_INFO, "Listening to UDP %s:%d", _address.c_str(), _port);
+  log::write(log::LEVEL_INFO, "Started UDP server on %s:%d", _address.c_str(), _port);
 }
 
 server_udp::~server_udp()
@@ -126,7 +126,7 @@ void server_udp::start_receive()
 
 void server_udp::stop_receive()
 {
-  log::write(log::LEVEL_INFO, "Stopping UDP server");
+  log::write(log::LEVEL_DEBUG, "Stopping UDP server");
 
   if(_socket) {
       _socket->close();

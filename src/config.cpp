@@ -76,7 +76,7 @@ bool config::init(int argc, char ** argv)
   if (_data.count("config")) {
       std::string config_file = _data["config"].as<std::string>();
 
-      log::write(log::LEVEL_INFO, "Loading configuration file '%s'", config_file.c_str());
+      log::write(log::LEVEL_DEBUG, "Loading configuration file '%s'", config_file.c_str());
       std::ifstream file(config_file.c_str(), std::ios_base::in);
       if(file.fail()) {
           throw exception("Unable to open file '%s'", config_file.c_str());

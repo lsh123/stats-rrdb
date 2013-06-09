@@ -14,7 +14,7 @@ thread_pool::thread_pool(std::size_t pool_size) :
    _pool_size(pool_size),
    _used_threads(0)
 {
-  log::write(log::LEVEL_INFO, "Creating thread pool");
+  log::write(log::LEVEL_DEBUG, "Creating thread pool");
 
   // init
   for(std::size_t ii = 0; ii < _pool_size; ++ii) {
@@ -27,7 +27,7 @@ thread_pool::thread_pool(std::size_t pool_size) :
 
 thread_pool::~thread_pool()
 {
-  log::write(log::LEVEL_INFO, "Stopping thread pool");
+  log::write(log::LEVEL_DEBUG, "Stopping thread pool");
 
   // Force all threads to return from io_service::run().
   _io_service.stop();

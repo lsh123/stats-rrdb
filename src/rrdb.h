@@ -9,6 +9,7 @@
 #define RRDB_H_
 
 #include <string>
+#include <vector>
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
@@ -29,18 +30,21 @@ class rrdb :
 public:
   typedef std::vector<boost::asio::const_buffer> t_result_buffers;
   typedef boost::unordered_map< std::string, boost::shared_ptr<rrdb_metric> > t_metrics_map;
+  typedef std::vector< boost::shared_ptr<rrdb_metric> > t_metrics_vector;
 
 public:
   rrdb(boost::shared_ptr<config> config);
   virtual ~rrdb();
 
   void start();
+  void stop();
 
-  // metrics operations
+  // metrics map operations
+  boost::shared_ptr<rrdb_metric> get_metric(const std::string & name);
+  boost::shared_ptr<rrdb_metric> find_metric(const std::string & name);
   boost::shared_ptr<rrdb_metric> create_metric(const std::string & name, const retention_policy & policy);
   void drop_metric(const std::string & name);
-  boost::shared_ptr<rrdb_metric> find_metric(const std::string & name);
-  boost::shared_ptr<rrdb_metric> get_metric(const std::string & name);
+  t_metrics_vector get_metrics(const std::string & like);
 
   // commands
   t_result_buffers execute_long_command(const std::vector<char> & buffer);

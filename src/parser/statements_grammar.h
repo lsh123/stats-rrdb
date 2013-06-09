@@ -30,6 +30,10 @@ BOOST_FUSION_ADAPT_STRUCT(
     statement_show,
     (std::string,      _name)
 )
+BOOST_FUSION_ADAPT_STRUCT(
+    statement_show_metrics,
+    (std::string,      _like)
+)
 
 template<typename Iterator>
 class statement_grammar:
@@ -48,6 +52,7 @@ private:
   qi::rule < Iterator, statement_create(), ascii::space_type > _statement_create;
   qi::rule < Iterator, statement_drop(),   ascii::space_type > _statement_drop;
   qi::rule < Iterator, statement_show(),   ascii::space_type > _statement_show;
+  qi::rule < Iterator, statement_show_metrics(),   ascii::space_type > _statement_show_metrics;
 
 public:
   statement_grammar():
@@ -81,6 +86,14 @@ public:
         [ at_c<0>(qi::_val) = qi::_1 ]
     ;
 
+    // there is a bug in boost with handling single member structures:
+    //
+    // http://stackoverflow.com/questions/7770791/spirit-unable-to-assign-attribute-to-single-element-struct-or-fusion-sequence
+    //
+    _statement_show_metrics =
+        (nocaselit("show") >> nocaselit("metrics") >> nocaselit("like") >> _quoted_name)
+        [ at_c<0>(qi::_val) = qi::_1 ]
+    ;
     //
     // DONE!
     //
@@ -88,7 +101,8 @@ public:
         (
             _statement_create |
             _statement_drop   |
-            _statement_show
+            _statement_show   |
+            _statement_show_metrics
         )
         >> nocaselit(";")
     ;

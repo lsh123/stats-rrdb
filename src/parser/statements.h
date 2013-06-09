@@ -48,6 +48,16 @@ typedef struct statement_show_
   std::string      _name;
 } statement_show;
 
+/**
+ * SHOW METRICS print all the metrics available
+ *
+ * SHOW METRICS LIKE "<name>";
+ *
+ */
+typedef struct statement_show_metrics_
+{
+  std::string      _like;
+} statement_show_metrics;
 
 /**
  * Statement: any of the above
@@ -56,7 +66,8 @@ typedef struct statement_show_
 typedef boost::variant<
     statement_create,
     statement_drop,
-    statement_show
+    statement_show,
+    statement_show_metrics_
 > statement;
 
 statement statement_parse(const std::string & str);
