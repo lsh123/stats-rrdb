@@ -86,36 +86,6 @@ rrdb::~rrdb()
   this->stop();
 }
 
-void rrdb::test()
-{
-  statement statement;
-  std::string res;
-
-  // TODO:
-  statement = statement_parse(
-      "CREATE METRIC \"TEST\" KEEP 10 SEC FOR 1 MIN, 1 MIN FOR 1 MONTH;");
-  res = boost::apply_visitor(statement_execute_visitor(shared_from_this()),
-      statement);
-  log::write(log::LEVEL_DEBUG, "RRDB: CREATE metric returned: '%s'",
-      res.c_str());
-
-  statement = statement_parse("SHOW METRICS LIKE \"t\";");
-  res = boost::apply_visitor(statement_execute_visitor(shared_from_this()),
-      statement);
-  log::write(log::LEVEL_DEBUG, "RRDB: SHOW METRICS returned: '%s'",
-      res.c_str());
-
-  statement = statement_parse("SHOW metric \"test\";");
-  res = boost::apply_visitor(statement_execute_visitor(shared_from_this()),
-      statement);
-  log::write(log::LEVEL_DEBUG, "RRDB: SHOW metric returned: '%s'", res.c_str());
-
-  statement = statement_parse("drop metric \"test\";");
-  res = boost::apply_visitor(statement_execute_visitor(shared_from_this()),
-      statement);
-  log::write(log::LEVEL_DEBUG, "RRDB: DROP metric returned: '%s'", res.c_str());
-}
-
 bool rrdb::is_running()
 {
   return _flush_to_disk_thread;
@@ -132,8 +102,6 @@ void rrdb::start()
   _flush_to_disk_thread.reset(new boost::thread(boost::bind(&rrdb::flush_to_disk_thread, this)));
 
   log::write(log::LEVEL_INFO, "Started RRDB server");
-
-  this->test();
 }
 
 void rrdb::stop()

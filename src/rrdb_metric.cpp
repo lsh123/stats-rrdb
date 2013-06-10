@@ -6,8 +6,6 @@
  */
 #include <stdio.h>
 
-
-
 #include <boost/shared_array.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/functional/hash.hpp>

@@ -45,6 +45,8 @@ private:
   static enum levels str2level(const std::string & str);
   static std::string format_time();
 
+  static int level2syslog(enum levels level);
+
 private:
   static enum levels _log_level;
   static std::string _log_dest;

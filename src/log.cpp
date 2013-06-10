@@ -5,7 +5,9 @@
  *      Author: aleksey
  */
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
+#include <syslog.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
@@ -35,7 +37,7 @@ std::string log::level2str(enum log::levels level)
   case log::LEVEL_DEBUG:
     return "Debug";
   default:
-    throw exception("Unknown log level");
+    throw exception("Unknown log level %d", level);
   }
 }
 
@@ -54,6 +56,24 @@ enum log::levels log::str2level(const std::string & str)
     return log::LEVEL_DEBUG;
   } else {
       throw exception("Unknown log level '%s'", str.c_str());
+  }
+}
+
+int log::level2syslog(enum levels level)
+{
+  switch(level) {
+  case log::LEVEL_CRITICAL:
+    return LOG_USER | LOG_CRIT;
+  case log::LEVEL_ERROR:
+    return LOG_USER | LOG_ERR;
+  case log::LEVEL_WARNING:
+    return LOG_USER | LOG_WARNING;
+  case log:: LEVEL_INFO:
+    return LOG_USER | LOG_INFO;
+  case log::LEVEL_DEBUG:
+    return LOG_USER | LOG_DEBUG;
+  default:
+    throw exception("Unknown log level %d", level);
   }
 }
 
@@ -90,6 +110,19 @@ void log::write(enum levels level, const char * msg, va_list args)
   char buffer[4096];
   vsnprintf(buffer, sizeof(buffer), msg, args);
 
-  // TODO: different log dest?
-  std::cerr << log::format_time() << " - " << log::level2str(level) << " - " << buffer << std::endl;
+  try {
+    if(log::_log_dest == "stderr") {
+        std::cerr << log::format_time() << " - " << log::level2str(level) << " - " << buffer << std::endl;
+    } else if(log::_log_dest == "syslog") {
+        syslog(log::level2syslog(level), buffer);
+    } else {
+        std::fstream ofs(log::_log_dest.c_str(), std::ios_base::app | std::ios_base::out);
+        ofs << log::format_time() << " - " << log::level2str(level) << " - " << buffer << std::endl;
+        ofs.flush();
+        ofs.close();
+    }
+  } catch(...) {
+      std::cerr << log::format_time() << " - " << log::level2str(log::LEVEL_CRITICAL) << " - " << "Unable to write to log: " << log::_log_dest << std::endl;
+      std::terminate();
+  }
 }
