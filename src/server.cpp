@@ -120,23 +120,6 @@ void server::daemonize(const std::string & pid_file)
   close(0); // STDIN
   close(1); // STDOUT
   close(2); // STDERR
-
-  // We don't want the daemon to have any standard input.
-  if (open("/dev/null", O_RDONLY) < 0) {
-  }
-
-  // Send standard output and error to "/dev/null"
-  const int flags = O_WRONLY | O_CREAT | O_APPEND;
-  const mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-  if (open("/dev/null", flags, mode) < 0) {
-      log::write(log::LEVEL_CRITICAL, "Unable to open /dev/null");
-      exit(0);
-  }
-  // Also send standard error to the same log file.
-  if (dup(1) < 0) {
-      log::write(log::LEVEL_CRITICAL, "Unable to dup output descriptor for /dev/null");
-      exit(0);
-  }
 }
 
 void server::notify_before_fork()
