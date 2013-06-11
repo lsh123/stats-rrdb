@@ -89,13 +89,11 @@ server_tcp::server_tcp(
   _rrdb(rrdb),
   _address(config->get<std::string>("server_tcp.address", "0.0.0.0")),
   _port(config->get<int>("server_tcp.port", 9876)),
+  _thread_pool_size(config->get<std::size_t>("server_tcp.thread_pool_size", 5)),
   _buffer_size(config->get<std::size_t>("server_tcp.max_message_size", 4096))
 {
   // log
   log::write(log::LEVEL_DEBUG, "Starting TCP server on %s:%d", _address.c_str(), _port);
-
-  // create threads
-  _thread_pool.reset(new thread_pool(config->get<std::size_t>("server_tcp.thread_pool_size", 5)));
 
   // create socket
   _acceptor.reset(new tcp::acceptor(io_service, tcp::endpoint(address_v4::from_string(_address), _port)));
@@ -109,14 +107,33 @@ server_tcp::server_tcp(
 
 server_tcp::~server_tcp()
 {
-  if(_acceptor) {
-      this->stop_accept();
-  }
 }
 
-void server_tcp::start_accept()
+void server_tcp::start()
 {
-  boost::shared_ptr<connection_tcp> new_connection(new connection_tcp(_acceptor->io_service(), _buffer_size));
+  // create threads
+  _thread_pool.reset(new thread_pool(_thread_pool_size));
+
+  this->accept();
+}
+
+
+void server_tcp::stop()
+{
+  log::write(log::LEVEL_DEBUG, "Stopping TCP server");
+
+  if(_acceptor) {
+      _acceptor->close();
+      _acceptor.reset();
+  }
+  _thread_pool.reset();
+
+  log::write(log::LEVEL_INFO, "Stopped TCP server");
+}
+
+void server_tcp::accept()
+{
+  boost::shared_ptr<connection_tcp> new_connection(new connection_tcp(_acceptor->get_io_service(), _buffer_size));
 
   _acceptor->async_accept(
       new_connection->get_socket(),
@@ -128,20 +145,6 @@ void server_tcp::start_accept()
       )
   );
 }
-
-void server_tcp::stop_accept()
-{
-  log::write(log::LEVEL_DEBUG, "Stopping TCP server");
-
-  if(_acceptor) {
-      _acceptor->close();
-  }
-  _acceptor.reset();
-  _thread_pool.reset();
-
-  log::write(log::LEVEL_INFO, "Stopped TCP server");
-}
-
 
 void server_tcp::handle_accept(
     boost::shared_ptr<connection_tcp> new_connection,
@@ -170,7 +173,7 @@ void server_tcp::handle_accept(
   );
 
   // next one, please
-  start_accept();
+  this->accept();
 }
 
 void server_tcp::handle_read(

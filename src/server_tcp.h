@@ -32,8 +32,8 @@ public:
   );
   virtual ~server_tcp();
 
-  void start_accept();
-  void stop_accept();
+  void start();
+  void stop();
 
   void send_response(
       boost::asio::ip::tcp::socket & socket,
@@ -41,6 +41,8 @@ public:
   );
 
 protected:
+  void accept();
+
   void handle_accept(
       boost::shared_ptr<connection_tcp> new_connection,
       const boost::system::error_code& error
@@ -66,6 +68,7 @@ private:
 
   std::string  _address;
   int          _port;
+  std::size_t  _thread_pool_size;
   std::size_t  _buffer_size;
 }; // server_tcp
 

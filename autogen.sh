@@ -41,7 +41,7 @@ if test "$DIE" -eq 1; then
 	exit 1
 fi
 
-test -f src/stats-rrdb.cpp  || {
+test -f src/stats_rrdb.cpp  || {
 	echo "You must run this script in the top-level directory"
 	exit 1
 }

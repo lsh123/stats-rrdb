@@ -12,6 +12,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/asio.hpp>
+#include <boost/asio/signal_set.hpp>
 
 // forward
 class config;
@@ -27,15 +28,22 @@ public:
   virtual ~server();
 
 public:
+  void daemonize(const std::string & pid_file = std::string());
   void run();
   void stop();
 
 private:
+  void signal_handler(const boost::system::error_code& error, int signal_number);
+  void notify_before_fork();
+  void notify_after_fork(bool is_parent);
+
+private:
+  boost::asio::io_service        _io_service;
+
   boost::shared_ptr<rrdb>        _rrdb;
   boost::shared_ptr<server_udp>  _server_udp;
   boost::shared_ptr<server_tcp>  _server_tcp;
-
-  boost::asio::io_service        _io_service;
+  boost::asio::signal_set        _exit_signals;
 }; // class server
 
 #endif /* SERVER_H_ */

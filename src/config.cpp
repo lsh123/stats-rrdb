@@ -33,7 +33,8 @@ bool config::init(int argc, char ** argv)
   options_description cmd_line_desc("Command-Line Options");
   cmd_line_desc.add_options()
       ("help,h",                            "produce this message")
-      ("config,c", value<std::string>(),    "configuration")
+      ("config,c", value<std::string>(),    "load configuration file")
+      ("daemon,d", value<std::string>(),    "daemonize server and write pid to file")
   ;
   options_description config_file_desc("Config File Options");
   config_file_desc.add_options()
@@ -66,15 +67,15 @@ bool config::init(int argc, char ** argv)
   notify(_data);
 
   // help?
-  if (_data.count("help")) {
+  if(this->has("help")) {
       std::cout << cmd_line_desc << std::endl;
       std::cout << config_file_desc << std::endl;
       return false;
   }
 
   // config?
-  if (_data.count("config")) {
-      std::string config_file = _data["config"].as<std::string>();
+  if(this->has("config")) {
+      std::string config_file = this->get<std::string>("config");
 
       log::write(log::LEVEL_DEBUG, "Loading configuration file '%s'", config_file.c_str());
       std::ifstream file(config_file.c_str(), std::ios_base::in);
@@ -91,4 +92,9 @@ bool config::init(int argc, char ** argv)
 
   // good - continue
   return true;
+}
+
+bool config::has(const std::string & name)
+{
+  return _data.count(name) > 0;
 }

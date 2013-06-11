@@ -110,12 +110,24 @@ AC_ARG_VAR([BOOST_ROOT],[Location of Boost installation])dnl
 # If BOOST_ROOT is set and the user has not provided a value to
 # --with-boost, then treat BOOST_ROOT as if it the user supplied it.
 if test x"$BOOST_ROOT" != x; then
-  if test x"$with_boost" = x; then
-    AC_MSG_NOTICE([Detected BOOST_ROOT; continuing with --with-boost=$BOOST_ROOT])
-    with_boost=$BOOST_ROOT
-  else
-    AC_MSG_NOTICE([Detected BOOST_ROOT=$BOOST_ROOT, but overridden by --with-boost=$with_boost])
-  fi
+	case $with_boost in #(
+      ''|yes)  
+      	AC_MSG_NOTICE([Detected BOOST_ROOT; continuing with --with-boost=$BOOST_ROOT])
+    	with_boost=$BOOST_ROOT
+    	;;
+      *)
+      	AC_MSG_NOTICE([Detected BOOST_ROOT=$BOOST_ROOT, but overridden by --with-boost=$with_boost])
+      	;;
+    esac
+else
+	case $with_boost in #(
+      ''|yes)  
+      	AC_MSG_NOTICE([No --with-boost provided, search default boost location])
+      	with_boost="/usr /usr/local /opt C:/Boost"
+    	;;
+      *)
+      	;;
+    esac
 fi
 AC_SUBST([DISTCHECK_CONFIGURE_FLAGS],
          ["$DISTCHECK_CONFIGURE_FLAGS '--with-boost=$with_boost'"])dnl
@@ -132,14 +144,8 @@ m4_pattern_allow([^BOOST_VERSION$])dnl
 # error Boost headers version < $boost_version_req
 #endif
 ]])])
-    # If the user provided a value to --with-boost, use it and only it.
-    case $with_boost in #(
-      ''|yes) set x '' /opt/local/include /usr/local/include /opt/include \
-                 /usr/include C:/Boost/include;; #(
-      *)      set x "$with_boost/include" "$with_boost";;
-    esac
     shift
-    for boost_dir
+    for boost_dir in $with_boost
     do
     # Without --layout=system, Boost (or at least some versions) installs
     # itself in <prefix>/include/boost-<version>.  This inner loop helps to
@@ -150,16 +156,12 @@ m4_pattern_allow([^BOOST_VERSION$])dnl
     # searching $boost_dir" itself.  Entries are whitespace separated.
     #
     # I didn't indent this loop on purpose (to avoid over-indented code)
-    boost_layout_system_search_list=`cd "$boost_dir" 2>/dev/null \
+    boost_layout_system_search_list=`cd "$boost_dir/include" 2>/dev/null \
         && ls -1 | "${GREP}" '^boost' | sort -rn -t- -k2 \
         && echo .`
     for boost_inc in $boost_layout_system_search_list
     do
-      if test x"$boost_inc" != x.; then
-        boost_inc="$boost_dir/$boost_inc"
-      else
-        boost_inc="$boost_dir" # Uses sentinel in boost_layout_system_search_list
-      fi
+      boost_inc="$boost_dir/include/$boost_inc"
       if test x"$boost_inc" != x; then
         # We are going to check whether the version of Boost installed
         # in $boost_inc is usable by running a compilation that
@@ -178,7 +180,7 @@ m4_pattern_allow([^BOOST_VERSION$])dnl
       AC_COMPILE_IFELSE([], [boost_cv_inc_path=yes], [boost_cv_version=no])
       if test x"$boost_cv_inc_path" = xyes; then
         if test x"$boost_inc" != x; then
-          boost_cv_inc_path=$boost_inc
+          boost_cv_inc_path=$boost_inc     
         fi
         break 2
       fi
@@ -212,6 +214,7 @@ boost-lib-version = BOOST_LIB_VERSION],
     [boost_cv_lib_version=`cat conftest.i`])])
     # e.g. "134" for 1_34_1 or "135" for 1_35
     boost_major_version=`echo "$boost_cv_lib_version" | sed 's/_//;s/_.*//'`
+    AC_MSG_NOTICE([found Boost version $boost_major_version])
     case $boost_major_version in #(
       '' | *[[!0-9]]*)
         AC_MSG_ERROR([invalid value: boost_major_version=$boost_major_version])

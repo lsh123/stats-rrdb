@@ -314,7 +314,7 @@ std::vector<std::string> rrdb::get_metrics(const std::string & like)
       }
 
       // cheat here - we know names
-      std::string name = file_path.stem();
+      std::string name = file_path.stem().generic_string();
       if(!like_lc.empty() &&  name.find(like_lc) == std::string::npos) {
           continue;
       }

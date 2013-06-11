@@ -81,14 +81,12 @@ server_udp::server_udp(
   _rrdb(rrdb),
   _address(config->get<std::string>("server_udp.address", "0.0.0.0")),
   _port(config->get<int>("server_udp.port", 9876)),
+  _thread_pool_size(config->get<std::size_t>("server_udp.thread_pool_size", 5)),
   _buffer_size(config->get<std::size_t>("server_udp.max_message_size", 2048)),
   _send_response(config->get<bool>("server_udp.send_response", false))
 {
   // log
   log::write(log::LEVEL_DEBUG, "Starting UDP server on %s:%d", _address.c_str(), _port);
-
-  // create threads
-  _thread_pool.reset(new thread_pool(config->get<std::size_t>("server_udp.thread_pool_size", 5)));
 
   // create socket
   _socket.reset(new udp::socket(io_service, udp::endpoint(address_v4::from_string(_address), _port)));
@@ -102,12 +100,32 @@ server_udp::server_udp(
 
 server_udp::~server_udp()
 {
-  if(_socket) {
-      this->stop_receive();
-  }
 }
 
-void server_udp::start_receive()
+void server_udp::start()
+{
+  // create threads
+  _thread_pool.reset(new thread_pool(_thread_pool_size));
+
+  //
+  this->receive();
+}
+
+
+void server_udp::stop()
+{
+  log::write(log::LEVEL_DEBUG, "Stopping UDP server");
+
+  if(_socket) {
+      _socket->close();
+      _socket.reset();
+  }
+  _thread_pool.reset();
+
+  log::write(log::LEVEL_INFO, "Stopped UDP server");
+}
+
+void server_udp::receive()
 {
   boost::shared_ptr<connection_udp> new_connection(new connection_udp(_buffer_size));
 
@@ -122,19 +140,6 @@ void server_udp::start_receive()
           boost::asio::placeholders::bytes_transferred
       )
   );
-}
-
-void server_udp::stop_receive()
-{
-  log::write(log::LEVEL_DEBUG, "Stopping UDP server");
-
-  if(_socket) {
-      _socket->close();
-  }
-  _socket.reset();
-  _thread_pool.reset();
-
-  log::write(log::LEVEL_INFO, "Stopped UDP server");
 }
 
 void server_udp::handle_receive(
@@ -157,7 +162,7 @@ void server_udp::handle_receive(
   _thread_pool->run(new_connection);
 
   // next one, please
-  start_receive();
+  this->receive();
 }
 
 

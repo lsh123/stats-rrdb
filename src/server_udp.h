@@ -34,8 +34,8 @@ public:
   );
   virtual ~server_udp();
 
-  void start_receive();
-  void stop_receive();
+  void start();
+  void stop();
 
   void send_response(
    const boost::asio::ip::udp::endpoint & endpoint,
@@ -43,6 +43,8 @@ public:
   );
 
 protected:
+  void receive();
+
   void handle_receive(
     boost::shared_ptr<connection_udp> new_connection,
     const boost::system::error_code & error,
@@ -64,6 +66,7 @@ private:
 
   std::string  _address;
   int          _port;
+  std::size_t  _thread_pool_size;
   std::size_t  _buffer_size;
   bool         _send_response;
 }; // server_udp
