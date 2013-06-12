@@ -1,0 +1,217 @@
+--- boost.spec.orig	2013-06-10 22:17:52.560984754 -0700
++++ boost.spec	2013-06-10 23:56:56.433464659 -0700
+@@ -30,17 +30,17 @@
+ 
+ %bcond_without python3
+ 
+-Name: boost
++Name: boost153
+ Summary: The free peer-reviewed portable C++ source libraries
+ Version: 1.53.0
+ %define version_enc 1_53_0
+ Release: 6%{?dist}
+ License: Boost and MIT and Python
+ 
+-%define toplev_dirname %{name}_%{version_enc}
++%define toplev_dirname boost_%{version_enc}
+ URL: http://www.boost.org
+ Group: System Environment/Libraries
+-Source0: http://downloads.sourceforge.net/%{name}/%{toplev_dirname}.tar.bz2
++Source0: http://downloads.sourceforge.net/boost/%{toplev_dirname}.tar.bz2
+ Source1: ver.py
+ Source2: libboost_thread-mt.so
+ 
+@@ -52,28 +52,28 @@
+ # components, except for MPI and Python 3 sub-packages.  Those are
+ # special in that they are rarely necessary, and it's not a big burden
+ # to have interested parties install them explicitly.
+-Requires: boost-atomic = %{version}-%{release}
+-Requires: boost-chrono = %{version}-%{release}
++Requires: %{name}-atomic = %{version}-%{release}
++Requires: %{name}-chrono = %{version}-%{release}
+ %if %{with context}
+-Requires: boost-context = %{version}-%{release}
++Requires: %{name}-context = %{version}-%{release}
+ %endif
+-Requires: boost-date-time = %{version}-%{release}
+-Requires: boost-filesystem = %{version}-%{release}
+-Requires: boost-graph = %{version}-%{release}
+-Requires: boost-iostreams = %{version}-%{release}
+-Requires: boost-locale = %{version}-%{release}
+-Requires: boost-math = %{version}-%{release}
+-Requires: boost-program-options = %{version}-%{release}
+-Requires: boost-python = %{version}-%{release}
+-Requires: boost-random = %{version}-%{release}
+-Requires: boost-regex = %{version}-%{release}
+-Requires: boost-serialization = %{version}-%{release}
+-Requires: boost-signals = %{version}-%{release}
+-Requires: boost-system = %{version}-%{release}
+-Requires: boost-test = %{version}-%{release}
+-Requires: boost-thread = %{version}-%{release}
+-Requires: boost-timer = %{version}-%{release}
+-Requires: boost-wave = %{version}-%{release}
++Requires: %{name}-date-time = %{version}-%{release}
++Requires: %{name}-filesystem = %{version}-%{release}
++Requires: %{name}-graph = %{version}-%{release}
++Requires: %{name}-iostreams = %{version}-%{release}
++Requires: %{name}-locale = %{version}-%{release}
++Requires: %{name}-math = %{version}-%{release}
++Requires: %{name}-program-options = %{version}-%{release}
++Requires: %{name}-python = %{version}-%{release}
++Requires: %{name}-random = %{version}-%{release}
++Requires: %{name}-regex = %{version}-%{release}
++Requires: %{name}-serialization = %{version}-%{release}
++Requires: %{name}-signals = %{version}-%{release}
++Requires: %{name}-system = %{version}-%{release}
++Requires: %{name}-test = %{version}-%{release}
++Requires: %{name}-thread = %{version}-%{release}
++Requires: %{name}-timer = %{version}-%{release}
++Requires: %{name}-wave = %{version}-%{release}
+ 
+ BuildRequires: libstdc++-devel%{?_isa}
+ BuildRequires: bzip2-devel%{?_isa}
+@@ -253,8 +253,8 @@
+ %package python3-devel
+ Summary: Shared object symbolic links for Boost.Python 3
+ Group: System Environment/Libraries
+-Requires: boost-python3 = %{version}-%{release}
+-Requires: boost-devel = %{version}-%{release}
++Requires: %{name}-python3 = %{version}-%{release}
++Requires: %{name}-devel = %{version}-%{release}
+ 
+ %description python3-devel
+ 
+@@ -347,8 +347,8 @@
+ %package devel
+ Summary: The Boost C++ headers and shared development libraries
+ Group: Development/Libraries
+-Requires: boost = %{version}-%{release}
+-Provides: boost-python-devel = %{version}-%{release}
++Requires: %{name} = %{version}-%{release}
++Provides: %{name}-python-devel = %{version}-%{release}
+ 
+ %description devel
+ Headers and shared object symbolic links for the Boost C++ libraries.
+@@ -356,9 +356,9 @@
+ %package static
+ Summary: The Boost C++ static development libraries
+ Group: Development/Libraries
+-Requires: boost-devel = %{version}-%{release}
+-Obsoletes: boost-devel-static < 1.34.1-14
+-Provides: boost-devel-static = %{version}-%{release}
++Requires: %{name}-devel = %{version}-%{release}
++Obsoletes: %{name}-devel-static < 1.34.1-14
++Provides: %{name}-devel-static = %{version}-%{release}
+ 
+ %description static
+ Static Boost C++ libraries.
+@@ -369,7 +369,7 @@
+ %if 0%{?fedora} >= 10 || 0%{?rhel} >= 6
+ BuildArch: noarch
+ %endif
+-Provides: boost-python-docs = %{version}-%{release}
++Provides: %{name}-python-docs = %{version}-%{release}
+ 
+ %description doc
+ This package contains the documentation in the HTML format of the Boost C++
+@@ -382,7 +382,7 @@
+ %if 0%{?fedora} >= 10 || 0%{?rhel} >= 6
+ BuildArch: noarch
+ %endif
+-Requires: boost-devel = %{version}-%{release}
++Requires: %{name}-devel = %{version}-%{release}
+ 
+ %description examples
+ This package contains example source files distributed with boost.
+@@ -404,10 +404,10 @@
+ %package openmpi-devel
+ Summary: Shared library symbolic links for Boost.MPI
+ Group: System Environment/Libraries
+-Requires: boost-devel = %{version}-%{release}
+-Requires: boost-openmpi = %{version}-%{release}
+-Requires: boost-openmpi-python = %{version}-%{release}
+-Requires: boost-graph-openmpi = %{version}-%{release}
++Requires: %{name}-devel = %{version}-%{release}
++Requires: %{name}-openmpi = %{version}-%{release}
++Requires: %{name}-openmpi-python = %{version}-%{release}
++Requires: %{name}-graph-openmpi = %{version}-%{release}
+ 
+ %description openmpi-devel
+ 
+@@ -417,7 +417,7 @@
+ %package openmpi-python
+ Summary: Python run-time component of Boost.MPI library
+ Group: System Environment/Libraries
+-Requires: boost-openmpi = %{version}-%{release}
++Requires: %{name}-openmpi = %{version}-%{release}
+ 
+ %description openmpi-python
+ 
+@@ -427,7 +427,7 @@
+ %package graph-openmpi
+ Summary: Run-Time component of parallel boost graph library
+ Group: System Environment/Libraries
+-Requires: boost-openmpi = %{version}-%{release}
++Requires: %{name}-openmpi = %{version}-%{release}
+ 
+ %description graph-openmpi
+ 
+@@ -455,10 +455,10 @@
+ %package mpich2-devel
+ Summary: Shared library symbolic links for Boost.MPI
+ Group: System Environment/Libraries
+-Requires: boost-devel = %{version}-%{release}
+-Requires: boost-mpich2 = %{version}-%{release}
+-Requires: boost-mpich2-python = %{version}-%{release}
+-Requires: boost-graph-mpich2 = %{version}-%{release}
++Requires: %{name}-devel = %{version}-%{release}
++Requires: %{name}-mpich2 = %{version}-%{release}
++Requires: %{name}-mpich2-python = %{version}-%{release}
++Requires: %{name}-graph-mpich2 = %{version}-%{release}
+ 
+ %description mpich2-devel
+ 
+@@ -468,7 +468,7 @@
+ %package mpich2-python
+ Summary: Python run-time component of Boost.MPI library
+ Group: System Environment/Libraries
+-Requires: boost-mpich2 = %{version}-%{release}
++Requires: %{name}-mpich2 = %{version}-%{release}
+ 
+ %description mpich2-python
+ 
+@@ -478,7 +478,7 @@
+ %package graph-mpich2
+ Summary: Run-Time component of parallel boost graph library
+ Group: System Environment/Libraries
+-Requires: boost-mpich2 = %{version}-%{release}
++Requires: %{name}-mpich2 = %{version}-%{release}
+ 
+ %description graph-mpich2
+ 
+@@ -492,7 +492,7 @@
+ %package build
+ Summary: Cross platform build system for C++ projects
+ Group: Development/Tools
+-Requires: boost-jam
++Requires: %{name}-jam
+ BuildArch: noarch
+ 
+ %description build
+@@ -668,6 +668,7 @@
+     	--without-context \
+ %endif
+ 	--prefix=$RPM_BUILD_ROOT%{_prefix} \
++	--includedir=$RPM_BUILD_ROOT%{_includedir} \
+ 	--libdir=$RPM_BUILD_ROOT%{_libdir} \
+ 	variant=release threading=single,multi debug-symbols=on pch=off \
+ 	python=%{python2_version} install
+@@ -978,7 +979,7 @@
+ %files devel
+ %defattr(-, root, root, -)
+ %doc LICENSE_1_0.txt
+-%{_includedir}/%{name}
++%{_includedir}/boost
+ %{_libdir}/libboost_atomic-mt.so
+ %{_libdir}/libboost_chrono*.so
+ %if %{with context}
