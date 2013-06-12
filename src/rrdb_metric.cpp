@@ -6,7 +6,6 @@
  */
 #include <stdio.h>
 
-#include <boost/shared_array.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/filesystem.hpp>
@@ -21,64 +20,104 @@
 #define RRDB_METRIC_MAGIC               0xDB99
 #define RRDB_METRIC_VERSION             0x01
 
-
 // make it configurable?
 #define RRDB_METRIC_SUBFOLDERS_NUM      512
 
-rrdb_metric::rrdb_metric() :
-    _status(0)
+rrdb_metric::rrdb_metric()
 {
-
+  // setup empty header
+  memset(&_header, 0, sizeof(_header));
+  _header._magic        = RRDB_METRIC_MAGIC;
+  _header._version      = RRDB_METRIC_VERSION;
 }
 
-rrdb_metric::rrdb_metric(const std::string & name, const retention_policy & policy) :
-    _name(name),
-    _policy(policy),
-    _status(0)
+rrdb_metric::rrdb_metric(const std::string & name, const retention_policy & policy)
 {
+  // setup empty header
+  memset(&_header, 0, sizeof(_header));
+  _header._magic        = RRDB_METRIC_MAGIC;
+  _header._version      = RRDB_METRIC_VERSION;
+
+  // copy name
+  _header._name_len         = name.length();
+  _header._name_size  = rrdb_metric::get_padded_name_len(_header._name_len);
+  _name.reset(new char[_header._name_size]);
+  std::copy(name.begin(), name.end(), _name.get());
+
+  // copy policy
+  _header._blocks_size  = policy.size();
+  _blocks_info.reset(new rrdb_metric_block_info_t[_header._blocks_size]);
+  rrdb_metric_block_info_t * bi = _blocks_info.get();
+  boost::uint64_t offset = sizeof(_header) + _header._name_size;
+  BOOST_FOREACH(const retention_policy_elem & elem, policy) {
+    bi->_magic      = RRDB_METRIC_MAGIC;
+    bi->_status     = 0;
+
+    bi->_offset     = offset;
+    bi->_size       = bi->_count * sizeof(rrdb_metric_tuple_t);
+
+    bi->_freq       = elem._freq;
+    bi->_count      = elem._duration / elem._freq;
+
+    bi->_start_pos  = 0;
+    bi->_end_pos    = 0;
+
+    bi->_start_ts   = 0;
+    bi->_end_ts     = 0;
+
+    // move to the next
+    offset += sizeof(rrdb_metric_block_info_t) + bi->_size;
+    bi++;
+  }
 }
 
 rrdb_metric::~rrdb_metric()
 {
-  // TODO Auto-generated destructor stub
 }
 
 // use copy here to avoid problems with MT
 std::string rrdb_metric::get_name()
 {
   boost::lock_guard<spinlock> guard(_lock);
-  return _name;
+  return std::string(_name.get(), _header._name_len);
 }
 
 // use copy here to avoid problems with MT
 retention_policy rrdb_metric::get_policy()
 {
   boost::lock_guard<spinlock> guard(_lock);
-  return _policy;
+  retention_policy res(_header._blocks_size);
+  for(boost::uint16_t ii = 0; ii < _header._blocks_size; ++ii) {
+      const rrdb_metric_block_info_t & bi(_blocks_info[ii]);
+
+      res[ii]._freq     = bi._freq;
+      res[ii]._duration = bi._freq * bi._count;
+  }
+  return res;
 }
 
 bool rrdb_metric::is_dirty()
 {
   boost::lock_guard<spinlock> guard(_lock);
-  return (_status & Status_Dirty);
+  return (_header._status & Status_Dirty);
 }
 
 void rrdb_metric::set_dirty()
 {
   boost::lock_guard<spinlock> guard(_lock);
-  _status |= Status_Dirty;
+  _header._status |= Status_Dirty;
 }
 
 bool rrdb_metric::is_deleted()
 {
   boost::lock_guard<spinlock> guard(_lock);
-  return (_status & Status_Deleted);
+  return (_header._status & Status_Deleted);
 }
 
 void rrdb_metric::set_deleted()
 {
   boost::lock_guard<spinlock> guard(_lock);
-  _status |= Status_Deleted;
+  _header._status |= Status_Deleted;
 }
 
 
@@ -99,7 +138,7 @@ std::string rrdb_metric::get_full_path(const std::string & folder, const std::st
 }
 
 // align by 64 bits = 8 bytes
-std::size_t rrdb_metric::get_aligned_name_len(std::size_t name_len)
+std::size_t rrdb_metric::get_padded_name_len(std::size_t name_len)
 {
   return name_len + (8 - (name_len % 8));
 }
@@ -115,7 +154,7 @@ void rrdb_metric::save_file(const std::string & folder)
   log::write(log::LEVEL_DEBUG, "RRDB metric '%s' saving file", this->get_name().c_str());
 
   // open file
-  std::string full_path = rrdb_metric::get_full_path(folder, _name);
+  std::string full_path = rrdb_metric::get_full_path(folder, this->get_name());
   std::fstream ofs(full_path.c_str(), std::ios_base::binary | std::ios_base::out);
   ofs.exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
 
@@ -159,7 +198,7 @@ void rrdb_metric::delete_file(const std::string & folder)
   // start
   log::write(log::LEVEL_DEBUG, "RRDB metric '%s' deleting file", this->get_name().c_str());
 
-  std::string full_path = rrdb_metric::get_full_path(folder, _name);
+  std::string full_path = rrdb_metric::get_full_path(folder, this->get_name());
   boost::filesystem::remove(full_path);
 
   // done
@@ -168,68 +207,59 @@ void rrdb_metric::delete_file(const std::string & folder)
 
 void rrdb_metric::write_header(std::fstream & ofs)
 {
-
-  rrdb_metric_header_t header;
-  std::size_t aligned_name_size;
-  boost::shared_array<char> name;
-  std::size_t blocks_size;
-  boost::shared_array<retention_policy_elem> policy;
-
-  // lock while we are preparing header
+  // lock while we are writing header. this should be a rare
+  // operation otherwise we can just copy inside the lock
+  // and write outside
   {
     boost::lock_guard<spinlock> guard(_lock);
 
-    header._magic       = RRDB_METRIC_MAGIC;
-    header._version     = RRDB_METRIC_VERSION;
-    header._status      = _status;
-    header._name_len    = _name.length();
-    header._blocks_size = _policy.size();
-
-    aligned_name_size = rrdb_metric::get_aligned_name_len(header._name_len);
-    name.reset(new char[aligned_name_size]);
-    memset(name.get(), 0, aligned_name_size);
-    memcpy(name.get(), _name.c_str(), header._name_len);
-
-    blocks_size = header._blocks_size * sizeof(retention_policy_elem);
-    policy.reset(new retention_policy_elem[header._blocks_size]);
-    std::copy(_policy.begin(), _policy.end(), policy.get());
+    // write everything
+    ofs.write((const char*)&_header, sizeof(_header));
+    ofs.write((const char*)_name.get(), _header._name_size);
+    ofs.write((const char*)_blocks_info.get(), sizeof(rrdb_metric_block_info_t) * _header._blocks_size);
   }
-
-  // write everything
-  ofs.write((const char*)&header, sizeof(header));
-  ofs.write((const char*)name.get(), aligned_name_size);
-  ofs.write((const char*)policy.get(), blocks_size);
 }
 
 void rrdb_metric::read_header(std::fstream & ifs)
 {
-  // read header
-  rrdb_metric_header_t header;
-  ifs.read((char*)&header, sizeof(header));
-  if(header._magic != RRDB_METRIC_MAGIC) {
-      throw exception("Unexpected rrdb metric magic: %04x", header._magic);
-  }
-  if(header._version != RRDB_METRIC_VERSION) {
-      throw exception("Unexpected rrdb metric version: %04x", header._version);
-  }
-
-  // read name
-  std::size_t aligned_name_size(rrdb_metric::get_aligned_name_len(header._name_len));
-  boost::shared_array<char> name(new char[aligned_name_size]);
-  memset(name.get(), 0, aligned_name_size);
-  ifs.read((char*)name.get(), aligned_name_size);
-
-  // read policy
-  std::size_t blocks_size(header._blocks_size * sizeof(retention_policy_elem));
-  boost::shared_array<retention_policy_elem> policy(new retention_policy_elem[header._blocks_size]);
-  ifs.read((char*)policy.get(), blocks_size);
-
-  // lock while we are updating data
+  // lock while we are reading header. this should be a rare
+  // operation otherwise we can just read outside
+  // and copy inside the lock
   {
     boost::lock_guard<spinlock> guard(_lock);
 
-    _status = header._status;
-    _name.assign(name.get(), header._name_len);
-    _policy.assign(policy.get(), policy.get() + header._blocks_size);
+    // read header
+    ifs.read((char*)&_header, sizeof(_header));
+    if(_header._magic != RRDB_METRIC_MAGIC) {
+        throw exception("Unexpected rrdb metric magic: %04x", _header._magic);
+    }
+    if(_header._version != RRDB_METRIC_VERSION) {
+        throw exception("Unexpected rrdb metric version: %04x", _header._version);
+    }
+
+    // name
+    _name.reset(new char[_header._name_size]);
+    ifs.read((char*)_name.get(), _header._name_size);
+
+    // blocks info
+    _blocks_info.reset(new rrdb_metric_block_info_t[_header._blocks_size]);
+    ifs.read((char*)_blocks_info.get(), sizeof(rrdb_metric_block_info_t) * _header._blocks_size);
+
+    boost::uint64_t offset = sizeof(_header) + _header._name_size;
+    for(boost::uint16_t ii = 0; ii < _header._blocks_size; ++ii) {
+        const rrdb_metric_block_info_t & bi(_blocks_info[ii]);
+        if(bi._magic != RRDB_METRIC_MAGIC) {
+            throw exception("Unexpected rrdb metric block %d magic: %04x", ii, bi._magic);
+        }
+        if(bi._offset != offset) {
+            throw exception("Unexpected rrdb metric block %d offset: %llu (expected %llu)", ii, bi._offset, offset);
+        }
+        if(bi._size != bi._count * sizeof(rrdb_metric_tuple_t)) {
+            throw exception("Unexpected rrdb metric block %d size: %llu (expected %llu)", ii, bi._size, bi._count * sizeof(rrdb_metric_tuple_t));
+        }
+
+        offset += bi._size;
+    }
   }
+
 }

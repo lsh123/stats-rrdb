@@ -12,6 +12,7 @@
 #include <fstream>
 
 #include <boost/shared_ptr.hpp>
+#include <boost/shared_array.hpp>
 #include <boost/cstdint.hpp>
 
 #include "spinlock.h"
@@ -29,8 +30,12 @@ typedef struct rrdb_metric_header_t_ {
   boost::uint16_t   _magic;             // magic bytes (0x99DB)
   boost::uint16_t   _version;           // version (0x01)
   boost::uint16_t   _status;            // status flags
-  boost::uint16_t   _name_len;          // length of the name (actual name is 64 bit padded with 0s)
-  boost::uint16_t   _blocks_size;       // number of blocks in the metric
+  boost::uint16_t   _blocks_size;       // number of blocks in the metric (size of _blocks array)
+
+  boost::uint16_t   _name_len;          // actual length of the name
+  boost::uint16_t   _name_size;         // 64-bit padded size of the name array
+  boost::uint16_t   _unused1;
+  boost::uint16_t   _unused2;
 } rrdb_metric_header_t;
 
 //
@@ -39,19 +44,20 @@ typedef struct rrdb_metric_header_t_ {
 typedef struct rrdb_metric_block_info_t_ {
   boost::uint16_t   _magic;             // magic bytes (0x99DB)
   boost::uint16_t   _status;            // block status flags
+  boost::uint32_t   _unused1;
+
+  boost::uint64_t   _offset;            // current offset in the file
+  boost::uint64_t   _size;              // current size (bytes) in the file
+
   boost::uint32_t   _freq;              // frequency of collections in secs
-
   boost::uint32_t   _count;             // number of data tuples
-  boost::uint32_t   _tuple_size;        // number of values in the tuple (const for now)
 
-  boost::uint32_t   _start_pos;         // current start position
-  boost::uint32_t   _end_pos;           // current end position
+  boost::uint32_t   _start_pos;         // current start position for circular buffer
+  boost::uint32_t   _end_pos;           // current end position for circular buffer
 
   boost::uint32_t   _start_ts;          // current start time for this block
   boost::uint32_t   _end_ts;            // current end time for this block
-
-  boost::uint64_t   _offset;            // current offset in the file
-} rrdb_metric_block_info;
+} rrdb_metric_block_info_t;
 
 //
 // Value
@@ -95,17 +101,19 @@ public:
 
 private:
   static std::string get_full_path(const std::string & folder, const std::string & name);
-  static std::size_t get_aligned_name_len(std::size_t name_len);
+  static std::size_t get_padded_name_len(std::size_t name_len);
 
   void write_header(std::fstream & ofs);
   void read_header(std::fstream & ifs);
 
-private:
-  spinlock          _lock;
-  std::string       _name;
-  retention_policy  _policy;
+  void set_name(const std::string & name);
+  void set_policy(const std::string & name);
 
-  boost::uint8_t    _status;
+private:
+  spinlock                                      _lock;
+  rrdb_metric_header_t                          _header;
+  boost::shared_array<char>                     _name;
+  boost::shared_array<rrdb_metric_block_info_t> _blocks_info;
 }; // class rrdb_metric
 
 #endif /* RRDB_METRIC_H_ */
