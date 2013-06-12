@@ -9,6 +9,8 @@
 #define STATEMENTS_H_
 
 #include <string>
+#include <vector>
+
 #include <boost/variant.hpp>
 
 #include "interval.h"
@@ -72,5 +74,6 @@ typedef boost::variant<
 
 statement statement_parse(const std::string & str);
 statement statement_parse(std::string::const_iterator beg, std::string::const_iterator end);
+statement statement_parse(std::vector<char>::const_iterator beg, std::vector<char>::const_iterator end);
 
 #endif /* STATEMENTS_H_ */

@@ -55,7 +55,7 @@ public:
 
   void save_file(const std::string & folder);
   void delete_file(const std::string & folder);
-  static boost::shared_ptr<rrdb_metric> load_file(const std::string & folder, const std::string & name);
+  static boost::shared_ptr<rrdb_metric> load_file(const std::string & filename);
 
 private:
   static std::string get_full_path(const std::string & folder, const std::string & name);

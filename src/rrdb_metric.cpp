@@ -139,14 +139,13 @@ void rrdb_metric::save_file(const std::string & folder)
   }
 }
 
-boost::shared_ptr<rrdb_metric> rrdb_metric::load_file(const std::string & folder, const std::string & name)
+boost::shared_ptr<rrdb_metric> rrdb_metric::load_file(const std::string & filename)
 {
   // start
-  log::write(log::LEVEL_DEBUG, "RRDB metric '%s' loading file", name.c_str());
+  log::write(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", filename.c_str());
 
   // open file
-  std::string full_path = rrdb_metric::get_full_path(folder, name);
-  std::fstream ifs(full_path.c_str(), std::ios_base::binary | std::ios_base::in);
+  std::fstream ifs(filename.c_str(), std::ios_base::binary | std::ios_base::in);
   ifs.exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
 
   boost::shared_ptr<rrdb_metric> res(new rrdb_metric());
@@ -154,12 +153,8 @@ boost::shared_ptr<rrdb_metric> rrdb_metric::load_file(const std::string & folder
   ifs.flush();
   ifs.close();
 
-  if(res->_name != name) {
-      throw exception("Unexpected rrdb metric name: %s", res->_name.c_str());
-  }
-
   // done
-  log::write(log::LEVEL_DEBUG, "RRDB metric '%s' loaded file '%s'", name.c_str(), full_path.c_str());
+  log::write(log::LEVEL_DEBUG, "RRDB metric loaded file '%s'", filename.c_str());
   return res;
 }
 

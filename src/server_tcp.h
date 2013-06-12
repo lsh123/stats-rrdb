@@ -61,6 +61,8 @@ protected:
     return _rrdb;
   }
 
+  static std::string format_error(const char * what);
+
 private:
   boost::shared_ptr<thread_pool>                    _thread_pool;
   boost::shared_ptr<rrdb>                           _rrdb;

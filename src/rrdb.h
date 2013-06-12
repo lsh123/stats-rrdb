@@ -54,6 +54,7 @@ public:
 
 
 private:
+  void load_metrics();
   boost::shared_ptr<rrdb_metric> find_metric_lc(const std::string & name_lc);
 
   void flush_to_disk_thread();

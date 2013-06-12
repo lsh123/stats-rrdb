@@ -60,10 +60,10 @@ public:
         _server_tcp->send_response(_socket, res);
     } catch(std::exception & e) {
         log::write(log::LEVEL_ERROR, "Exception executing long rrdb command: %s", e.what());
-        _server_tcp->send_response(_socket, this->get_error_buffers("ERROR"));
+        _server_tcp->send_response(_socket, this->get_error_buffers(server_tcp::format_error(e.what())));
     } catch(...) {
         log::write(log::LEVEL_ERROR, "Unknown exception long short rrdb command");
-        _server_tcp->send_response(_socket, this->get_error_buffers("ERROR"));
+        _server_tcp->send_response(_socket, this->get_error_buffers(server_tcp::format_error("unhandled exception")));
     }
   }
 
@@ -235,3 +235,6 @@ void server_tcp::handle_write(
   // do nothing
 }
 
+std::string server_tcp::format_error(const char * what) {
+  return std::string("ERROR - ") + what;
+}

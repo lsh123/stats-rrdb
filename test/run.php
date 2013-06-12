@@ -20,14 +20,19 @@ $resp = $stats_rrdb->send_command("show metrics like 'te';");
 echo "$resp\n";
 
 echo "== SHOW METRIC\n";
-$resp = $stats_rrdb->send_command("show metric 'test';");
-echo "$resp\n";
-
-echo "== DROP METRIC 'test1'\n";
 $resp = $stats_rrdb->send_command("show metric 'test1';");
 echo "$resp\n";
 
+echo "== SHOW METRIC (error)\n";
+$resp = $stats_rrdb->send_command("show metric 'test';");
+echo "$resp\n";
+
+
+echo "== DROP METRIC 'test1'\n";
+$resp = $stats_rrdb->send_command("drop metric 'test1';");
+echo "$resp\n";
+
 echo "== DROP METRIC 'test2'\n";
-$resp = $stats_rrdb->send_command("show metric 'test2';");
+$resp = $stats_rrdb->send_command("drop metric 'test2';");
 echo "$resp\n";
 

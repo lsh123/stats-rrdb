@@ -12,6 +12,6 @@ PID=`cat "$PID_FILE"`
 echo "Running tests"
 php $TEST_FOLDER/run.php
 
-echo "Stopping server"
+echo "Stopping server: $PID"
 kill $PID
 

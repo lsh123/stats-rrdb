@@ -99,8 +99,13 @@ void rrdb::start()
 
   log::write(log::LEVEL_DEBUG, "Starting RRDB server");
 
+  // load metrics from disk
+  this->load_metrics();
+
+  // start flush thread
   _flush_to_disk_thread.reset(new boost::thread(boost::bind(&rrdb::flush_to_disk_thread, this)));
 
+  // done
   log::write(log::LEVEL_INFO, "Started RRDB server");
 }
 
@@ -177,9 +182,41 @@ boost::shared_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)
   return this->find_metric_lc(name_lc);
 }
 
+void rrdb::load_metrics()
+{
+  for(boost::filesystem::recursive_directory_iterator end, cur(_path + "/"); cur != end; ++cur) {
+      // log::write(log::LEVEL_DEBUG, "Checking file %s", (*cur).path().string().c_str());
+
+      // we are looking for files
+      if((*cur).status().type() != boost::filesystem::regular_file) {
+          continue;
+      }
+
+      // with specified extension
+      boost::filesystem::path file_path((*cur).path());
+      if(file_path.extension() != RRDB_METRIC_EXTENSION) {
+          continue;
+      }
+
+      // load metric
+      boost::shared_ptr<rrdb_metric> metric(rrdb_metric::load_file(file_path.string()));
+      std::string name(metric->get_name());
+
+      // try to insert into the map
+      {
+        boost::lock_guard<spinlock> guard(_metrics_lock);
+        t_metrics_map::const_iterator it = _metrics.find(name);
+        if(it == _metrics.end()) {
+            // insert loaded metric into map and return
+            _metrics[name] = metric;
+        }
+      }
+  }
+}
+
 boost::shared_ptr<rrdb_metric> rrdb::find_metric_lc(const std::string & name_lc)
 {
-  // search in the map first: lock access to _metrics
+  // search in the map: lock access to _metrics
   {
     boost::lock_guard<spinlock> guard(_metrics_lock);
     t_metrics_map::const_iterator it = _metrics.find(name_lc);
@@ -187,36 +224,7 @@ boost::shared_ptr<rrdb_metric> rrdb::find_metric_lc(const std::string & name_lc)
         return (*it).second;
     }
   }
-
-  // search on disk
-  boost::shared_ptr<rrdb_metric> res;
-  try {
-      log::write(log::LEVEL_DEBUG, "Trying to load metric '%s' from disk", name_lc.c_str());
-      res = rrdb_metric::load_file(_path, name_lc);
-  } catch(exception & e) {
-      // ignore any exceptions
-      log::write(log::LEVEL_ERROR, "Exception while loading metric '%s': %s", name_lc.c_str(), e.what());
-      return boost::shared_ptr<rrdb_metric>();
-  } catch(std::exception & e) {
-      // ignore any exceptions
-      log::write(log::LEVEL_DEBUG, "Exception while loading metric '%s': %s", name_lc.c_str(), e.what());
-      return boost::shared_ptr<rrdb_metric>();
-  }
-
-  // try to insert into the map, lock again
-  {
-    boost::lock_guard<spinlock> guard(_metrics_lock);
-    t_metrics_map::const_iterator it = _metrics.find(name_lc);
-    if(it != _metrics.end()) {
-        // someone already inserted it, drop the one we just loaded
-        // and use one in the metrics map
-        return (*it).second;
-    }
-
-    // insert loaded metric into map and return
-    _metrics[name_lc] = res;
-  }
-  return res;
+  return boost::shared_ptr<rrdb_metric>();
 }
 
 boost::shared_ptr<rrdb_metric> rrdb::get_metric(const std::string & name)
@@ -299,28 +307,18 @@ std::vector<std::string> rrdb::get_metrics(const std::string & like)
   std::string like_lc(like);
   boost::algorithm::to_lower(like_lc);
 
-  // go to disk since we might not have all the metrics in memory
+  // store results here
   std::vector<std::string> res;
-  for(boost::filesystem::recursive_directory_iterator end, cur(_path + "/"); cur != end; ++cur) {
-      // we are looking for files
-      if((*cur).status().type() != boost::filesystem::regular_file) {
+
+  // lock access to _metrics
+  {
+    boost::lock_guard<spinlock> guard(_metrics_lock);
+    BOOST_FOREACH(const t_metrics_map::value_type & v, _metrics) {
+      if(v.first.find(like_lc) == std::string::npos) {
           continue;
       }
-
-      // with specified extension
-      boost::filesystem::path file_path((*cur).path());
-      if(file_path.extension() != RRDB_METRIC_EXTENSION) {
-          continue;
-      }
-
-      // cheat here - we know names
-      std::string name = file_path.stem().generic_string();
-      if(!like_lc.empty() &&  name.find(like_lc) == std::string::npos) {
-          continue;
-      }
-
-      // found!
-      res.push_back(name);
+      res.push_back(v.first);
+    }
   }
 
   // done
@@ -346,9 +344,11 @@ rrdb::t_metrics_vector rrdb::get_dirty_metrics()
 
 rrdb::t_result_buffers rrdb::execute_long_command(const std::vector<char> & buffer)
 {
-  rrdb::t_result_buffers res;
+  statement st = statement_parse(buffer.begin(), buffer.end());
+  std::string output = boost::apply_visitor(statement_execute_visitor(shared_from_this()), st);
 
-  res.push_back(boost::asio::buffer("OK"));
+  rrdb::t_result_buffers res;
+  res.push_back(boost::asio::buffer(output));
   return res;
 }
 

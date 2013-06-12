@@ -31,3 +31,16 @@ statement statement_parse(const std::string & str)
 {
   return statement_parse(str.begin(), str.end());
 }
+
+statement statement_parse(std::vector<char>::const_iterator beg, std::vector<char>::const_iterator end)
+{
+  statement ret;
+  statement_grammar<std::vector<char>::const_iterator> grammar;
+
+  phrase_parse(beg, end, grammar, ascii::space, ret);
+  if (beg != end) {
+      throw exception("Unable to parse the statement");
+  }
+
+  return ret;
+}
