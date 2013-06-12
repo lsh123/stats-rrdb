@@ -21,13 +21,6 @@
 #define RRDB_METRIC_MAGIC               0xDB99
 #define RRDB_METRIC_VERSION             0x01
 
-typedef struct rrdb_metric_header_t_ {
-  boost::uint16_t   _magic;
-  boost::uint8_t    _version;
-  boost::uint8_t    _status;
-  boost::uint16_t   _name_len;
-  boost::uint16_t   _policy_size;
-} rrdb_metric_header_t;
 
 // make it configurable?
 #define RRDB_METRIC_SUBFOLDERS_NUM      512
@@ -179,7 +172,7 @@ void rrdb_metric::write_header(std::fstream & ofs)
   rrdb_metric_header_t header;
   std::size_t aligned_name_size;
   boost::shared_array<char> name;
-  std::size_t policy_size;
+  std::size_t blocks_size;
   boost::shared_array<retention_policy_elem> policy;
 
   // lock while we are preparing header
@@ -190,22 +183,22 @@ void rrdb_metric::write_header(std::fstream & ofs)
     header._version     = RRDB_METRIC_VERSION;
     header._status      = _status;
     header._name_len    = _name.length();
-    header._policy_size = _policy.size();
+    header._blocks_size = _policy.size();
 
     aligned_name_size = rrdb_metric::get_aligned_name_len(header._name_len);
     name.reset(new char[aligned_name_size]);
     memset(name.get(), 0, aligned_name_size);
     memcpy(name.get(), _name.c_str(), header._name_len);
 
-    policy_size = header._policy_size * sizeof(retention_policy_elem);
-    policy.reset(new retention_policy_elem[header._policy_size]);
+    blocks_size = header._blocks_size * sizeof(retention_policy_elem);
+    policy.reset(new retention_policy_elem[header._blocks_size]);
     std::copy(_policy.begin(), _policy.end(), policy.get());
   }
 
   // write everything
   ofs.write((const char*)&header, sizeof(header));
   ofs.write((const char*)name.get(), aligned_name_size);
-  ofs.write((const char*)policy.get(), policy_size);
+  ofs.write((const char*)policy.get(), blocks_size);
 }
 
 void rrdb_metric::read_header(std::fstream & ifs)
@@ -227,9 +220,9 @@ void rrdb_metric::read_header(std::fstream & ifs)
   ifs.read((char*)name.get(), aligned_name_size);
 
   // read policy
-  std::size_t policy_size(header._policy_size * sizeof(retention_policy_elem));
-  boost::shared_array<retention_policy_elem> policy(new retention_policy_elem[header._policy_size]);
-  ifs.read((char*)policy.get(), policy_size);
+  std::size_t blocks_size(header._blocks_size * sizeof(retention_policy_elem));
+  boost::shared_array<retention_policy_elem> policy(new retention_policy_elem[header._blocks_size]);
+  ifs.read((char*)policy.get(), blocks_size);
 
   // lock while we are updating data
   {
@@ -237,6 +230,6 @@ void rrdb_metric::read_header(std::fstream & ifs)
 
     _status = header._status;
     _name.assign(name.get(), header._name_len);
-    _policy.assign(policy.get(), policy.get() + header._policy_size);
+    _policy.assign(policy.get(), policy.get() + header._blocks_size);
   }
 }

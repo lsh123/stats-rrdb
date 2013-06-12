@@ -25,7 +25,7 @@
  * <n> sec|min|hour|day|week|month|year
  *
  */
-typedef boost::uint64_t interval_t;
+typedef boost::uint32_t interval_t;
 
 interval_t interval_parse(const std::string & str);
 std::string interval_write(const interval_t & interval);

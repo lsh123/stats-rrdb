@@ -8,39 +8,34 @@
 #ifndef SPINLOCK_H_
 #define SPINLOCK_H_
 
+#include <boost/atomic.hpp>
 
-#include <boost/smart_ptr/detail/spinlock.hpp>
-
-// boost/xxx/detail/* are internal boost file, shouldn't really be used outside
-// of boost itself. But I am lazy to upgrade to 1.53
 class spinlock
 {
-  typedef boost::detail::spinlock t_base;
+  typedef enum {
+    State_Unlocked = 0,
+    State_Locked   = 1
+  } lock_state;
 
 public:
-  inline spinlock()
+  inline spinlock() :
+    _state(State_Unlocked)
   {
-    // start unlocked
-    _l.v_ = 0;
-  }
-
-  inline bool try_lock()
-  {
-    return _l.try_lock();
   }
 
   inline void lock()
   {
-    _l.lock();
+    // busy wait
+    while (_state.exchange(State_Locked, boost::memory_order_acquire) == State_Locked) { }
   }
 
   inline void unlock()
   {
-    _l.unlock();
+    _state.store(State_Unlocked, boost::memory_order_release);
   }
 
 private:
-  boost::detail::spinlock _l;
+  boost::atomic<lock_state> _state;
 }; // class spinlock
 
 

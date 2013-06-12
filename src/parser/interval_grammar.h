@@ -28,7 +28,7 @@ public:
     base_type(_start)
   {
     _start =
-          qi::ulong_            [ qi::_val = qi::_1 ]
+          qi::uint_            [ qi::_val = qi::_1 ]
           >>
           (
              nocaselit("secs")    [ qi::_val *= INTERVAL_SEC ]
