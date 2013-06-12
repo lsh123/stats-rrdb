@@ -46,11 +46,11 @@ typedef struct rrdb_metric_block_info_t_ {
   boost::uint16_t   _status;            // block status flags
   boost::uint32_t   _unused1;
 
-  boost::uint64_t   _offset;            // current offset in the file
-  boost::uint64_t   _size;              // current size (bytes) in the file
-
   boost::uint32_t   _freq;              // frequency of collections in secs
   boost::uint32_t   _count;             // number of data tuples
+
+  boost::uint64_t   _offset;            // current offset in the file
+  boost::uint64_t   _size;              // current size (bytes) in the file
 
   boost::uint32_t   _start_pos;         // current start position for circular buffer
   boost::uint32_t   _end_pos;           // current end position for circular buffer

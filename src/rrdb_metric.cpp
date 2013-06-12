@@ -53,17 +53,19 @@ rrdb_metric::rrdb_metric(const std::string & name, const retention_policy & poli
     bi->_magic      = RRDB_METRIC_MAGIC;
     bi->_status     = 0;
 
-    bi->_offset     = offset;
-    bi->_size       = bi->_count * sizeof(rrdb_metric_tuple_t);
-
     bi->_freq       = elem._freq;
     bi->_count      = elem._duration / elem._freq;
+
+    bi->_offset     = offset;
+    bi->_size       = bi->_count * sizeof(rrdb_metric_tuple_t);
 
     bi->_start_pos  = 0;
     bi->_end_pos    = 0;
 
     bi->_start_ts   = 0;
     bi->_end_ts     = 0;
+
+    log::write(log::LEVEL_DEBUG, "RRDB metric count=%u, offset=%lu, size=%lu", bi->_count, bi->_offset, bi->_size);
 
     // move to the next
     offset += sizeof(rrdb_metric_block_info_t) + bi->_size;

@@ -8,7 +8,7 @@ echo "Starting mode {$mode}\n";
 $stats_rrdb = new StatsRRDB($mode);
 
 echo "== CREATE METRIC 'test1' \n";
-$resp = $stats_rrdb->send_command("create metric 'test1' keep 5 secs for 1 min, 1 min for 1 hour, 1 hour for 1 day;"); 
+$resp = $stats_rrdb->send_command("create metric 'test1' keep 5 secs for 1 min, 1 min for 1 week, 10 min for 1 year, 1 hour for 10 years ;"); 
 echo "$resp\n";
 
 echo "== CREATE METRIC 'test2' \n";
