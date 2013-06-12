@@ -22,6 +22,7 @@
 
 // forward
 class rrdb;
+class rrdb_metric_block;
 
 //
 // RRDB Metric file header format:
@@ -37,39 +38,6 @@ typedef struct rrdb_metric_header_t_ {
   boost::uint16_t   _unused1;
   boost::uint16_t   _unused2;
 } rrdb_metric_header_t;
-
-//
-// RRDB Metric Block Info format
-//
-typedef struct rrdb_metric_block_info_t_ {
-  boost::uint16_t   _magic;             // magic bytes (0x99DB)
-  boost::uint16_t   _status;            // block status flags
-  boost::uint32_t   _unused1;
-
-  boost::uint32_t   _freq;              // frequency of collections in secs
-  boost::uint32_t   _count;             // number of data tuples
-
-  boost::uint64_t   _offset;            // current offset in the file
-  boost::uint64_t   _size;              // current size (bytes) in the file
-
-  boost::uint32_t   _start_pos;         // current start position for circular buffer
-  boost::uint32_t   _end_pos;           // current end position for circular buffer
-
-  boost::uint32_t   _start_ts;          // current start time for this block
-  boost::uint32_t   _end_ts;            // current end time for this block
-} rrdb_metric_block_info_t;
-
-//
-// Value
-//
-typedef struct rrdb_metric_tuple_t_ {
-  boost::uint64_t   _ts;                // block timestamp
-  boost::uint64_t   _count;             // number of data points aggregated
-  double            _min;               // min(data point value)
-  double            _max;               // max(data point value)
-  double            _sum;               // sum(data point value)
-  double            _sum_sqr;           // sum(sqr(data point value))
-} rrdb_metric_tuple_t;
 
 //
 //
@@ -106,14 +74,11 @@ private:
   void write_header(std::fstream & ofs);
   void read_header(std::fstream & ifs);
 
-  void set_name(const std::string & name);
-  void set_policy(const std::string & name);
-
 private:
-  spinlock                                      _lock;
-  rrdb_metric_header_t                          _header;
-  boost::shared_array<char>                     _name;
-  boost::shared_array<rrdb_metric_block_info_t> _blocks_info;
+  spinlock                       _lock;
+  rrdb_metric_header_t           _header;
+  boost::shared_array<char>      _name;
+  std::vector<rrdb_metric_block> _blocks;
 }; // class rrdb_metric
 
 #endif /* RRDB_METRIC_H_ */
