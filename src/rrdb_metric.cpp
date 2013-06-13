@@ -70,6 +70,8 @@ std::string rrdb_metric::get_name()
 retention_policy rrdb_metric::get_policy()
 {
   boost::lock_guard<spinlock> guard(_lock);
+  CHECK_AND_LOG2(_blocks.size() == _header._blocks_size, retention_policy());
+
   retention_policy res;
   res.reserve(_header._blocks_size);
   BOOST_FOREACH(const rrdb_metric_block & block, _blocks) {
@@ -112,18 +114,39 @@ void rrdb_metric::update(const boost::uint64_t & ts, const double & value)
   if(_header._blocks_size <= 0) {
       return;
   }
-  CHECK_AND_LOG(_blocks.size() != _header._blocks_size);
+  CHECK_AND_LOG(_blocks.size() == _header._blocks_size);
 
-  // update the
+  // mark dirty
+  _header._status |= Status_Dirty;
+
+  // update the block 0
   bool is_current_block = _blocks[0].update(ts, value);
   if(is_current_block) {
       // nothing else to do
       return;
   }
 
+  // TODO: rollup
+
   // update other blocks but not block 0
   for(std::size_t ii = _header._blocks_size - 1; ii > 0; --ii) {
       _blocks[ii].update(ts, value);
+  }
+}
+
+void rrdb_metric::select(const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res)
+{
+  boost::lock_guard<spinlock> guard(_lock);
+  if(_header._blocks_size <= 0) {
+      return;
+  }
+
+  boost::uint64_t ts(ts_end);
+  BOOST_FOREACH(const rrdb_metric_block & block, _blocks) {
+    ts = block.select(ts_begin, ts, res);
+
+    // done?
+    if(ts <= ts_begin) break;
   }
 }
 
@@ -234,6 +257,8 @@ void rrdb_metric::write_header(std::fstream & ofs)
 
   // write name
   ofs.write((const char*)_name.get(), _header._name_size);
+
+  log::write(log::LEVEL_DEBUG, "RRDB metric header: wrote '%s'", _name.get());
 }
 
 void rrdb_metric::read_header(std::fstream & ifs)
@@ -250,4 +275,6 @@ void rrdb_metric::read_header(std::fstream & ifs)
   // name
   _name.reset(new char[_header._name_size]);
   ifs.read((char*)_name.get(), _header._name_size);
+
+  log::write(log::LEVEL_DEBUG, "RRDB metric: read '%s'", _name.get());
 }

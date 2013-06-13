@@ -44,7 +44,38 @@ public:
     return "OK";
   }
 
-  std::string operator()(const statement_show & st) const
+  std::string operator()(const statement_update & st) const
+  {
+    _rrdb->update_metric(st._name, st._ts, st._value);
+    return "OK";
+  }
+
+  std::string operator()(const statement_select & st) const
+  {
+    std::vector<rrdb_metric_tuple_t> tuples;
+    _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, tuples);
+
+    std::ostringstream res;
+    res << "ts,count,sum,sum_sqr,min,max" << std::endl;
+    BOOST_FOREACH(const rrdb_metric_tuple_t & tuple, tuples) {
+      res << tuple._ts
+          << ','
+          << tuple._count
+          << ','
+          << tuple._sum
+          << ','
+          << tuple._sum_sqr
+          << ','
+          << tuple._min
+          << ','
+          << tuple._max
+          << std::endl;
+      ;
+    }
+    return res.str();
+  }
+
+  std::string operator()(const statement_show_policy & st) const
   {
     boost::shared_ptr<rrdb_metric> metric = _rrdb->get_metric(st._name);
     return retention_policy_write(metric->get_policy());
@@ -341,6 +372,30 @@ rrdb::t_metrics_vector rrdb::get_dirty_metrics()
   // done
   return res;
 }
+
+// values
+void rrdb::update_metric(const std::string & name, const boost::uint64_t & ts, const double & value)
+{
+  boost::shared_ptr<rrdb_metric> metric = this->find_metric(name);
+  if(!metric) {
+      // TODO: create metric automatically when needed
+      throw exception("The metric '%s' does not exist", name.c_str());
+  }
+
+  metric->update(ts, value);
+}
+
+void rrdb::select_from_metric(const std::string & name, const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res)
+{
+  boost::shared_ptr<rrdb_metric> metric = this->find_metric(name);
+  if(!metric) {
+      // TODO: create metric automatically when needed
+      throw exception("The metric '%s' does not exist", name.c_str());
+  }
+
+  metric->select(ts_begin, ts_end, res);
+}
+
 
 rrdb::t_result_buffers rrdb::execute_long_command(const std::vector<char> & buffer)
 {

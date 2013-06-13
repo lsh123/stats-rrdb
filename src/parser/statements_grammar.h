@@ -27,7 +27,19 @@ BOOST_FUSION_ADAPT_STRUCT(
     (std::string,      _name)
 )
 BOOST_FUSION_ADAPT_STRUCT(
-    statement_show,
+    statement_update,
+    (std::string,      _name)
+    (double,           _value)
+    (boost::int64_t,   _ts)
+)
+BOOST_FUSION_ADAPT_STRUCT(
+    statement_select,
+    (std::string,      _name)
+    (boost::int64_t,   _ts_begin)
+    (boost::int64_t,   _ts_end)
+)
+BOOST_FUSION_ADAPT_STRUCT(
+    statement_show_policy,
     (std::string,      _name)
 )
 BOOST_FUSION_ADAPT_STRUCT(
@@ -48,11 +60,13 @@ private:
   qi::rule < Iterator, std::string(), ascii::space_type >      _quoted_name;
   retention_policy_grammar<Iterator>                           _policy;
 
-  qi::rule < Iterator, statement(),        ascii::space_type > _statement;
-  qi::rule < Iterator, statement_create(), ascii::space_type > _statement_create;
-  qi::rule < Iterator, statement_drop(),   ascii::space_type > _statement_drop;
-  qi::rule < Iterator, statement_show(),   ascii::space_type > _statement_show;
-  qi::rule < Iterator, statement_show_metrics(),   ascii::space_type > _statement_show_metrics;
+  qi::rule < Iterator, statement(),              ascii::space_type > _statement;
+  qi::rule < Iterator, statement_create(),       ascii::space_type > _statement_create;
+  qi::rule < Iterator, statement_drop(),         ascii::space_type > _statement_drop;
+  qi::rule < Iterator, statement_update(),       ascii::space_type > _statement_update;
+  qi::rule < Iterator, statement_select(),       ascii::space_type > _statement_select;
+  qi::rule < Iterator, statement_show_policy(),  ascii::space_type > _statement_show_policy;
+  qi::rule < Iterator, statement_show_metrics(), ascii::space_type > _statement_show_metrics;
 
 public:
   statement_grammar():
@@ -64,8 +78,22 @@ public:
      _quoted_name %=
          '"' >> _name >> '"' | "'" >> _name >> "'"
      ;
-    _statement_create %=
-        nocaselit("create") >> nocaselit("metric") >> _quoted_name >> nocaselit("KEEP") >> _policy
+
+     _statement_update %=
+        nocaselit("update") >> -nocaselit("metric") >> _quoted_name
+          >> nocaselit("add") >> qi::double_
+          >> nocaselit("at") >> qi::ulong_
+     ;
+
+     _statement_select %=
+        nocaselit("select") >> nocaselit("*")
+          >> nocaselit("from") >> -nocaselit("metric") >> _quoted_name
+          >> nocaselit("between") >> qi::ulong_ >> nocaselit("and") >> qi::ulong_
+     ;
+
+     _statement_create %=
+        nocaselit("create") >> -nocaselit("metric") >> _quoted_name
+        >> nocaselit("keep") >> _policy
      ;
 
     // there is a bug in boost with handling single member structures:
@@ -73,7 +101,7 @@ public:
     // http://stackoverflow.com/questions/7770791/spirit-unable-to-assign-attribute-to-single-element-struct-or-fusion-sequence
     //
     _statement_drop =
-        (nocaselit("drop") >> nocaselit("metric") >> _quoted_name)
+        (nocaselit("drop") >> -nocaselit("metric") >> _quoted_name)
         [ at_c<0>(qi::_val) = qi::_1 ]
     ;
 
@@ -81,8 +109,8 @@ public:
     //
     // http://stackoverflow.com/questions/7770791/spirit-unable-to-assign-attribute-to-single-element-struct-or-fusion-sequence
     //
-    _statement_show =
-        (nocaselit("show") >> nocaselit("metric") >> _quoted_name)
+    _statement_show_policy =
+        (nocaselit("show") >> -nocaselit("metric") >> nocaselit("policy") >> _quoted_name)
         [ at_c<0>(qi::_val) = qi::_1 ]
     ;
 
@@ -91,7 +119,7 @@ public:
     // http://stackoverflow.com/questions/7770791/spirit-unable-to-assign-attribute-to-single-element-struct-or-fusion-sequence
     //
     _statement_show_metrics =
-        (nocaselit("show") >> nocaselit("metrics") >> nocaselit("like") >> _quoted_name)
+        (nocaselit("show") >> -nocaselit("metrics") >> nocaselit("like") >> _quoted_name)
         [ at_c<0>(qi::_val) = qi::_1 ]
     ;
     //
@@ -101,7 +129,10 @@ public:
         (
             _statement_create |
             _statement_drop   |
-            _statement_show   |
+            _statement_update |
+            _statement_select |
+            _statement_create |
+            _statement_show_policy   |
             _statement_show_metrics
         )
         >> nocaselit(";")
@@ -112,6 +143,15 @@ public:
         _start,
         grammar_error_handler("Error parsing statement", qi::_1, qi::_2, qi::_3, qi::_4)
     );
+    qi::on_error<qi::fail> (
+        _statement,
+        grammar_error_handler("Error parsing statement", qi::_1, qi::_2, qi::_3, qi::_4)
+    );
+    qi::on_error<qi::fail> (
+        _statement_select,
+        grammar_error_handler("Error parsing SELECT statement", qi::_1, qi::_2, qi::_3, qi::_4)
+    );
+
   }
 }; // statement_grammar
 

@@ -10,12 +10,14 @@
 
 #include <string>
 #include <fstream>
+#include <vector>
 
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/cstdint.hpp>
 
 #include "spinlock.h"
+#include "rrdb_metric_tuple.h"
 
 //
 // RRDB Metric Block Header format
@@ -37,18 +39,6 @@ typedef struct rrdb_metric_block_header_t_ {
   boost::uint32_t   _unused2;
   boost::uint32_t   _unused3;
 } rrdb_metric_block_header_t;
-
-//
-// Value
-//
-typedef struct rrdb_metric_tuple_t_ {
-  boost::int64_t    _ts;                // block timestamp
-  boost::int64_t    _count;             // number of data points aggregated
-  double            _sum;               // sum(data point value)
-  double            _sum_sqr;           // sum(sqr(data point value))
-  double            _min;               // min(data point value)
-  double            _max;               // max(data point value)
-} rrdb_metric_tuple_t;
 
 
 class rrdb_metric_block
@@ -76,9 +66,17 @@ public:
   inline boost::uint64_t get_size() const {
     return _header._data_size + sizeof(_header);
   }
+  inline boost::uint64_t get_earliest_ts() const {
+    return _header._pos_ts - _header._duration;
+  }
+  inline boost::uint64_t get_latest_ts() const {
+    return _header._pos_ts + _header._freq;
+  }
 
   bool update(const boost::uint64_t & ts, const double & value);
   bool update(const rrdb_metric_tuple_t & values);
+
+  boost::uint64_t select(const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res) const;
 
   void write_block(std::fstream & ofs);
   void read_block(std::fstream & ifs);

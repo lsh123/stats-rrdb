@@ -28,6 +28,13 @@ function restart_server() {
 	start_server();
 }
 
+function check_result($actual, $expected) {
+	if($actual == $expected) {
+		echo "MATCH: $actual\n";
+	} else {
+		echo "!!!!! NO MATCH: '$actual' (expected '$expected')\n";
+	}
+}
 
 start_server();
 
@@ -39,43 +46,61 @@ try {
 
 	echo "== CREATE METRIC 'test1' \n";
 	$resp = $stats_rrdb->send_command("create metric 'test1' keep 5 secs for 1 min, 1 min for 1 week, 10 min for 1 year, 1 hour for 10 years ;"); 
-	echo "$resp\n";
+	check_result($resp, "OK");
 
 	echo "== CREATE METRIC 'test2' \n";
 	$resp = $stats_rrdb->send_command("create metric 'test2' keep 10 secs for 1 week, 1 min for 1 month, 10 min for 1 year, 30 min for 10 years;");
-	echo "$resp\n";
+	check_result($resp, "OK");
 
 	echo "== SHOW METRICS\n";
 	$resp = $stats_rrdb->send_command("show metrics like 'te';");
-	echo "$resp\n";
+	check_result($resp, "test2;test1;");
 
-	system("ls -la /tmp/rrdb/*/*");	
+	echo "== UPDATE METRIC 'test2' -> 1\n";
+	$resp = $stats_rrdb->send_command("UPDATE 'test2' ADD 1 AT 1371104586 ;");
+	check_result($resp, "OK");
+	
+	echo "== UPDATE METRIC 'test2' -> 2\n";
+	$resp = $stats_rrdb->send_command("UPDATE 'test2' ADD 2 AT 1371104587 ;");
+	check_result($resp, "OK");
+
+	echo "== SELECT * FROM METRIC 'test2'\n";
+	$resp = $stats_rrdb->send_command("SELECT * FROM 'test2' BETWEEN 1371104580 AND 1371104590 ;");
+	check_result($resp, "ts,count,sum,sum_sqr,min,max\n1371104580,2,3,5,1,2\n");
+	
 	restart_server();
 
 	echo "== SHOW METRICS\n";
-        $resp = $stats_rrdb->send_command("show metrics like 'te';");
-        echo "$resp\n";
+    $resp = $stats_rrdb->send_command("show metrics like 'te';");
+	check_result($resp, "test1;test2;");
 
+	echo "== SHOW METRIC POLICY\n";
+	$resp = $stats_rrdb->send_command("show metric policy 'test1';");
+	check_result($resp, "5 secs for 1 min, 1 min for 1 week, 10 mins for 1 year, 1 hour for 10 years");
 
-	echo "== SHOW METRIC\n";
-	$resp = $stats_rrdb->send_command("show metric 'test1';");
-	echo "$resp\n";
+    echo "== SHOW METRIC POLICY\n";
+    $resp = $stats_rrdb->send_command("show metric policy 'test2';");
+	check_result($resp, "10 secs for 1 week, 1 min for 1 month, 10 mins for 1 year, 30 mins for 10 years");
+    
+	echo "== UPDATE METRIC 'test2' -> 3\n";
+	$resp = $stats_rrdb->send_command("UPDATE 'test2' ADD 3 AT 1371104588 ;");
+	check_result($resp, "OK");
 
-        echo "== SHOW METRIC\n";
-        $resp = $stats_rrdb->send_command("show metric 'test2';");
-        echo "$resp\n";
+	echo "== SELECT * FROM METRIC 'test2'\n";
+	$resp = $stats_rrdb->send_command("SELECT * FROM  metric 'test2' BETWEEN 1371104580 AND 1371104590 ;");
+	check_result($resp, "ts,count,sum,sum_sqr,min,max\n1371104580,3,6,14,1,3\n");
 
 	echo "== SHOW METRIC (error)\n";
 	$resp = $stats_rrdb->send_command("show metric 'test';");
-	echo "$resp\n";
+	check_result($resp, "ERROR - Unable to parse the statement");
 
 	echo "== DROP METRIC 'test1'\n";
 	$resp = $stats_rrdb->send_command("drop metric 'test1';");
-	echo "$resp\n";
+	check_result($resp, "OK");
 
 	echo "== DROP METRIC 'test2'\n";
 	$resp = $stats_rrdb->send_command("drop metric 'test2';");
-	echo "$resp\n";
+	check_result($resp, "OK");
 } catch(Exception $e) {
 	echo "Exception: " . $e->getMessage() . "\n";
 }

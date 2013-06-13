@@ -20,6 +20,7 @@
 #include "spinlock.h"
 #include "parser/interval.h"
 #include "parser/retention_policy.h"
+#include "rrdb_metric_tuple.h"
 
 // forward
 class config;
@@ -47,6 +48,10 @@ public:
   boost::shared_ptr<rrdb_metric> create_metric(const std::string & name, const retention_policy & policy);
   void drop_metric(const std::string & name);
   std::vector<std::string> get_metrics(const std::string & like = std::string());
+
+  // values
+  void update_metric(const std::string & name, const boost::uint64_t & ts, const double & value);
+  void select_from_metric(const std::string & name, const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res);
 
   // commands
   t_result_buffers execute_long_command(const std::vector<char> & buffer);

@@ -17,6 +17,7 @@
 
 #include "spinlock.h"
 #include "parser/retention_policy.h"
+#include "rrdb_metric_tuple.h"
 
 #define RRDB_METRIC_EXTENSION    ".rrdb"
 
@@ -68,6 +69,7 @@ public:
   static boost::shared_ptr<rrdb_metric> load_file(const std::string & filename);
 
   void update(const boost::uint64_t & ts, const double & value);
+  void select(const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res);
 
 private:
   static std::string get_full_path(const std::string & folder, const std::string & name);

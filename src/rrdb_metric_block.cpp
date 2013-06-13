@@ -24,6 +24,7 @@ rrdb_metric_block::rrdb_metric_block(boost::uint32_t freq, boost::uint32_t count
 
   if(_header._count > 0) {
       _tuples.reset(new rrdb_metric_tuple_t[_header._count]);
+      memset(_tuples.get(), 0, _header._data_size);
   }
 }
 
@@ -113,15 +114,15 @@ bool rrdb_metric_block::update(const boost::uint64_t & ts, const double & value)
   CHECK_AND_LOG2(tuple->_ts <= ts && ts < tuple->_ts + _header._freq, false);
 
   // update our tuple
-  ++tuple->_count;
-  tuple->_sum += value;
-  tuple->_sum_sqr += value * value;
-  if(tuple->_min > value) {
+  if(tuple->_min > value || tuple->_count == 0) {
       tuple->_min = value;
   }
-  if(tuple->_max < value) {
+  if(tuple->_max < value || tuple->_count == 0) {
       tuple->_max = value;
   }
+  tuple->_sum += value;
+  tuple->_sum_sqr += value * value;
+  ++tuple->_count;
 
   // done
   return is_current_block;
@@ -138,18 +139,51 @@ bool rrdb_metric_block::update(const rrdb_metric_tuple_t & values)
   CHECK_AND_LOG2(tuple->_ts <= values._ts && values._ts < tuple->_ts + _header._freq, false);
 
   // update our tuple
-  tuple->_count   += values._count;
-  tuple->_sum     += values._sum;
-  tuple->_sum_sqr += values._sum_sqr;
-  if(tuple->_min > values._min) {
+  if(tuple->_min > values._min || tuple->_count == 0) {
       tuple->_min = values._min;
   }
-  if(tuple->_max < values._max) {
+  if(tuple->_max < values._max || tuple->_count == 0) {
       tuple->_max = values._max;
   }
+  tuple->_sum     += values._sum;
+  tuple->_sum_sqr += values._sum_sqr;
+  tuple->_count   += values._count;
 
   // done
   return shifted;
+}
+
+boost::uint64_t rrdb_metric_block::select(const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res) const
+{
+  CHECK_AND_LOG2(_tuples.get(), ts_end);
+  CHECK_AND_LOG2(_header._pos < _header._count, NULL);
+
+  if(ts_end < this->get_earliest_ts() || this->get_latest_ts() < ts_begin) {
+      return ts_end;
+  }
+
+  boost::uint64_t ts(ts_end);
+  boost::uint32_t pos(_header._pos);
+  do {
+      const rrdb_metric_tuple_t & tuple = _tuples[pos];
+      if(tuple._ts < ts_begin) {
+          break;
+      }
+      if(tuple._ts < ts_end) {
+          ts = tuple._ts;
+          res.push_back(tuple);
+      }
+
+      // move to prev one
+      if(pos > 0) {
+          --pos;
+      } else {
+          pos = _header._count - 1;
+      }
+  } while(pos != _header._pos);
+
+  // done
+  return ts;
 }
 
 void rrdb_metric_block::write_block(std::fstream & ofs)
@@ -199,6 +233,6 @@ void rrdb_metric_block::read_block(std::fstream & ifs)
   ifs.read((char*)_tuples.get(), _header._data_size);
 
   if(_tuples[_header._pos]._ts != _header._pos_ts) {
-      throw exception("Unexpected rrdb metric block pos ts: %llu (expected %llu)", _header._pos_ts, _tuples[_header._pos]._ts);
+      throw exception("Unexpected rrdb metric block pos %d pos_ts: %llu (expected from tuple: %llu)",  _header._pos, _header._pos_ts, _tuples[_header._pos]._ts);
   }
 }

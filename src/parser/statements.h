@@ -39,16 +39,45 @@ typedef struct statement_drop_
   std::string      _name;
 } statement_drop;
 
+
 /**
- * SHOW statement string representation:
+ * UPDATE statement string representation:
  *
- * SHOW METRIC "<name>" ;
+ * UPDATE [METRIC] "<name>" ADD <value> AT <timestamp>;
  *
  */
-typedef struct statement_show_
+typedef struct statement_update_
 {
   std::string      _name;
-} statement_show;
+  double           _value;
+  boost::int64_t   _ts;
+} statement_update;
+
+
+/**
+ * SELECT statement string representation:
+ *
+ * SELECT * FROM [METRIC] "<name>" BETWEEN <timestamp1> AND <timestamp2> ;
+ *
+ */
+typedef struct statement_select_
+{
+  std::string      _name;
+  boost::int64_t   _ts_begin;
+  boost::int64_t   _ts_end;
+} statement_select;
+
+
+/**
+ * SHOW METRIC POLICY statement string representation:
+ *
+ * SHOW METRIC POLICY "<name>" ;
+ *
+ */
+typedef struct statement_show_policy_
+{
+  std::string      _name;
+} statement_show_policy;
 
 /**
  * SHOW METRICS print all the metrics available
@@ -68,8 +97,10 @@ typedef struct statement_show_metrics_
 typedef boost::variant<
     statement_create,
     statement_drop,
-    statement_show,
-    statement_show_metrics_
+    statement_update,
+    statement_select,
+    statement_show_policy,
+    statement_show_metrics
 > statement;
 
 statement statement_parse(const std::string & str);
