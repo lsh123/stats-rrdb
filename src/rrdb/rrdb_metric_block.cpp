@@ -5,7 +5,7 @@
  *      Author: aleksey
  */
 
-#include "rrdb_metric_block.h"
+#include "rrdb/rrdb_metric_block.h"
 
 #include "log.h"
 #include "exception.h"
