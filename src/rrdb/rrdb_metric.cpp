@@ -205,7 +205,8 @@ void rrdb_metric::save_file(const std::string & folder)
 
   // open file
   std::string full_path = rrdb_metric::get_full_path(folder, this->get_name());
-  std::fstream ofs(full_path.c_str(), std::ios_base::binary | std::ios_base::out);
+  std::string full_path_tmp = full_path + ".tmp";
+  std::fstream ofs(full_path_tmp.c_str(), std::ios_base::binary | std::ios_base::out);
   ofs.exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
 
   // write data (under lock!
@@ -220,6 +221,9 @@ void rrdb_metric::save_file(const std::string & folder)
   // flush and  close
   ofs.flush();
   ofs.close();
+
+  // move file
+  boost::filesystem::rename(full_path_tmp, full_path);
 
   // done
   log::write(log::LEVEL_DEBUG, "RRDB metric '%s' saved file '%s'", this->get_name().c_str(), full_path.c_str());

@@ -65,7 +65,7 @@ public:
     double              _value;
     rrdb_metric_tuple_t _tuple;
 
-    inline const boost::uint64_t & get_ts() const {
+    inline boost::uint64_t get_ts() const {
       switch(_state) {
       case UpdateState_Value:
         return _ts;

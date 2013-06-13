@@ -381,8 +381,7 @@ void rrdb::update_metric(const std::string & name, const boost::uint64_t & ts, c
 {
   boost::shared_ptr<rrdb_metric> metric = this->find_metric(name);
   if(!metric) {
-      // TODO: create metric automatically when needed
-      throw exception("The metric '%s' does not exist", name.c_str());
+      metric = this->create_metric(name, _default_policy);
   }
 
   metric->update(ts, value);
