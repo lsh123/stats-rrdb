@@ -51,6 +51,23 @@ private:
   static enum levels _log_level;
   static std::string _log_dest;
   static std::string _log_time_format;
-};
+}; // class log
+
+
+//
+// Helper asserts
+//
+#define CHECK_AND_LOG( p ) \
+  if( !( p ) ) { \
+      log::write(log::LEVEL_ERROR, "Assert failed: '%s' in file '%s' on line '%d' (function '%s')",  #p, __FILE__, __LINE__, __FUNCTION__); \
+      return; \
+  }
+#define CHECK_AND_LOG2( p, ret ) \
+  if( !( p ) ) { \
+      log::write(log::LEVEL_ERROR, "Assert failed: '%s' in file '%s' on line '%d' (function '%s')",  #p, __FILE__, __LINE__, __FUNCTION__); \
+      return (ret); \
+  }
+
+
 
 #endif /* LOG_H_ */

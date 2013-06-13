@@ -106,6 +106,27 @@ void rrdb_metric::set_deleted()
   _header._status |= Status_Deleted;
 }
 
+void rrdb_metric::update(const boost::uint64_t & ts, const double & value)
+{
+  boost::lock_guard<spinlock> guard(_lock);
+  if(_header._blocks_size <= 0) {
+      return;
+  }
+  CHECK_AND_LOG(_blocks.size() != _header._blocks_size);
+
+  // update the
+  bool is_current_block = _blocks[0].update(ts, value);
+  if(is_current_block) {
+      // nothing else to do
+      return;
+  }
+
+  // update other blocks but not block 0
+  for(std::size_t ii = _header._blocks_size - 1; ii > 0; --ii) {
+      _blocks[ii].update(ts, value);
+  }
+}
+
 
 std::string rrdb_metric::get_full_path(const std::string & folder, const std::string & name)
 {
@@ -144,10 +165,16 @@ void rrdb_metric::save_file(const std::string & folder)
   std::fstream ofs(full_path.c_str(), std::ios_base::binary | std::ios_base::out);
   ofs.exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
 
-  this->write_header(ofs);
-  BOOST_FOREACH(rrdb_metric_block & block, _blocks) {
-    block.write_block(ofs);
+  // write data (under lock!
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+    this->write_header(ofs);
+    BOOST_FOREACH(rrdb_metric_block & block, _blocks) {
+      block.write_block(ofs);
+    }
   }
+
+  // flush and  close
   ofs.flush();
   ofs.close();
 
@@ -175,7 +202,6 @@ boost::shared_ptr<rrdb_metric> rrdb_metric::load_file(const std::string & filena
   BOOST_FOREACH(rrdb_metric_block & block, res->_blocks) {
     block.read_block(ifs);
   }
-  ifs.flush();
   ifs.close();
 
   // done
@@ -200,40 +226,28 @@ void rrdb_metric::delete_file(const std::string & folder)
 
 void rrdb_metric::write_header(std::fstream & ofs)
 {
-  // lock while we are writing header. this should be a rare
-  // operation otherwise we can just copy inside the lock
-  // and write outside
-  {
-    boost::lock_guard<spinlock> guard(_lock);
+  // should be locked
+  CHECK_AND_LOG(_lock.is_locked());
 
-    // write header
-    ofs.write((const char*)&_header, sizeof(_header));
+  // write header
+  ofs.write((const char*)&_header, sizeof(_header));
 
-    // write name
-    ofs.write((const char*)_name.get(), _header._name_size);
-  }
+  // write name
+  ofs.write((const char*)_name.get(), _header._name_size);
 }
 
 void rrdb_metric::read_header(std::fstream & ifs)
 {
-  // lock while we are reading header. this should be a rare
-  // operation otherwise we can just read outside
-  // and copy inside the lock
-  {
-    boost::lock_guard<spinlock> guard(_lock);
-
-    // read header
-    ifs.read((char*)&_header, sizeof(_header));
-    if(_header._magic != RRDB_METRIC_MAGIC) {
-        throw exception("Unexpected rrdb metric magic: %04x", _header._magic);
-    }
-    if(_header._version != RRDB_METRIC_VERSION) {
-        throw exception("Unexpected rrdb metric version: %04x", _header._version);
-    }
-
-    // name
-    _name.reset(new char[_header._name_size]);
-    ifs.read((char*)_name.get(), _header._name_size);
+  // read header
+  ifs.read((char*)&_header, sizeof(_header));
+  if(_header._magic != RRDB_METRIC_MAGIC) {
+      throw exception("Unexpected rrdb metric magic: %04x", _header._magic);
+  }
+  if(_header._version != RRDB_METRIC_VERSION) {
+      throw exception("Unexpected rrdb metric version: %04x", _header._version);
   }
 
+  // name
+  _name.reset(new char[_header._name_size]);
+  ifs.read((char*)_name.get(), _header._name_size);
 }

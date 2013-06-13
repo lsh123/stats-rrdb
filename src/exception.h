@@ -23,6 +23,7 @@ public:
 
 private:
   std::string _msg;
-};
+}; // class exception
+
 
 #endif /* EXCEPTION_H_ */

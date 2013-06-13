@@ -25,18 +25,15 @@ typedef struct rrdb_metric_block_header_t_ {
   boost::uint16_t   _status;            // block status flags
   boost::uint32_t   _unused1;
 
-  boost::uint32_t   _freq;              // frequency of collections in secs
-  boost::uint32_t   _count;             // number of data tuples
-
   boost::uint64_t   _offset;            // current offset in the file
   boost::uint64_t   _data_size;         // current size (bytes) in the file
 
-  boost::uint32_t   _start_pos;         // current start position for circular buffer
-  boost::uint32_t   _end_pos;           // current end position for circular buffer
+  boost::uint32_t   _freq;              // frequency of collections in secs
+  boost::uint32_t   _count;             // number of data tuples
+  boost::uint32_t   _duration;          // for how long we store data (_freq * _count)
+  boost::uint32_t   _pos;               // current position for circular buffer
 
-  boost::uint32_t   _start_ts;          // current start time for this block
-  boost::uint32_t   _end_ts;            // current end time for this block
-
+  boost::int64_t    _pos_ts;            // current start time for this block
   boost::uint32_t   _unused2;
   boost::uint32_t   _unused3;
 } rrdb_metric_block_header_t;
@@ -45,17 +42,21 @@ typedef struct rrdb_metric_block_header_t_ {
 // Value
 //
 typedef struct rrdb_metric_tuple_t_ {
-  boost::uint64_t   _ts;                // block timestamp
-  boost::uint64_t   _count;             // number of data points aggregated
-  double            _min;               // min(data point value)
-  double            _max;               // max(data point value)
+  boost::int64_t    _ts;                // block timestamp
+  boost::int64_t    _count;             // number of data points aggregated
   double            _sum;               // sum(data point value)
   double            _sum_sqr;           // sum(sqr(data point value))
+  double            _min;               // min(data point value)
+  double            _max;               // max(data point value)
 } rrdb_metric_tuple_t;
 
 
 class rrdb_metric_block
 {
+  enum status {
+    Status_Wrapped = 0x0001,
+  };
+
 public:
   rrdb_metric_block(boost::uint32_t freq = 0, boost::uint32_t count = 0, boost::uint64_t offset = 0);
   virtual ~rrdb_metric_block();
@@ -76,8 +77,18 @@ public:
     return _header._data_size + sizeof(_header);
   }
 
+  bool update(const boost::uint64_t & ts, const double & value);
+  bool update(const rrdb_metric_tuple_t & values);
+
   void write_block(std::fstream & ofs);
   void read_block(std::fstream & ifs);
+
+private:
+  rrdb_metric_tuple_t * find_tuple(const boost::uint64_t & ts, bool & is_current_block);
+
+  inline boost::uint64_t normalize_ts(const boost::uint64_t & ts) const {
+    return ts - (ts % _header._freq);
+  }
 
 private:
   rrdb_metric_block_header_t               _header;

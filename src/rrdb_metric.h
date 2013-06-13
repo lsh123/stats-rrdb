@@ -67,6 +67,8 @@ public:
   void delete_file(const std::string & folder);
   static boost::shared_ptr<rrdb_metric> load_file(const std::string & filename);
 
+  void update(const boost::uint64_t & ts, const double & value);
+
 private:
   static std::string get_full_path(const std::string & folder, const std::string & name);
   static std::size_t get_padded_name_len(std::size_t name_len);
