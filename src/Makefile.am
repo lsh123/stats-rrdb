@@ -12,9 +12,9 @@ statsrrdb_SOURCES= \
 	parser/interval.cpp \
 	parser/retention_policy.cpp \
 	parser/statements.cpp \
-	rrdb.cpp \
-	rrdb_metric.cpp \
-	rrdb_metric_block.cpp \
+	rrdb/rrdb.cpp \
+	rrdb/rrdb_metric.cpp \
+	rrdb/rrdb_metric_block.cpp \
 	server_tcp.cpp \
 	server_udp.cpp \
 	server.cpp \

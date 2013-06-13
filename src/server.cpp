@@ -14,7 +14,7 @@
 #include "config.h"
 #include "thread_pool.h"
 
-#include "rrdb.h"
+#include "rrdb/rrdb.h"
 #include "server_udp.h"
 #include "server_tcp.h"
 

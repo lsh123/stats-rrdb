@@ -15,7 +15,7 @@
 #include "log.h"
 #include "config.h"
 #include "thread_pool.h"
-#include "rrdb.h"
+#include "rrdb/rrdb.h"
 
 using namespace boost::asio::ip;
 
