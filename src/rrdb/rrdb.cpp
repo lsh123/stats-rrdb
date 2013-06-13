@@ -12,8 +12,8 @@
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
 
-#include "rrdb.h"
-#include "rrdb_metric.h"
+#include "rrdb/rrdb.h"
+#include "rrdb/rrdb_metric.h"
 
 #include "parser/statements.h"
 

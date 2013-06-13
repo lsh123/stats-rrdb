@@ -17,7 +17,8 @@
 #include <boost/cstdint.hpp>
 
 #include "spinlock.h"
-#include "rrdb_metric_tuple.h"
+#include "exception.h"
+#include "rrdb/rrdb_metric_tuple.h"
 
 //
 // RRDB Metric Block Header format
@@ -41,11 +42,40 @@ typedef struct rrdb_metric_block_header_t_ {
 } rrdb_metric_block_header_t;
 
 
+//
+// Metrics block of data for a single policy
+//
 class rrdb_metric_block
 {
   enum status {
     Status_Wrapped = 0x0001,
   };
+
+public:
+  enum update_state {
+    UpdateState_Stop  = 0,
+    UpdateState_Value = 1,
+    UpdateState_Tuple = 2,
+  };
+
+  typedef struct update_ctx_t_ {
+    enum update_state   _state;
+
+    boost::uint64_t     _ts;
+    double              _value;
+    rrdb_metric_tuple_t _tuple;
+
+    inline const boost::uint64_t & get_ts() const {
+      switch(_state) {
+      case UpdateState_Value:
+        return _ts;
+      case UpdateState_Tuple:
+        return _tuple._ts;
+      default:
+        throw new exception("Unexpected update ctx state %d", _state);
+      }
+    }
+  } update_ctx_t;
 
 public:
   rrdb_metric_block(boost::uint32_t freq = 0, boost::uint32_t count = 0, boost::uint64_t offset = 0);
@@ -73,19 +103,24 @@ public:
     return _header._pos_ts + _header._freq;
   }
 
-  bool update(const boost::uint64_t & ts, const double & value);
-  bool update(const rrdb_metric_tuple_t & values);
-
   boost::uint64_t select(const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res) const;
+  void update(const update_ctx_t & in, update_ctx_t & out);
 
   void write_block(std::fstream & ofs);
   void read_block(std::fstream & ifs);
 
 private:
-  rrdb_metric_tuple_t * find_tuple(const boost::uint64_t & ts, bool & is_current_block);
+  rrdb_metric_tuple_t * find_tuple(const update_ctx_t & in, update_ctx_t & out);
 
   inline boost::uint64_t normalize_ts(const boost::uint64_t & ts) const {
     return ts - (ts % _header._freq);
+  }
+
+  inline boost::uint32_t get_next_pos(const boost::uint32_t & pos) {
+    return ((pos + 1) < _header._count) ? (pos + 1) : 0;
+  }
+  inline boost::uint32_t get_prev_pos(const boost::uint32_t & pos) {
+    return (pos > 0) ? (pos - 1) : (_header._count - 1);
   }
 
 private:

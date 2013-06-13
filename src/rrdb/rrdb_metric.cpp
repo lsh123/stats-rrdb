@@ -43,6 +43,7 @@ rrdb_metric::rrdb_metric(const std::string & name, const retention_policy & poli
   _header._name_len   = name.length();
   _header._name_size  = rrdb_metric::get_padded_name_len(_header._name_len);
   _name.reset(new char[_header._name_size]);
+  memset(_name.get(), 0, _header._name_size);
   std::copy(name.begin(), name.end(), _name.get());
 
   // copy policy
@@ -119,18 +120,37 @@ void rrdb_metric::update(const boost::uint64_t & ts, const double & value)
   // mark dirty
   _header._status |= Status_Dirty;
 
-  // update the block 0
-  bool is_current_block = _blocks[0].update(ts, value);
-  if(is_current_block) {
-      // nothing else to do
-      return;
-  }
+  //
+  // The update can have 3 possible effects:
+  //
+  // - We update "current" in the block - we need to do nothing else at this point
+  //   since the "next" block doesn't have the data yet
+  //
+  // - We have to update something in the past (history) - need to go to the next block
+  //
+  // - We are moving past the current in this block - roll up in the next block
+  //
+  rrdb_metric_block::update_ctx_t one, two;
+  one._state = rrdb_metric_block::UpdateState_Value;
+  one._ts    = ts;
+  one._value = value;
+  for(std::size_t ii = 0; ii < _header._blocks_size; ++ii) {
+      // swap one and two to avoid copying data
+      if(!(ii & 0x01)) {
+          log::write(log::LEVEL_DEBUG, "Updating block %llu with 'one' at ts %lld with ctx state %d", ii, one.get_ts(), one._state);
 
-  // TODO: rollup
+          _blocks[ii].update(one, two);
+          if(two._state == rrdb_metric_block::UpdateState_Stop) {
+              break;
+          }
+      } else {
+          log::write(log::LEVEL_DEBUG, "Updating block %llu with 'two' at ts %lld with ctx state %d", ii, two.get_ts(), two._state);
 
-  // update other blocks but not block 0
-  for(std::size_t ii = _header._blocks_size - 1; ii > 0; --ii) {
-      _blocks[ii].update(ts, value);
+          _blocks[ii].update(two, one);
+          if(one._state == rrdb_metric_block::UpdateState_Stop) {
+              break;
+          }
+      }
   }
 }
 

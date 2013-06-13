@@ -32,45 +32,43 @@ rrdb_metric_block::~rrdb_metric_block()
 {
 }
 
-rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const boost::uint64_t & ts, bool & is_current_block) {
+rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, update_ctx_t & out) {
   CHECK_AND_LOG2(_tuples.get(), NULL);
   CHECK_AND_LOG2(_header._pos < _header._count, NULL);
   CHECK_AND_LOG2(_header._freq > 0, NULL);
 
-  // log::write(log::LEVEL_DEBUG, "Find tuple %p: ts: %lld, cur pos: %lu, cur ts: %lld, cur last ts: %lld", this, ts, _header._pos, _header._pos_ts, _header._pos_ts + _header._duration);
-
+  const boost::uint64_t & ts(in.get_ts());
   if(_header._pos_ts + _header._duration <= ts) {
-      // complete shift forward - start from 0 and assume ts is the latest
+      // complete shift forward, notify about rollup
+      out._state = UpdateState_Tuple;
+      out._tuple = _tuples[_header._pos];
+
+      // start from 0 and assume this ts is the latest
       memset(_tuples.get(), 0, _header._data_size);
       rrdb_metric_tuple_t & tuple = _tuples[0];
       _header._pos      = 0;
       _header._pos_ts   = tuple._ts = this->normalize_ts(ts);
 
-      // log::write(log::LEVEL_DEBUG, "Find tuple %p: shift forward, new cur ts: %lld",  this, _header._pos_ts);
-
-      is_current_block = false;
+      // done
       return &tuple;
   } else if(_header._pos_ts <= ts) {
       // we are somewhere ahead but not too much
       rrdb_metric_tuple_t * tuple = &_tuples[_header._pos];
       boost::uint64_t next_tuple_ts = tuple->_ts + _header._freq;
       if(ts < next_tuple_ts) {
-          // log::write(log::LEVEL_DEBUG, "Find tuple %p: current tuple will work fine", this);
-
-          // our current tuple will do!!!
-          is_current_block = true;
+          // our current tuple will do
+          out._state = UpdateState_Stop;
           return tuple;
       }
-      // log::write(log::LEVEL_DEBUG, "Find tuple %p: current tuple will NOT work: pos=%lu, ts=%lld, next tuple ts=%lld", this, _header._pos, ts, next_tuple_ts);
 
-      // we are shifting forward
-      is_current_block   = false;
+      // we are shifting forward, notify about rollup
+      out._state = UpdateState_Tuple;
+      out._tuple = _tuples[_header._pos];
+
+      // find the tuple
       do {
           // move the pointer
-          ++_header._pos;
-          if(_header._pos >= _header._count) {
-              _header._pos = 0; // wrap
-          }
+          _header._pos = this->get_next_pos(_header._pos);
           tuple = &_tuples[_header._pos];
 
           // reset values
@@ -86,80 +84,71 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const boost::uint64_t & ts, 
       // done
       return tuple;
   } else if(_header._pos_ts - _header._duration <= ts) {
-      // we are somewhere behind but not too much
+      // we are somewhere behind but not too much, just update the same way
+      out = in;
+
+      // find the spot
       boost::uint32_t pos = _header._pos;
       rrdb_metric_tuple_t * tuple = &_tuples[pos];
       boost::int64_t tuple_ts = tuple->_ts;
       do {
           // move pos
-          if(pos > 0) {
-              --pos;
-          } else {
-              pos = _header._count - 1;
-          }
+          _header._pos = this->get_prev_pos(_header._pos);
           tuple = &_tuples[pos];
+
           tuple_ts -= _header._freq;
           tuple->_ts = tuple_ts; // overwrite just in case (it might not be initialized!)
       } while(ts < tuple_ts);
 
-      is_current_block = false;
       return tuple;
-  }
+  } else {
+      // we are WAY behind, ignore but let the next block try
+      out = in;
 
-  // we are WAY behind, ignore
-  CHECK_AND_LOG2(ts <_header._pos_ts - _header._duration, NULL);
-  is_current_block = false;
-  return NULL;
+      // done
+      CHECK_AND_LOG2(ts <_header._pos_ts - _header._duration, NULL);
+      return NULL;
+  }
 }
 
-bool rrdb_metric_block::update(const boost::uint64_t & ts, const double & value)
+void rrdb_metric_block::update(const update_ctx_t & in, update_ctx_t & out)
 {
-  bool is_current_block = false;
-  rrdb_metric_tuple_t * tuple = this->find_tuple(ts, is_current_block);
+  rrdb_metric_tuple_t * tuple = this->find_tuple(in, out);
   if(!tuple) {
-      log::write(log::LEVEL_DEBUG, "Can not find tuple for timestamp %llu", ts);
-      return is_current_block;
+      log::write(log::LEVEL_DEBUG, "Can not find tuple for timestamp %llu", in.get_ts());
+      return;
   }
-  CHECK_AND_LOG2(tuple->_ts <= ts && ts < tuple->_ts + _header._freq, false);
+  CHECK_AND_LOG(tuple->_ts <= in.get_ts() && in.get_ts() < tuple->_ts + _header._freq);
 
   // update our tuple
-  if(tuple->_min > value || tuple->_count == 0) {
-      tuple->_min = value;
+  switch(in._state) {
+  case UpdateState_Value:
+    // we have single value
+    if(tuple->_min > in._value || tuple->_count == 0) {
+        tuple->_min = in._value;
+    }
+    if(tuple->_max < in._value || tuple->_count == 0) {
+        tuple->_max = in._value;
+    }
+    tuple->_sum += in._value;
+    tuple->_sum_sqr += in._value * in._value;
+    ++tuple->_count;
+    break;
+  case UpdateState_Tuple:
+    // we have another tuple
+    if(tuple->_min > in._tuple._min || tuple->_count == 0) {
+        tuple->_min = in._tuple._min;
+    }
+    if(tuple->_max < in._tuple._max || tuple->_count == 0) {
+        tuple->_max = in._tuple._max;
+    }
+    tuple->_sum     += in._tuple._sum;
+    tuple->_sum_sqr += in._tuple._sum_sqr;
+    tuple->_count   += in._tuple._count;
+    break;
+  default:
+    throw new exception("Unexpected update ctx state %d", in._state);
   }
-  if(tuple->_max < value || tuple->_count == 0) {
-      tuple->_max = value;
-  }
-  tuple->_sum += value;
-  tuple->_sum_sqr += value * value;
-  ++tuple->_count;
-
-  // done
-  return is_current_block;
-}
-
-bool rrdb_metric_block::update(const rrdb_metric_tuple_t & values)
-{
-  bool shifted = false;
-  rrdb_metric_tuple_t * tuple = this->find_tuple(values._ts, shifted);
-  if(!tuple) {
-      log::write(log::LEVEL_DEBUG, "Can not find tuple for timestamp %llu", values._ts);
-      return shifted;
-  }
-  CHECK_AND_LOG2(tuple->_ts <= values._ts && values._ts < tuple->_ts + _header._freq, false);
-
-  // update our tuple
-  if(tuple->_min > values._min || tuple->_count == 0) {
-      tuple->_min = values._min;
-  }
-  if(tuple->_max < values._max || tuple->_count == 0) {
-      tuple->_max = values._max;
-  }
-  tuple->_sum     += values._sum;
-  tuple->_sum_sqr += values._sum_sqr;
-  tuple->_count   += values._count;
-
-  // done
-  return shifted;
 }
 
 boost::uint64_t rrdb_metric_block::select(const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res) const
