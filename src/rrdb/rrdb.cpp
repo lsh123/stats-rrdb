@@ -190,7 +190,7 @@ void rrdb::flush_to_disk_thread()
 
 void rrdb::flush_to_disk()
 {
-  log::write(log::LEVEL_DEBUG, "Flushing to disk");
+  log::write(log::LEVEL_DEBUG2, "Flushing to disk");
 
   t_metrics_vector dirty_metrics = this->get_dirty_metrics();
   BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, dirty_metrics) {
@@ -201,7 +201,7 @@ void rrdb::flush_to_disk()
     }
   }
 
-  log::write(log::LEVEL_DEBUG, "Flushed to disk");
+  log::write(log::LEVEL_DEBUG2, "Flushed to disk");
 }
 
 boost::shared_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)
@@ -215,8 +215,11 @@ boost::shared_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)
 
 void rrdb::load_metrics()
 {
+  // ensure folders exist
+  boost::filesystem::create_directories(_path);
+
   for(boost::filesystem::recursive_directory_iterator end, cur(_path + "/"); cur != end; ++cur) {
-      // log::write(log::LEVEL_DEBUG, "Checking file %s", (*cur).path().string().c_str());
+      log::write(log::LEVEL_DEBUG3, "Checking file %s", (*cur).path().string().c_str());
 
       // we are looking for files
       if((*cur).status().type() != boost::filesystem::regular_file) {
@@ -399,6 +402,8 @@ void rrdb::select_from_metric(const std::string & name, const boost::uint64_t & 
 
 rrdb::t_result_buffers rrdb::execute_long_command(const std::vector<char> & buffer)
 {
+  // log::write(log::LEVEL_DEBUG, "RRDB command: '%s'", std::string(buffer.begin(), buffer.end()).c_str());
+
   statement st = statement_parse(buffer.begin(), buffer.end());
   std::string output = boost::apply_visitor(statement_execute_visitor(shared_from_this()), st);
 

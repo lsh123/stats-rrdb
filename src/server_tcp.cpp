@@ -157,7 +157,7 @@ void server_tcp::handle_accept(
   }
 
   // log
-  log::write(log::LEVEL_DEBUG, "TCP Server accepted new connection");
+  log::write(log::LEVEL_DEBUG3, "TCP Server accepted new connection");
 
   // start async read
   async_read(
@@ -191,7 +191,7 @@ void server_tcp::handle_read(
   }
 
   // log
-  log::write(log::LEVEL_DEBUG, "TCP Server read %zu bytes", bytes_transferred);
+  log::write(log::LEVEL_DEBUG3, "TCP Server read %zu bytes", bytes_transferred);
 
   // off-load task for processing to the buffer pool
   new_connection->get_buffer().resize(bytes_transferred);
@@ -230,7 +230,7 @@ void server_tcp::handle_write(
   }
 
   // log
-  log::write(log::LEVEL_DEBUG, "TCP Server sent %zu bytes", bytes_transferred);
+  log::write(log::LEVEL_DEBUG3, "TCP Server sent %zu bytes", bytes_transferred);
 
   // do nothing
 }

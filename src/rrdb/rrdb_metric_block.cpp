@@ -37,6 +37,8 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const boost::uint64_t & ts, 
   CHECK_AND_LOG2(_header._pos < _header._count, NULL);
   CHECK_AND_LOG2(_header._freq > 0, NULL);
 
+  // log::write(log::LEVEL_DEBUG, "Find tuple %p: ts: %lld, cur pos: %lu, cur ts: %lld, cur last ts: %lld", this, ts, _header._pos, _header._pos_ts, _header._pos_ts + _header._duration);
+
   if(_header._pos_ts + _header._duration <= ts) {
       // complete shift forward - start from 0 and assume ts is the latest
       memset(_tuples.get(), 0, _header._data_size);
@@ -44,17 +46,22 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const boost::uint64_t & ts, 
       _header._pos      = 0;
       _header._pos_ts   = tuple._ts = this->normalize_ts(ts);
 
+      // log::write(log::LEVEL_DEBUG, "Find tuple %p: shift forward, new cur ts: %lld",  this, _header._pos_ts);
+
       is_current_block = false;
       return &tuple;
   } else if(_header._pos_ts <= ts) {
       // we are somewhere ahead but not too much
-      rrdb_metric_tuple_t & tuple = _tuples[_header._pos];
-      boost::uint64_t next_tuple_ts = tuple._ts + _header._freq;
+      rrdb_metric_tuple_t * tuple = &_tuples[_header._pos];
+      boost::uint64_t next_tuple_ts = tuple->_ts + _header._freq;
       if(ts < next_tuple_ts) {
+          // log::write(log::LEVEL_DEBUG, "Find tuple %p: current tuple will work fine", this);
+
           // our current tuple will do!!!
           is_current_block = true;
-          return &tuple;
+          return tuple;
       }
+      // log::write(log::LEVEL_DEBUG, "Find tuple %p: current tuple will NOT work: pos=%lu, ts=%lld, next tuple ts=%lld", this, _header._pos, ts, next_tuple_ts);
 
       // we are shifting forward
       is_current_block   = false;
@@ -64,23 +71,25 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const boost::uint64_t & ts, 
           if(_header._pos >= _header._count) {
               _header._pos = 0; // wrap
           }
-          tuple = _tuples[_header._pos];
+          tuple = &_tuples[_header._pos];
 
           // reset values
-          memset(&tuple, 0, sizeof(tuple));
-          tuple._ts =  _header._pos_ts = next_tuple_ts;
+          memset(tuple, 0, sizeof(*tuple));
+          tuple->_ts = _header._pos_ts = next_tuple_ts;
+
+          // log::write(log::LEVEL_DEBUG, "Find tuple %p: new pos: %lu, new tuple ts: %lld", this, _header._pos, next_tuple_ts);
 
           // check next
           next_tuple_ts += _header._freq;
       } while(next_tuple_ts <= ts);
 
       // done
-      return &tuple;
+      return tuple;
   } else if(_header._pos_ts - _header._duration <= ts) {
       // we are somewhere behind but not too much
       boost::uint32_t pos = _header._pos;
-      rrdb_metric_tuple_t & tuple = _tuples[pos];
-      boost::int64_t tuple_ts = tuple._ts;
+      rrdb_metric_tuple_t * tuple = &_tuples[pos];
+      boost::int64_t tuple_ts = tuple->_ts;
       do {
           // move pos
           if(pos > 0) {
@@ -88,13 +97,13 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const boost::uint64_t & ts, 
           } else {
               pos = _header._count - 1;
           }
-          tuple = _tuples[pos];
+          tuple = &_tuples[pos];
           tuple_ts -= _header._freq;
-          tuple._ts = tuple_ts; // overwrite just in case (it might not be initialized!)
+          tuple->_ts = tuple_ts; // overwrite just in case (it might not be initialized!)
       } while(ts < tuple_ts);
 
       is_current_block = false;
-      return &tuple;
+      return tuple;
   }
 
   // we are WAY behind, ignore

@@ -23,8 +23,10 @@ public:
     LEVEL_ERROR    = 1,
     LEVEL_WARNING  = 2,
     LEVEL_INFO     = 3,
-    LEVEL_DEBUG    = 4
-  };
+    LEVEL_DEBUG    = 4,
+    LEVEL_DEBUG2   = 5,
+    LEVEL_DEBUG3   = 6,
+   };
 
 public:
   static void init(const config & config);

@@ -36,6 +36,10 @@ std::string log::level2str(enum log::levels level)
     return "Info";
   case log::LEVEL_DEBUG:
     return "Debug";
+  case log::LEVEL_DEBUG2:
+    return "Debug2";
+  case log::LEVEL_DEBUG3:
+    return "Debug3";
   default:
     throw exception("Unknown log level %d", level);
   }
@@ -54,6 +58,10 @@ enum log::levels log::str2level(const std::string & str)
     return log::LEVEL_INFO;
   } else if(str_lower.compare("debug") == 0) {
     return log::LEVEL_DEBUG;
+  } else if(str_lower.compare("debug2") == 0) {
+    return log::LEVEL_DEBUG2;
+  } else if(str_lower.compare("debug3") == 0) {
+    return log::LEVEL_DEBUG3;
   } else {
       throw exception("Unknown log level '%s'", str.c_str());
   }
@@ -71,6 +79,8 @@ int log::level2syslog(enum levels level)
   case log:: LEVEL_INFO:
     return LOG_USER | LOG_INFO;
   case log::LEVEL_DEBUG:
+  case log::LEVEL_DEBUG2:
+  case log::LEVEL_DEBUG3:
     return LOG_USER | LOG_DEBUG;
   default:
     throw exception("Unknown log level %d", level);

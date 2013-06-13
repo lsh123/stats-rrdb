@@ -36,7 +36,7 @@ function check_result($actual, $expected) {
 	}
 }
 
-start_server();
+restart_server();
 
 try {
 	// create
@@ -45,7 +45,7 @@ try {
 	$stats_rrdb = new StatsRRDB($mode);
 
 	echo "== CREATE METRIC 'test1' \n";
-	$resp = $stats_rrdb->send_command("create metric 'test1' keep 5 secs for 1 min, 1 min for 1 week, 10 min for 1 year, 1 hour for 10 years ;"); 
+	$resp = $stats_rrdb->send_command("create metric 'test1' keep 5 secs for 30 sec, 10 secs for 1 min, 30 secs for 10 min;"); 
 	check_result($resp, "OK");
 
 	echo "== CREATE METRIC 'test2' \n";
@@ -56,17 +56,17 @@ try {
 	$resp = $stats_rrdb->send_command("show metrics like 'te';");
 	check_result($resp, "test2;test1;");
 
-	echo "== UPDATE METRIC 'test2' -> 1\n";
-	$resp = $stats_rrdb->send_command("UPDATE 'test2' ADD 1 AT 1371104586 ;");
-	check_result($resp, "OK");
-	
-	echo "== UPDATE METRIC 'test2' -> 2\n";
-	$resp = $stats_rrdb->send_command("UPDATE 'test2' ADD 2 AT 1371104587 ;");
-	check_result($resp, "OK");
+	for($ii = 0; $ii < 20; $ii++) {
+		echo "== UPDATE METRIC 'test1' $ii -> 1\n";
+		$ts = 1371104586 + $ii;
+		$resp = $stats_rrdb->send_command("UPDATE 'test2' ADD 1 AT $ts ;");
+		check_result($resp, "OK");
+	}	
 
-	echo "== SELECT * FROM METRIC 'test2'\n";
-	$resp = $stats_rrdb->send_command("SELECT * FROM 'test2' BETWEEN 1371104580 AND 1371104590 ;");
-	check_result($resp, "ts,count,sum,sum_sqr,min,max\n1371104580,2,3,5,1,2\n");
+	echo "== SELECT * FROM METRIC 'test1'\n";
+	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104580 AND 1371104990 ;");
+	// check_result($resp, "ts,count,sum,sum_sqr,min,max\n1371104580,2,3,5,1,2\n");
+	echo "$resp\n";
 	
 	restart_server();
 
@@ -76,19 +76,23 @@ try {
 
 	echo "== SHOW METRIC POLICY\n";
 	$resp = $stats_rrdb->send_command("show metric policy 'test1';");
-	check_result($resp, "5 secs for 1 min, 1 min for 1 week, 10 mins for 1 year, 1 hour for 10 years");
+	check_result($resp, "5 secs for 30 sec, 10 secs for 1 min, 30 secs for 10 min");
 
     echo "== SHOW METRIC POLICY\n";
     $resp = $stats_rrdb->send_command("show metric policy 'test2';");
 	check_result($resp, "10 secs for 1 week, 1 min for 1 month, 10 mins for 1 year, 30 mins for 10 years");
     
-	echo "== UPDATE METRIC 'test2' -> 3\n";
-	$resp = $stats_rrdb->send_command("UPDATE 'test2' ADD 3 AT 1371104588 ;");
-	check_result($resp, "OK");
+	for($ii = 0; $ii < 20; $ii++) {
+		echo "== UPDATE METRIC 'test1' $ii -> 1\n";
+		$ts = 1371104586 + 30 + $ii;
+		$resp = $stats_rrdb->send_command("UPDATE 'test2' ADD 1 AT $ts ;");
+		check_result($resp, "OK");
+	}
 
-	echo "== SELECT * FROM METRIC 'test2'\n";
-	$resp = $stats_rrdb->send_command("SELECT * FROM  metric 'test2' BETWEEN 1371104580 AND 1371104590 ;");
-	check_result($resp, "ts,count,sum,sum_sqr,min,max\n1371104580,3,6,14,1,3\n");
+	echo "== SELECT * FROM METRIC 'test1'\n";
+	$resp = $stats_rrdb->send_command("SELECT * FROM  metric 'test1' BETWEEN 1371104580 AND 1371104990 ;");
+	// check_result($resp, "ts,count,sum,sum_sqr,min,max\n1371104580,3,6,14,1,3\n");
+	echo "$resp\n";
 
 	echo "== SHOW METRIC (error)\n";
 	$resp = $stats_rrdb->send_command("show metric 'test';");

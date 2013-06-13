@@ -51,7 +51,7 @@ void thread_pool::run(boost::shared_ptr<thread_pool_task> task)
   }
 
   //
-  log::write(log::LEVEL_DEBUG, "Starting task, %lli out of %zu thread(s) used", (long int)_used_threads, _pool_size);
+  log::write(log::LEVEL_DEBUG3, "Starting task, %lli out of %zu thread(s) used", (long int)_used_threads, _pool_size);
 
   // go!
   _io_service.post(boost::bind( &thread_pool::wrap_task_run, this, task)) ;
@@ -72,7 +72,7 @@ void thread_pool::wrap_task_run(boost::shared_ptr<thread_pool_task> task)
   --_used_threads;
 
   //
-  log::write(log::LEVEL_DEBUG, "Finished task, %lli out of %zu thread(s) used",(long int) _used_threads, _pool_size);
+  log::write(log::LEVEL_DEBUG3, "Finished task, %lli out of %zu thread(s) used",(long int) _used_threads, _pool_size);
 }
 
 
