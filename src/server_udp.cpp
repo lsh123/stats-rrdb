@@ -58,10 +58,10 @@ public:
         _server_udp->get_rrdb()->execute_short_command(_buffer);
         _server_udp->send_response(_remote_endpoint, "OK");
     } catch(std::exception & e) {
-        log::write(log::LEVEL_ERROR, "Exception executing short rrdb command: %s", e.what());
+        LOG(log::LEVEL_ERROR, "Exception executing short rrdb command: %s", e.what());
         _server_udp->send_response(_remote_endpoint, "ERROR");
     } catch(...) {
-        log::write(log::LEVEL_ERROR, "Unknown exception executing short rrdb command");
+        LOG(log::LEVEL_ERROR, "Unknown exception executing short rrdb command");
         _server_udp->send_response(_remote_endpoint, "ERROR");
     }
   }
@@ -86,7 +86,7 @@ server_udp::server_udp(
   _send_response(config->get<bool>("server_udp.send_response", false))
 {
   // log
-  log::write(log::LEVEL_DEBUG, "Starting UDP server on %s:%d", _address.c_str(), _port);
+  LOG(log::LEVEL_DEBUG, "Starting UDP server on %s:%d", _address.c_str(), _port);
 
   // create socket
   _socket.reset(new udp::socket(io_service, udp::endpoint(address_v4::from_string(_address), _port)));
@@ -95,7 +95,7 @@ server_udp::server_udp(
   }
 
   // done
-  log::write(log::LEVEL_INFO, "Started UDP server on %s:%d", _address.c_str(), _port);
+  LOG(log::LEVEL_INFO, "Started UDP server on %s:%d", _address.c_str(), _port);
 }
 
 server_udp::~server_udp()
@@ -114,7 +114,7 @@ void server_udp::start()
 
 void server_udp::stop()
 {
-  log::write(log::LEVEL_DEBUG, "Stopping UDP server");
+  LOG(log::LEVEL_DEBUG, "Stopping UDP server");
 
   if(_socket) {
       _socket->close();
@@ -122,7 +122,7 @@ void server_udp::stop()
   }
   _thread_pool.reset();
 
-  log::write(log::LEVEL_INFO, "Stopped UDP server");
+  LOG(log::LEVEL_INFO, "Stopped UDP server");
 }
 
 void server_udp::receive()
@@ -149,12 +149,12 @@ void server_udp::handle_receive(
 ) {
   // any errors?
   if (error) {
-      log::write(log::LEVEL_ERROR, "UDP Server receive failed - %d: %s", error.value(), error.message().c_str());
+      LOG(log::LEVEL_ERROR, "UDP Server receive failed - %d: %s", error.value(), error.message().c_str());
       return;
   }
 
   // log
-  log::write(log::LEVEL_DEBUG3, "UDP Server received %zu bytes", bytes_transferred);
+  LOG(log::LEVEL_DEBUG3, "UDP Server received %zu bytes", bytes_transferred);
 
   // offload task for processing to the buffer pool
   new_connection->get_buffer().resize(bytes_transferred);
@@ -194,11 +194,11 @@ void server_udp::handle_send(
 ) {
   // any errors?
   if (error) {
-      log::write(log::LEVEL_ERROR, "UDP Server send failed - %d: %s", error.value(), error.message().c_str());
+      LOG(log::LEVEL_ERROR, "UDP Server send failed - %d: %s", error.value(), error.message().c_str());
   }
 
   // log
-  log::write(log::LEVEL_DEBUG3, "UDP Server sent %zu bytes", bytes_transferred);
+  LOG(log::LEVEL_DEBUG3, "UDP Server sent %zu bytes", bytes_transferred);
 
   // do nothing for now
 }

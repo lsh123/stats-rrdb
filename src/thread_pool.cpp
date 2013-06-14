@@ -14,7 +14,7 @@ thread_pool::thread_pool(std::size_t pool_size) :
    _pool_size(pool_size),
    _used_threads(0)
 {
-  log::write(log::LEVEL_DEBUG, "Creating thread pool");
+  LOG(log::LEVEL_DEBUG, "Creating thread pool");
 
   // init
   for(std::size_t ii = 0; ii < _pool_size; ++ii) {
@@ -22,12 +22,12 @@ thread_pool::thread_pool(std::size_t pool_size) :
   }
 
   // done
-  log::write(log::LEVEL_INFO, "Created thread pool with %zu threads", _pool_size);
+  LOG(log::LEVEL_INFO, "Created thread pool with %zu threads", _pool_size);
 }
 
 thread_pool::~thread_pool()
 {
-  log::write(log::LEVEL_DEBUG, "Stopping thread pool");
+  LOG(log::LEVEL_DEBUG, "Stopping thread pool");
 
   // Force all threads to return from io_service::run().
   _io_service.stop();
@@ -36,10 +36,10 @@ thread_pool::~thread_pool()
   try {
       _threads.join_all();
   } catch (std::exception& e) {
-    log::write(log::LEVEL_ERROR, "%s", e.what());
+    LOG(log::LEVEL_ERROR, "%s", e.what());
   }
 
-  log::write(log::LEVEL_INFO, "Stopped thread pool");
+  LOG(log::LEVEL_INFO, "Stopped thread pool");
 }
 
 void thread_pool::run(boost::shared_ptr<thread_pool_task> task)
@@ -51,7 +51,7 @@ void thread_pool::run(boost::shared_ptr<thread_pool_task> task)
   }
 
   //
-  log::write(log::LEVEL_DEBUG3, "Starting task, %lli out of %zu thread(s) used", (long int)_used_threads, _pool_size);
+  LOG(log::LEVEL_DEBUG3, "Starting task, %lli out of %zu thread(s) used", (long int)_used_threads, _pool_size);
 
   // go!
   _io_service.post(boost::bind( &thread_pool::wrap_task_run, this, task)) ;
@@ -63,16 +63,16 @@ void thread_pool::wrap_task_run(boost::shared_ptr<thread_pool_task> task)
   try {
       task->run();
   } catch(std::exception & e) {
-      log::write(log::LEVEL_ERROR, "%s", e.what());
+      LOG(log::LEVEL_ERROR, "%s", e.what());
   } catch(...) {
-      log::write(log::LEVEL_ERROR, "unknown exception");
+      LOG(log::LEVEL_ERROR, "unknown exception");
   }
 
   // done!
   --_used_threads;
 
   //
-  log::write(log::LEVEL_DEBUG3, "Finished task, %lli out of %zu thread(s) used",(long int) _used_threads, _pool_size);
+  LOG(log::LEVEL_DEBUG3, "Finished task, %lli out of %zu thread(s) used",(long int) _used_threads, _pool_size);
 }
 
 

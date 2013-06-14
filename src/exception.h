@@ -10,6 +10,8 @@
 
 #include <string>
 
+#include "log.h"
+
 class exception: public std::exception
 {
 public:
@@ -25,5 +27,15 @@ private:
   std::string _msg;
 }; // class exception
 
+//
+// Helper asserts
+//
+#define CHECK_AND_THROW( p ) \
+  if( !( p ) ) { \
+      LOG(log::LEVEL_CRITICAL, "Assert failed: '%s' in file '%s' on line '%d' (function '%s')",  #p, __FILE__, __LINE__, __FUNCTION__); \
+      throw exception("Unexpected error"); \
+  }
+
 
 #endif /* EXCEPTION_H_ */
+

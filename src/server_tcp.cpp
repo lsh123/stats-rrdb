@@ -57,12 +57,12 @@ public:
     try {
         _rrdb->execute_long_command(_input_buffer, res);
     } catch(std::exception & e) {
-        log::write(log::LEVEL_ERROR, "Exception executing long rrdb command: %s", e.what());
+        LOG(log::LEVEL_ERROR, "Exception executing long rrdb command: %s", e.what());
 
         res.clear();
         res << "ERROR: " << e.what();
     } catch(...) {
-        log::write(log::LEVEL_ERROR, "Unknown exception long short rrdb command");
+        LOG(log::LEVEL_ERROR, "Unknown exception long short rrdb command");
 
         res.clear();
         res << "ERROR: " << "unhandled exception";
@@ -89,11 +89,11 @@ public:
   {
     // any errors?
     if (error) {
-      log::write(log::LEVEL_ERROR, "TCP Server write failed - %d: %s", error.value(), error.message().c_str());
+      LOG(log::LEVEL_ERROR, "TCP Server write failed - %d: %s", error.value(), error.message().c_str());
     }
 
     // log
-    log::write(log::LEVEL_DEBUG3, "TCP Server sent %zu bytes", bytes_transferred);
+    LOG(log::LEVEL_DEBUG3, "TCP Server sent %zu bytes", bytes_transferred);
 
     // do nothing
   }
@@ -117,7 +117,7 @@ server_tcp::server_tcp(
   _buffer_size(config->get<std::size_t>("server_tcp.max_message_size", 4096))
 {
   // log
-  log::write(log::LEVEL_DEBUG, "Starting TCP server on %s:%d", _address.c_str(), _port);
+  LOG(log::LEVEL_DEBUG, "Starting TCP server on %s:%d", _address.c_str(), _port);
 
   // create socket
   _acceptor.reset(new tcp::acceptor(io_service, tcp::endpoint(address_v4::from_string(_address), _port)));
@@ -126,7 +126,7 @@ server_tcp::server_tcp(
   }
 
   // done
-  log::write(log::LEVEL_INFO, "Started TCP server on %s:%d", _address.c_str(), _port);
+  LOG(log::LEVEL_INFO, "Started TCP server on %s:%d", _address.c_str(), _port);
 }
 
 server_tcp::~server_tcp()
@@ -144,7 +144,7 @@ void server_tcp::start()
 
 void server_tcp::stop()
 {
-  log::write(log::LEVEL_DEBUG, "Stopping TCP server");
+  LOG(log::LEVEL_DEBUG, "Stopping TCP server");
 
   if(_acceptor) {
       _acceptor->close();
@@ -152,7 +152,7 @@ void server_tcp::stop()
   }
   _thread_pool.reset();
 
-  log::write(log::LEVEL_INFO, "Stopped TCP server");
+  LOG(log::LEVEL_INFO, "Stopped TCP server");
 }
 
 void server_tcp::accept()
@@ -177,12 +177,12 @@ void server_tcp::handle_accept(
 ) {
   // any errors?
   if (error) {
-      log::write(log::LEVEL_ERROR, "TCP Server accept failed - %d: %s", error.value(), error.message().c_str());
+      LOG(log::LEVEL_ERROR, "TCP Server accept failed - %d: %s", error.value(), error.message().c_str());
       return;
   }
 
   // log
-  log::write(log::LEVEL_DEBUG3, "TCP Server accepted new connection");
+  LOG(log::LEVEL_DEBUG3, "TCP Server accepted new connection");
 
   // start async read
   async_read(
@@ -208,15 +208,15 @@ void server_tcp::handle_read(
 ) {
   // any errors?
   if (error && error != boost::asio::error::eof) {
-      log::write(log::LEVEL_ERROR, "TCP Server read failed - %d: %s", error.value(), error.message().c_str());
+      LOG(log::LEVEL_ERROR, "TCP Server read failed - %d: %s", error.value(), error.message().c_str());
       return;
   } else if(error != boost::asio::error::eof) {
-      log::write(log::LEVEL_ERROR, "TCP Server received request larger than the buffer size %zu bytes, consider increasing server.tcp_max_message_size config parameter", _buffer_size);
+      LOG(log::LEVEL_ERROR, "TCP Server received request larger than the buffer size %zu bytes, consider increasing server.tcp_max_message_size config parameter", _buffer_size);
       return;
   }
 
   // log
-  log::write(log::LEVEL_DEBUG3, "TCP Server read %zu bytes", bytes_transferred);
+  LOG(log::LEVEL_DEBUG3, "TCP Server read %zu bytes", bytes_transferred);
 
   // off-load task for processing to the buffer pool
   new_connection->get_input_buffer().resize(bytes_transferred);

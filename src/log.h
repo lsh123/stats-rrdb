@@ -13,6 +13,8 @@
 
 #include <boost/shared_ptr.hpp>
 
+#include "exception.h"
+
 class config;
 
 class log
@@ -32,17 +34,15 @@ public:
   static void init(const config & config);
 
   // MAIN LOGGING FUNCTION
-  inline static void write(enum levels level, const char * msg, ...) {
-    if(log::_log_level >= level) {
-      va_list args;
-      va_start(args, msg);
-      log::write(level, msg, args);
-      va_end (args);
-    }
+  inline static bool check_level(enum levels level)
+  {
+    return log::_log_level >= level;
   }
 
-private:
+  static void write(enum levels level, const char * msg, ...);
   static void write(enum levels level, const char * msg, va_list args);
+
+private:
   static std::string level2str(enum levels level);
   static enum levels str2level(const std::string & str);
   static std::string format_time();
@@ -56,20 +56,7 @@ private:
 }; // class log
 
 
-//
-// Helper asserts
-//
-#define CHECK_AND_LOG( p ) \
-  if( !( p ) ) { \
-      log::write(log::LEVEL_ERROR, "Assert failed: '%s' in file '%s' on line '%d' (function '%s')",  #p, __FILE__, __LINE__, __FUNCTION__); \
-      return; \
-  }
-#define CHECK_AND_LOG2( p, ret ) \
-  if( !( p ) ) { \
-      log::write(log::LEVEL_ERROR, "Assert failed: '%s' in file '%s' on line '%d' (function '%s')",  #p, __FILE__, __LINE__, __FUNCTION__); \
-      return (ret); \
-  }
-
-
+#define LOG(level, ...)  \
+    if(log::check_level(level)) { log::write(level, __VA_ARGS__); }
 
 #endif /* LOG_H_ */

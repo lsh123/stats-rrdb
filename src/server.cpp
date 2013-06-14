@@ -22,7 +22,7 @@ server::server(boost::shared_ptr<config> config) :
   _exit_signals(_io_service)
 
 {
-  log::write(log::LEVEL_DEBUG, "Starting the server");
+  LOG(log::LEVEL_DEBUG, "Starting the server");
 
   // init
   _rrdb.reset(new rrdb(config));
@@ -43,7 +43,7 @@ server::server(boost::shared_ptr<config> config) :
   ));
 
   // done
-  log::write(log::LEVEL_INFO, "Started the server");
+  LOG(log::LEVEL_INFO, "Started the server");
 }
 
 server::~server()
@@ -53,9 +53,9 @@ server::~server()
 void server::signal_handler(const boost::system::error_code& error, int signal_number)
 {
   if (!error) {
-      log::write(log::LEVEL_INFO, "Received signal %d, exiting", signal_number);
+      LOG(log::LEVEL_INFO, "Received signal %d, exiting", signal_number);
       this->stop();
-      log::write(log::LEVEL_INFO, "Received signal %d, done", signal_number);
+      LOG(log::LEVEL_INFO, "Received signal %d, done", signal_number);
   }
 }
 
@@ -67,10 +67,10 @@ void server::daemonize(const std::string & pid_file)
   this->notify_before_fork();
   pid_t pid = fork();
   if(pid < 0) {
-      log::write(log::LEVEL_CRITICAL, "Failed to fork the process: %d", errno);
+      LOG(log::LEVEL_CRITICAL, "Failed to fork the process: %d", errno);
       std::terminate();
   } else if(pid > 0) {
-      log::write(log::LEVEL_DEBUG, "PID after the first fork is %d", pid);
+      LOG(log::LEVEL_DEBUG, "PID after the first fork is %d", pid);
 
       // We're in the parent process and need to exit but first let's notify
       // everyone
@@ -98,10 +98,10 @@ void server::daemonize(const std::string & pid_file)
   this->notify_before_fork();
   pid = fork();
   if (pid < 0) {
-      log::write(log::LEVEL_CRITICAL, "Failed to fork the process second time: %d", errno);
+      LOG(log::LEVEL_CRITICAL, "Failed to fork the process second time: %d", errno);
       std::terminate();
   } else if(pid > 0) {
-      log::write(log::LEVEL_DEBUG, "PID after the second fork is %d", pid);
+      LOG(log::LEVEL_DEBUG, "PID after the second fork is %d", pid);
 
       // write out pid
       if(!pid_file.empty()) {

@@ -8,6 +8,7 @@
 #include <fstream>
 #include <stdio.h>
 #include <syslog.h>
+#include <stdarg.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
@@ -99,7 +100,7 @@ std::string log::format_time()
 
 void log::init(const config & config)
 {
-  log::write(log::LEVEL_DEBUG, "Configuring log file");
+  LOG(log::LEVEL_DEBUG, "Configuring log file");
 
   // log level
   std::string log_level = config.get<std::string>("log.level", log::level2str(log::_log_level));
@@ -112,14 +113,25 @@ void log::init(const config & config)
   log::_log_time_format = config.get<std::string>("log.time_format", log::_log_time_format);
 
   //
-  log::write(log::LEVEL_INFO, "Configured log file");
+  LOG(log::LEVEL_INFO, "Configured log file");
+}
+
+void log::write(enum levels level, const char * msg, ...) {
+  va_list args;
+  va_start(args, msg);
+  log::write(level, msg, args);
+  va_end (args);
 }
 
 void log::write(enum levels level, const char * msg, va_list args)
 {
+  // just to be sure
+  if(!log::check_level(level)) {
+      return;
+  }
+
   char buffer[4096];
   vsnprintf(buffer, sizeof(buffer), msg, args);
-
   try {
     if(log::_log_dest == "stderr") {
         std::cerr << log::format_time() << " - " << log::level2str(level) << " - " << buffer << std::endl;

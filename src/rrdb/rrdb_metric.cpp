@@ -83,7 +83,7 @@ private:
   inline void close_group_by()
   {
     if(_cur_interval > 0) {
-        log::write(log::LEVEL_DEBUG, "cur = %lld, gb=%lld", _cur_interval, _query._group_by);
+        LOG(log::LEVEL_DEBUG, "cur = %lld, gb=%lld", _cur_interval, _query._group_by);
         rrdb_metric_tuple_normalize(_cur_tuple,  (double)_query._group_by / (double)_cur_interval);
         _res.push_back(_cur_tuple);
     }
@@ -145,7 +145,7 @@ std::string rrdb_metric::get_name()
 retention_policy rrdb_metric::get_policy()
 {
   boost::lock_guard<spinlock> guard(_lock);
-  CHECK_AND_LOG2(_blocks.size() == _header._blocks_size, retention_policy());
+  CHECK_AND_THROW(_blocks.size() == _header._blocks_size);
 
   retention_policy res;
   res.reserve(_header._blocks_size);
@@ -189,7 +189,7 @@ void rrdb_metric::update(const boost::uint64_t & ts, const double & value)
   if(_header._blocks_size <= 0) {
       return;
   }
-  CHECK_AND_LOG(_blocks.size() == _header._blocks_size);
+  CHECK_AND_THROW(_blocks.size() == _header._blocks_size);
 
   // mark dirty
   _header._status |= Status_Dirty;
@@ -212,7 +212,7 @@ void rrdb_metric::update(const boost::uint64_t & ts, const double & value)
   BOOST_FOREACH(rrdb_metric_block & block, _blocks) {
       // swap one and two to avoid copying data
       if(ii == 1) {
-          log::write(log::LEVEL_DEBUG3, "Updating block with 'one' at ts %lld with ctx state %d", one.get_ts(), one._state);
+          LOG(log::LEVEL_DEBUG3, "Updating block with 'one' at ts %lld with ctx state %d", one.get_ts(), one._state);
 
           block.update(one, two);
           if(two._state == rrdb_metric_block::UpdateState_Stop) {
@@ -220,7 +220,7 @@ void rrdb_metric::update(const boost::uint64_t & ts, const double & value)
           }
           ii = 2; // next block 2
       } else {
-          log::write(log::LEVEL_DEBUG3, "Updating block with 'two' at ts %lld with ctx state %d", two.get_ts(), two._state);
+          LOG(log::LEVEL_DEBUG3, "Updating block with 'two' at ts %lld with ctx state %d", two.get_ts(), two._state);
 
           block.update(two, one);
           if(one._state == rrdb_metric_block::UpdateState_Stop) {
@@ -280,7 +280,7 @@ void rrdb_metric::save_file(const std::string & folder)
   }
 
   // start
-  log::write(log::LEVEL_DEBUG, "RRDB metric '%s' saving file", this->get_name().c_str());
+  LOG(log::LEVEL_DEBUG, "RRDB metric '%s' saving file", this->get_name().c_str());
 
   // open file
   std::string full_path = rrdb_metric::get_full_path(folder, this->get_name());
@@ -305,7 +305,7 @@ void rrdb_metric::save_file(const std::string & folder)
   boost::filesystem::rename(full_path_tmp, full_path);
 
   // done
-  log::write(log::LEVEL_DEBUG, "RRDB metric '%s' saved file '%s'", this->get_name().c_str(), full_path.c_str());
+  LOG(log::LEVEL_DEBUG, "RRDB metric '%s' saved file '%s'", this->get_name().c_str(), full_path.c_str());
 
   // check if deleted meantime
   if(this->is_deleted()) {
@@ -316,7 +316,7 @@ void rrdb_metric::save_file(const std::string & folder)
 boost::shared_ptr<rrdb_metric> rrdb_metric::load_file(const std::string & filename)
 {
   // start
-  log::write(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", filename.c_str());
+  LOG(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", filename.c_str());
 
   // open file
   std::fstream ifs(filename.c_str(), std::ios_base::binary | std::ios_base::in);
@@ -331,7 +331,7 @@ boost::shared_ptr<rrdb_metric> rrdb_metric::load_file(const std::string & filena
   ifs.close();
 
   // done
-  log::write(log::LEVEL_DEBUG, "RRDB metric loaded file '%s'", filename.c_str());
+  LOG(log::LEVEL_DEBUG, "RRDB metric loaded file '%s'", filename.c_str());
   return res;
 }
 
@@ -341,19 +341,19 @@ void rrdb_metric::delete_file(const std::string & folder)
   this->set_deleted();
 
   // start
-  log::write(log::LEVEL_DEBUG, "RRDB metric '%s' deleting file", this->get_name().c_str());
+  LOG(log::LEVEL_DEBUG, "RRDB metric '%s' deleting file", this->get_name().c_str());
 
   std::string full_path = rrdb_metric::get_full_path(folder, this->get_name());
   boost::filesystem::remove(full_path);
 
   // done
-  log::write(log::LEVEL_DEBUG, "RRDB metric '%s' deleted file '%s'", this->get_name().c_str(), full_path.c_str());
+  LOG(log::LEVEL_DEBUG, "RRDB metric '%s' deleted file '%s'", this->get_name().c_str(), full_path.c_str());
 }
 
 void rrdb_metric::write_header(std::fstream & ofs)
 {
   // should be locked
-  CHECK_AND_LOG(_lock.is_locked());
+  CHECK_AND_THROW(_lock.is_locked());
 
   // write header
   ofs.write((const char*)&_header, sizeof(_header));
@@ -361,7 +361,7 @@ void rrdb_metric::write_header(std::fstream & ofs)
   // write name
   ofs.write((const char*)_name.get(), _header._name_size);
 
-  log::write(log::LEVEL_DEBUG, "RRDB metric header: wrote '%s'", _name.get());
+  LOG(log::LEVEL_DEBUG, "RRDB metric header: wrote '%s'", _name.get());
 }
 
 void rrdb_metric::read_header(std::fstream & ifs)
@@ -379,5 +379,5 @@ void rrdb_metric::read_header(std::fstream & ifs)
   _name.reset(new char[_header._name_size]);
   ifs.read((char*)_name.get(), _header._name_size);
 
-  log::write(log::LEVEL_DEBUG, "RRDB metric: read '%s'", _name.get());
+  LOG(log::LEVEL_DEBUG, "RRDB metric: read '%s'", _name.get());
 }

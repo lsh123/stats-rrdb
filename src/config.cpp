@@ -16,6 +16,7 @@
 
 using namespace boost::program_options;
 
+
 config::config()
 {
   // TODO Auto-generated constructor stub
@@ -77,14 +78,14 @@ bool config::init(int argc, char ** argv)
   if(this->has("config")) {
       std::string config_file = this->get<std::string>("config");
 
-      log::write(log::LEVEL_DEBUG, "Loading configuration file '%s'", config_file.c_str());
+      LOG(log::LEVEL_DEBUG, "Loading configuration file '%s'", config_file.c_str());
       std::ifstream file(config_file.c_str(), std::ios_base::in);
       if(file.fail()) {
           throw exception("Unable to open file '%s'", config_file.c_str());
       }
 
       store(parse_config_file(file, config_file_desc), _data);
-      log::write(log::LEVEL_INFO, "Loaded configuration file '%s'", config_file.c_str());
+      LOG(log::LEVEL_INFO, "Loaded configuration file '%s'", config_file.c_str());
   }
 
   // initialize log file

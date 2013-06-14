@@ -116,10 +116,10 @@ rrdb::rrdb(boost::shared_ptr<config> config) :
         retention_policy_parse(
             config->get<std::string>("rrdb.default_policy", "1 min FOR 1 day")))
 {
-  log::write(log::LEVEL_DEBUG, "Starting rrdb");
+  LOG(log::LEVEL_DEBUG, "Starting rrdb");
 
-  log::write(log::LEVEL_INFO, "Started rrdb: flush_interval='%s'", interval_write(_flush_interval).c_str());
-  log::write(log::LEVEL_INFO, "Started rrdb: default_policy='%s'", retention_policy_write(_default_policy).c_str());
+  LOG(log::LEVEL_INFO, "Started rrdb: flush_interval='%s'", interval_write(_flush_interval).c_str());
+  LOG(log::LEVEL_INFO, "Started rrdb: default_policy='%s'", retention_policy_write(_default_policy).c_str());
 }
 
 rrdb::~rrdb()
@@ -138,7 +138,7 @@ void rrdb::start()
       return;
   }
 
-  log::write(log::LEVEL_DEBUG, "Starting RRDB server");
+  LOG(log::LEVEL_DEBUG, "Starting RRDB server");
 
   // load metrics from disk
   this->load_metrics();
@@ -147,7 +147,7 @@ void rrdb::start()
   _flush_to_disk_thread.reset(new boost::thread(boost::bind(&rrdb::flush_to_disk_thread, this)));
 
   // done
-  log::write(log::LEVEL_INFO, "Started RRDB server");
+  LOG(log::LEVEL_INFO, "Started RRDB server");
 }
 
 void rrdb::stop()
@@ -156,7 +156,7 @@ void rrdb::stop()
       return;
   }
 
-  log::write(log::LEVEL_DEBUG, "Stopping RRDB server");
+  LOG(log::LEVEL_DEBUG, "Stopping RRDB server");
 
   // stop flush thread
   _flush_to_disk_thread->interrupt();
@@ -166,13 +166,13 @@ void rrdb::stop()
   // flush one more time
   this->flush_to_disk();
 
-  log::write(log::LEVEL_INFO, "Stopped RRDB server");
+  LOG(log::LEVEL_INFO, "Stopped RRDB server");
 }
 
 void rrdb::flush_to_disk_thread()
 {
   // log
-  log::write(log::LEVEL_INFO, "RRDB Flush thread started");
+  LOG(log::LEVEL_INFO, "RRDB Flush thread started");
 
   // try/catch to get any error reported
   try {
@@ -185,33 +185,33 @@ void rrdb::flush_to_disk_thread()
           boost::this_thread::sleep(boost::posix_time::seconds(this->_flush_interval));
       }
   } catch (boost::thread_interrupted & e) {
-      log::write(log::LEVEL_DEBUG, "RRDB Flush thread was interrupted");
+      LOG(log::LEVEL_DEBUG, "RRDB Flush thread was interrupted");
   } catch (std::exception & e) {
-      log::write(log::LEVEL_ERROR, "RRDB Flush thread exception: %s", e.what());
+      LOG(log::LEVEL_ERROR, "RRDB Flush thread exception: %s", e.what());
       throw e;
   } catch (...) {
-      log::write(log::LEVEL_ERROR, "RRDB Flush thread un-handled exception");
+      LOG(log::LEVEL_ERROR, "RRDB Flush thread un-handled exception");
       throw;
   }
 
   // done
-  log::write(log::LEVEL_INFO, "RRDB Flush thread stopped");
+  LOG(log::LEVEL_INFO, "RRDB Flush thread stopped");
 }
 
 void rrdb::flush_to_disk()
 {
-  log::write(log::LEVEL_DEBUG2, "Flushing to disk");
+  LOG(log::LEVEL_DEBUG2, "Flushing to disk");
 
   t_metrics_vector dirty_metrics = this->get_dirty_metrics();
   BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, dirty_metrics) {
     try {
         metric->save_file(_path);
     } catch(std::exception & e) {
-      log::write(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
+      LOG(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
     }
   }
 
-  log::write(log::LEVEL_DEBUG2, "Flushed to disk");
+  LOG(log::LEVEL_DEBUG2, "Flushed to disk");
 }
 
 boost::shared_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)
@@ -229,7 +229,7 @@ void rrdb::load_metrics()
   boost::filesystem::create_directories(_path);
 
   for(boost::filesystem::recursive_directory_iterator end, cur(_path + "/"); cur != end; ++cur) {
-      log::write(log::LEVEL_DEBUG3, "Checking file %s", (*cur).path().string().c_str());
+      LOG(log::LEVEL_DEBUG3, "Checking file %s", (*cur).path().string().c_str());
 
       // we are looking for files
       if((*cur).status().type() != boost::filesystem::regular_file) {
@@ -283,7 +283,7 @@ boost::shared_ptr<rrdb_metric> rrdb::get_metric(const std::string & name)
 boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, const retention_policy & policy)
 {
   // log
-  log::write(log::LEVEL_DEBUG, "RRDB: creating metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
+  LOG(log::LEVEL_DEBUG, "RRDB: creating metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
 
   // check the policy
   retention_policy_validate(policy);
@@ -315,7 +315,7 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
   res->save_file(_path);
 
   // log
-  log::write(log::LEVEL_INFO, "RRDB: created metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
+  LOG(log::LEVEL_INFO, "RRDB: created metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
 
   return res;
 }
@@ -323,7 +323,7 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
 void rrdb::drop_metric(const std::string & name)
 {
   // log
-  log::write(log::LEVEL_DEBUG, "RRDB: dropping metric '%s'", name.c_str());
+  LOG(log::LEVEL_DEBUG, "RRDB: dropping metric '%s'", name.c_str());
 
   // force lower case for names
   std::string name_lc(name);
@@ -345,7 +345,7 @@ void rrdb::drop_metric(const std::string & name)
   }
 
   // log
-  log::write(log::LEVEL_INFO, "RRDB: dropped metric '%s'", name.c_str());
+  LOG(log::LEVEL_INFO, "RRDB: dropped metric '%s'", name.c_str());
 }
 
 std::vector<std::string> rrdb::get_metrics(const std::string & like)
@@ -414,7 +414,7 @@ void rrdb::select_from_metric(const statement_select & query, std::vector<rrdb_m
 
 void rrdb::execute_long_command(const std::vector<char> & buffer, memory_buffer_t & res)
 {
-  // log::write(log::LEVEL_DEBUG, "RRDB command: '%s'", std::string(buffer.begin(), buffer.end()).c_str());
+  // LOG(log::LEVEL_DEBUG, "RRDB command: '%s'", std::string(buffer.begin(), buffer.end()).c_str());
 
   statement st = statement_parse(buffer.begin(), buffer.end());
   boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);

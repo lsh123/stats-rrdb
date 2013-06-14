@@ -42,10 +42,10 @@ int main(int argc, char ** argv)
     main_server->run();
 
   } catch (std::exception & e) {
-    log::write(log::LEVEL_ERROR, "%s", e.what());
+    LOG(log::LEVEL_ERROR, "%s", e.what());
     return(1);
   } catch (...) {
-    log::write(log::LEVEL_ERROR, "Unknown un-handled exception");
+    LOG(log::LEVEL_ERROR, "Unknown un-handled exception");
     return(1);
   }
 
