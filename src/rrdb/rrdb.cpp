@@ -28,7 +28,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
 {
 
 public:
-  statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb, std::ostringstream & res) :
+  statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb, memory_buffer_t & res) :
       _rrdb(rrdb),
       _res(res)
   {
@@ -93,7 +93,7 @@ public:
 
 private:
   const boost::shared_ptr<rrdb> _rrdb;
-  mutable std::ostringstream &  _res;
+  mutable memory_buffer_t &  _res;
 };
 // statement_execute_visitor
 
@@ -403,7 +403,7 @@ void rrdb::select_from_metric(const std::string & name, const boost::uint64_t & 
 }
 
 
-void rrdb::execute_long_command(const std::vector<char> & buffer, std::ostringstream & res)
+void rrdb::execute_long_command(const std::vector<char> & buffer, memory_buffer_t & res)
 {
   // log::write(log::LEVEL_DEBUG, "RRDB command: '%s'", std::string(buffer.begin(), buffer.end()).c_str());
 

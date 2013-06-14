@@ -57,26 +57,26 @@ public:
   // thread_pool_task
   void run() {
     // execute command
-    std::ostringstream res;
+    memory_buffer_data_t data;
+    memory_buffer_t res(data);
     try {
         _server_tcp->get_rrdb()->execute_long_command(_buffer, res);
     } catch(std::exception & e) {
         log::write(log::LEVEL_ERROR, "Exception executing long rrdb command: %s", e.what());
 
-        res.str(std::string());
         res.clear();
         res << "ERROR: " << e.what();
     } catch(...) {
         log::write(log::LEVEL_ERROR, "Unknown exception long short rrdb command");
 
-        res.str(std::string());
         res.clear();
         res << "ERROR: " << "unhandled exception";
     }
+    res.flush();
 
     // send
     _buffer.clear();
-    _server_tcp->send_response(_socket, res);
+    _server_tcp->send_response(_socket, data);
   }
 
 private:
@@ -205,11 +205,11 @@ void server_tcp::handle_read(
 
 void server_tcp::send_response(
      boost::asio::ip::tcp::socket & socket,
-     const std::ostringstream & buffer
+     const std::vector<char> & buffer
 ) {
   boost::asio::async_write(
       socket,
-      boost::asio::buffer(buffer.str()),
+      boost::asio::buffer(buffer),
       boost::bind(
           &server_tcp::handle_write,
           this,

@@ -18,6 +18,8 @@
 #include <boost/thread.hpp>
 
 #include "spinlock.h"
+#include "memory_buffer.h"
+
 #include "parser/interval.h"
 #include "parser/retention_policy.h"
 
@@ -54,7 +56,7 @@ public:
   void select_from_metric(const std::string & name, const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res);
 
   // commands
-  void execute_long_command(const std::vector<char> & buffer, std::ostringstream & res);
+  void execute_long_command(const std::vector<char> & buffer, memory_buffer_t & res);
   void execute_short_command(const std::vector<char> & buffer);
 
 

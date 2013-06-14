@@ -37,7 +37,7 @@ public:
 
   void send_response(
       boost::asio::ip::tcp::socket & socket,
-      const std::ostringstream & buffer
+      const std::vector<char> & buffer
   );
 
 protected:
