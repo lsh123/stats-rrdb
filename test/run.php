@@ -120,7 +120,7 @@ try {
 	echo "== SHOW METRIC (error)\n";
 	$resp = $stats_rrdb->send_command("show metric 'test';");
 	check_result($resp, "ERROR: Unable to parse the statement");
-/*
+
 	echo "== DROP METRIC 'test1'\n";
 	$resp = $stats_rrdb->send_command("drop metric 'test1';");
 	check_result($resp, "OK");
@@ -128,7 +128,7 @@ try {
 	echo "== DROP METRIC 'test2'\n";
 	$resp = $stats_rrdb->send_command("drop metric 'test2';");
 	check_result($resp, "OK");
-	*/
+
 } catch(Exception $e) {
 	echo "Exception: " . $e->getMessage() . "\n";
 }

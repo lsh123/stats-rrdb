@@ -91,12 +91,7 @@ public:
   rrdb_metric_block(boost::uint32_t freq = 0, boost::uint32_t count = 0, boost::uint64_t offset = 0);
   virtual ~rrdb_metric_block();
 
-  inline boost::uint32_t get_freq() const {
-    return _header._freq;
-  }
-  inline boost::uint32_t get_count() const {
-    return _header._count;
-  }
+  // DATA STUFF
   inline boost::uint64_t get_offset() const {
     return _header._offset;
   }
@@ -106,16 +101,37 @@ public:
   inline boost::uint64_t get_size() const {
     return _header._data_size + sizeof(_header);
   }
+
+  // BLOCK POLICY STUFF
+  inline boost::uint32_t get_freq() const {
+    return _header._freq;
+  }
+  inline boost::uint32_t get_count() const {
+    return _header._count;
+  }
+  inline boost::uint32_t get_duration() const {
+    return _header._duration;
+  }
+
+  // TIMESTAMPS STUFF
+  inline boost::int64_t get_cur_ts() const {
+    return _header._pos_ts;
+  }
   inline boost::int64_t get_earliest_ts() const {
-    return _header._pos_ts - _header._duration;
+    return _header._pos_ts - _header._duration - _header._freq;
   }
   inline boost::int64_t get_latest_ts() const {
     return _header._pos_ts + _header._freq;
   }
+  inline boost::int64_t get_latest_possible_ts() const {
+    return _header._pos_ts + _header._duration;
+  }
 
+  // SELECT or UPDATE - main operations
   bool select(select_ctx & ctx) const;
   void update(const update_ctx_t & in, update_ctx_t & out);
 
+  // READ/WRITE FILES
   void write_block(std::fstream & ofs);
   void read_block(std::fstream & ifs);
 

@@ -38,7 +38,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
   CHECK_AND_THROW(_header._freq > 0);
 
   const boost::int64_t & ts(in.get_ts());
-  if(_header._pos_ts + _header._duration <= ts) {
+  if(this->get_latest_possible_ts() <= ts) {
       // complete shift forward, notify about rollup
       out._state = UpdateState_Tuple;
       out._tuple = _tuples[_header._pos];
@@ -51,7 +51,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
 
       // done
       return &tuple;
-  } else if(_header._pos_ts <= ts) {
+  } else if(this->get_cur_ts() <= ts) {
       // we are somewhere ahead but not too much
       rrdb_metric_tuple_t * tuple = &_tuples[_header._pos];
       boost::int64_t next_tuple_ts = tuple->_ts + _header._freq;
@@ -83,30 +83,32 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
 
       // done
       return tuple;
-  } else if(_header._pos_ts - _header._duration <= ts) {
+  } else if(this->get_earliest_ts() <= ts) {
       // we are somewhere behind but not too much, just update the same way
       out = in;
 
       // find the spot
-      boost::uint32_t pos = _header._pos;
-      rrdb_metric_tuple_t * tuple = &_tuples[pos];
-      boost::int64_t tuple_ts = tuple->_ts;
-      do {
-          // move pos
-          _header._pos = this->get_prev_pos(_header._pos);
-          tuple = &_tuples[pos];
-
+      boost::int64_t tuple_ts = this->get_cur_ts();
+      for(boost::uint32_t pos = this->get_prev_pos(_header._pos); pos != _header._pos; pos = this->get_prev_pos(pos)) {
           tuple_ts -= _header._freq;
-          tuple->_ts = tuple_ts; // overwrite just in case (it might not be initialized!)
-      } while(ts < tuple_ts);
 
-      return tuple;
+          // overwrite tuple ts just in case (it might not be initialized!)
+          rrdb_metric_tuple_t * tuple = &_tuples[pos];
+          tuple->_ts = tuple_ts;
+          if(ts >= tuple->_ts) {
+              CHECK_AND_THROW(ts < tuple->_ts + _header._freq);
+              return tuple;
+          }
+      }
+
+      // shouldn't happen really but just in case
+      return NULL;
   } else {
       // we are WAY behind, ignore but let the next block try
       out = in;
 
       // done
-      CHECK_AND_THROW(ts <_header._pos_ts - _header._duration);
+      CHECK_AND_THROW(ts < this->get_earliest_ts());
       return NULL;
   }
 }
@@ -115,10 +117,11 @@ void rrdb_metric_block::update(const update_ctx_t & in, update_ctx_t & out)
 {
   rrdb_metric_tuple_t * tuple = this->find_tuple(in, out);
   if(!tuple) {
-      LOG(log::LEVEL_DEBUG, "Can not find tuple for timestamp %ld", in.get_ts());
+      LOG(log::LEVEL_DEBUG, "Can not find tuple ts: %ld (current block time: %ld, duration: %ld)", in.get_ts(), this->get_cur_ts(), this->get_duration());
       return;
   }
-  CHECK_AND_THROW(tuple->_ts <= in.get_ts() && in.get_ts() < tuple->_ts + _header._freq);
+  CHECK_AND_THROW(tuple->_ts <= in.get_ts());
+  CHECK_AND_THROW(in.get_ts() < tuple->_ts + _header._freq);
 
   // update our tuple
   switch(in._state) {
