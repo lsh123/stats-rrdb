@@ -55,7 +55,7 @@ public:
   void select_from_metric(const std::string & name, const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res);
 
   // commands
-  t_result_buffers execute_long_command(const std::vector<char> & buffer);
+  void execute_long_command(const std::vector<char> & buffer, t_result_buffers & res);
   void execute_short_command(const std::vector<char> & buffer);
 
 

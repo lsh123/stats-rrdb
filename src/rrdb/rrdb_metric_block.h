@@ -116,10 +116,11 @@ private:
     return ts - (ts % _header._freq);
   }
 
-  inline boost::uint32_t get_next_pos(const boost::uint32_t & pos) {
-    return ((pos + 1) < _header._count) ? (pos + 1) : 0;
+  inline boost::uint32_t get_next_pos(const boost::uint32_t & pos) const {
+    boost::uint32_t new_pos = pos + 1;
+    return (new_pos < _header._count) ? new_pos : 0;
   }
-  inline boost::uint32_t get_prev_pos(const boost::uint32_t & pos) {
+  inline boost::uint32_t get_prev_pos(const boost::uint32_t & pos) const {
     return (pos > 0) ? (pos - 1) : (_header._count - 1);
   }
 

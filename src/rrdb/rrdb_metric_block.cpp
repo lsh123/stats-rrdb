@@ -124,27 +124,11 @@ void rrdb_metric_block::update(const update_ctx_t & in, update_ctx_t & out)
   switch(in._state) {
   case UpdateState_Value:
     // we have single value
-    if(tuple->_min > in._value || tuple->_count == 0) {
-        tuple->_min = in._value;
-    }
-    if(tuple->_max < in._value || tuple->_count == 0) {
-        tuple->_max = in._value;
-    }
-    tuple->_sum += in._value;
-    tuple->_sum_sqr += in._value * in._value;
-    ++tuple->_count;
+    rrdb_metric_tuple_update(*tuple, in._value);
     break;
   case UpdateState_Tuple:
     // we have another tuple
-    if(tuple->_min > in._tuple._min || tuple->_count == 0) {
-        tuple->_min = in._tuple._min;
-    }
-    if(tuple->_max < in._tuple._max || tuple->_count == 0) {
-        tuple->_max = in._tuple._max;
-    }
-    tuple->_sum     += in._tuple._sum;
-    tuple->_sum_sqr += in._tuple._sum_sqr;
-    tuple->_count   += in._tuple._count;
+    rrdb_metric_tuple_update(*tuple, in._tuple);
     break;
   default:
     throw new exception("Unexpected update ctx state %d", in._state);
@@ -155,6 +139,8 @@ boost::uint64_t rrdb_metric_block::select(const boost::uint64_t & ts_begin, cons
 {
   CHECK_AND_LOG2(_tuples.get(), ts_end);
   CHECK_AND_LOG2(_header._pos < _header._count, NULL);
+
+  log::write(log::LEVEL_DEBUG, "Select from %lld to %lld (we have %lld to %lld)", ts_begin, ts_end, this->get_earliest_ts(), this->get_latest_ts());
 
   if(ts_end < this->get_earliest_ts() || this->get_latest_ts() < ts_begin) {
       return ts_end;
@@ -173,11 +159,7 @@ boost::uint64_t rrdb_metric_block::select(const boost::uint64_t & ts_begin, cons
       }
 
       // move to prev one
-      if(pos > 0) {
-          --pos;
-      } else {
-          pos = _header._count - 1;
-      }
+      pos = this->get_prev_pos(pos);
   } while(pos != _header._pos);
 
   // done

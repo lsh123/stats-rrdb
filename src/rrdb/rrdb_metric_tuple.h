@@ -22,6 +22,8 @@ typedef struct rrdb_metric_tuple_t_ {
   double            _max;               // max(data point value)
 } rrdb_metric_tuple_t;
 
+void rrdb_metric_tuple_update(rrdb_metric_tuple_t & tuple, const double & value);
+void rrdb_metric_tuple_update(rrdb_metric_tuple_t & tuple, const rrdb_metric_tuple_t & other);
 
 
 #endif /* RRDB_METRIC_TUPLE_H_ */

@@ -15,6 +15,7 @@ statsrrdb_SOURCES= \
 	rrdb/rrdb.cpp \
 	rrdb/rrdb_metric.cpp \
 	rrdb/rrdb_metric_block.cpp \
+	rrdb/rrdb_metric_tuple.cpp \
 	server_tcp.cpp \
 	server_udp.cpp \
 	server.cpp \

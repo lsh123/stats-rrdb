@@ -24,34 +24,44 @@
 //
 //
 //
-class statement_execute_visitor : public boost::static_visitor<std::string>
+class statement_execute_visitor : public boost::static_visitor<void>
 {
+
 public:
-  statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb) :
-      _rrdb(rrdb)
+  statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb, rrdb::t_result_buffers & res) :
+      _rrdb(rrdb),
+      _res(res)
   {
   }
 
-  std::string operator()(const statement_create & st) const
+private:
+  inline void set_response(const std::string & resp) const
   {
-    _rrdb->create_metric(st._name, st._policy);
-    return "OK";
+    _res.push_back(boost::asio::buffer(resp));
   }
 
-  std::string operator()(const statement_drop & st) const
+public:
+  void operator()(const statement_create & st) const
   {
-    _rrdb->drop_metric(st._name);
-    return "OK";
+    //_rrdb->create_metric(st._name, st._policy);
+    this->set_response("OK");
   }
 
-  std::string operator()(const statement_update & st) const
+  void operator()(const statement_drop & st) const
   {
-    _rrdb->update_metric(st._name, st._ts, st._value);
-    return "OK";
+    // _rrdb->drop_metric(st._name);
+    this->set_response("OK");
   }
 
-  std::string operator()(const statement_select & st) const
+  void operator()(const statement_update & st) const
   {
+    // _rrdb->update_metric(st._name, st._ts, st._value);
+    this->set_response("OK");
+  }
+
+  void operator()(const statement_select & st) const
+  {
+    /*
     std::vector<rrdb_metric_tuple_t> tuples;
     _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, tuples);
 
@@ -72,27 +82,39 @@ public:
           << std::endl;
       ;
     }
-    return res.str();
+    this->set_response(res.str());
+    */
+    this->set_response("aaa");
+
   }
 
-  std::string operator()(const statement_show_policy & st) const
+  void operator()(const statement_show_policy & st) const
   {
+    /*
     boost::shared_ptr<rrdb_metric> metric = _rrdb->get_metric(st._name);
-    return retention_policy_write(metric->get_policy());
+    this->set_response(retention_policy_write(metric->get_policy()));
+    */
+    this->set_response("aaa");
+
   }
 
-  std::string operator()(const statement_show_metrics & st) const
+  void operator()(const statement_show_metrics & st) const
   {
+    /*
     std::vector<std::string> metrics = _rrdb->get_metrics(st._like);
     std::ostringstream res;
     BOOST_FOREACH(const std::string & name, metrics){
       res << name << ";";
     }
-    return res.str();
+    this->set_response(res.str());
+    */
+    this->set_response("aaa");
   }
 
+
 private:
-  const boost::shared_ptr<rrdb> _rrdb;
+  const boost::shared_ptr<rrdb>         _rrdb;
+  mutable rrdb::t_result_buffers &      _res;
 };
 // statement_execute_visitor
 
@@ -275,6 +297,9 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
   // log
   log::write(log::LEVEL_DEBUG, "RRDB: creating metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
 
+  // check the policy
+  retention_policy_validate(policy);
+
   // force lower case for names
   std::string name_lc(name);
   boost::algorithm::to_lower(name_lc);
@@ -399,16 +424,12 @@ void rrdb::select_from_metric(const std::string & name, const boost::uint64_t & 
 }
 
 
-rrdb::t_result_buffers rrdb::execute_long_command(const std::vector<char> & buffer)
+void rrdb::execute_long_command(const std::vector<char> & buffer, t_result_buffers & res)
 {
   // log::write(log::LEVEL_DEBUG, "RRDB command: '%s'", std::string(buffer.begin(), buffer.end()).c_str());
 
   statement st = statement_parse(buffer.begin(), buffer.end());
-  std::string output = boost::apply_visitor(statement_execute_visitor(shared_from_this()), st);
-
-  rrdb::t_result_buffers res;
-  res.push_back(boost::asio::buffer(output));
-  return res;
+  boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
 }
 
 void rrdb::execute_short_command(const std::vector<char> & buffer)

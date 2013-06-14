@@ -55,24 +55,24 @@ public:
 public:
   // thread_pool_task
   void run() {
+    // execute command
+    rrdb::t_result_buffers res;
     try {
-        rrdb::t_result_buffers res = _server_tcp->get_rrdb()->execute_long_command(_buffer);
         _server_tcp->send_response(_socket, res);
     } catch(std::exception & e) {
         log::write(log::LEVEL_ERROR, "Exception executing long rrdb command: %s", e.what());
-        _server_tcp->send_response(_socket, this->get_error_buffers(server_tcp::format_error(e.what())));
+
+        res.clear();
+        res.push_back(boost::asio::buffer(server_tcp::format_error(e.what())));
     } catch(...) {
         log::write(log::LEVEL_ERROR, "Unknown exception long short rrdb command");
-        _server_tcp->send_response(_socket, this->get_error_buffers(server_tcp::format_error("unhandled exception")));
-    }
-  }
 
-private:
-  rrdb::t_result_buffers get_error_buffers(const std::string & error_msg)
-  {
-    rrdb::t_result_buffers res;
-    res.push_back(boost::asio::buffer(error_msg));
-    return res;
+        res.clear();
+        res.push_back(boost::asio::buffer(server_tcp::format_error("unhandled exception")));
+    }
+
+    // send
+    _server_tcp->get_rrdb()->execute_long_command(_buffer, res);
   }
 
 private:

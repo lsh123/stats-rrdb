@@ -134,22 +134,26 @@ void rrdb_metric::update(const boost::uint64_t & ts, const double & value)
   one._state = rrdb_metric_block::UpdateState_Value;
   one._ts    = ts;
   one._value = value;
-  for(std::size_t ii = 0; ii < _header._blocks_size; ++ii) {
+  std::size_t ii(1); // start from block 1
+  BOOST_FOREACH(rrdb_metric_block & block, _blocks) {
       // swap one and two to avoid copying data
-      if(!(ii & 0x01)) {
-          log::write(log::LEVEL_DEBUG, "Updating block %llu with 'one' at ts %lld with ctx state %d", ii, one.get_ts(), one._state);
+      if(ii == 1) {
+          log::write(log::LEVEL_DEBUG3, "Updating block with 'one' at ts %lld with ctx state %d", one.get_ts(), one._state);
 
-          _blocks[ii].update(one, two);
+          block.update(one, two);
           if(two._state == rrdb_metric_block::UpdateState_Stop) {
               break;
           }
+          ii = 2; // next block 2
       } else {
-          log::write(log::LEVEL_DEBUG, "Updating block %llu with 'two' at ts %lld with ctx state %d", ii, two.get_ts(), two._state);
+          log::write(log::LEVEL_DEBUG3, "Updating block with 'two' at ts %lld with ctx state %d", two.get_ts(), two._state);
 
-          _blocks[ii].update(two, one);
+          block.update(two, one);
           if(one._state == rrdb_metric_block::UpdateState_Stop) {
               break;
           }
+
+          ii = 1; // next block 1
       }
   }
 }

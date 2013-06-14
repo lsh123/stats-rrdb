@@ -50,10 +50,13 @@ void retention_policy_validate(const retention_policy & r_p)
 {
   for(retention_policy::const_iterator it = r_p.begin(), it_prev = r_p.end(); it != r_p.end(); it_prev = (it++)) {
       if((*it)._duration % (*it)._freq != 0) {
-          throw exception("Policy duration '%s' does not match the frequency '%s'", interval_write((*it)._duration).c_str(), interval_write((*it)._freq).c_str());
+          throw exception("Policy duration '%s' should be a multiplier for the frequency '%s'", interval_write((*it)._duration).c_str(), interval_write((*it)._freq).c_str());
       }
       if(it_prev != r_p.end() && (*it)._freq % (*it_prev)._freq != 0) {
-          throw exception("Policy frequency '%s' does not match the previous policy frequency '%s'", interval_write((*it)._freq).c_str(), interval_write((*it_prev)._freq).c_str());
+          throw exception("Policy frequency '%s' should be a multiplier for the previous policy frequency '%s'", interval_write((*it)._freq).c_str(), interval_write((*it_prev)._freq).c_str());
+      }
+      if(it_prev != r_p.end() && (*it)._freq > (*it_prev)._duration) {
+          throw exception("Policy frequency '%s' should be less or equal than the previous policy duration '%s'", interval_write((*it)._freq).c_str(), interval_write((*it_prev)._freq).c_str());
       }
   }
 }
