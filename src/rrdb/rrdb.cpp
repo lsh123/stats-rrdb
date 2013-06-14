@@ -56,7 +56,7 @@ public:
   void operator()(const statement_select & st) const
   {
     std::vector<rrdb_metric_tuple_t> tuples;
-    _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, tuples);
+    _rrdb->select_from_metric(st, tuples);
 
     _res << "ts,count,sum,sum_sqr,min,max" << std::endl;
     BOOST_FOREACH(const rrdb_metric_tuple_t & tuple, tuples) {
@@ -391,15 +391,15 @@ void rrdb::update_metric(const std::string & name, const boost::uint64_t & ts, c
   metric->update(ts, value);
 }
 
-void rrdb::select_from_metric(const std::string & name, const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res)
+void rrdb::select_from_metric(const statement_select & query, std::vector<rrdb_metric_tuple_t> & res)
 {
-  boost::shared_ptr<rrdb_metric> metric = this->find_metric(name);
+  boost::shared_ptr<rrdb_metric> metric = this->find_metric(query._name);
   if(!metric) {
       // TODO: create metric automatically when needed
-      throw exception("The metric '%s' does not exist", name.c_str());
+      throw exception("The metric '%s' does not exist", query._name.c_str());
   }
 
-  metric->select(ts_begin, ts_end, res);
+  metric->select(query, res);
 }
 
 

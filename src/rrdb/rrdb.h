@@ -28,6 +28,7 @@
 // forward
 class config;
 class rrdb_metric;
+class statement_select;
 
 class rrdb :
     public boost::enable_shared_from_this<rrdb>
@@ -53,7 +54,7 @@ public:
 
   // values
   void update_metric(const std::string & name, const boost::uint64_t & ts, const double & value);
-  void select_from_metric(const std::string & name, const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res);
+  void select_from_metric(const statement_select & query, std::vector<rrdb_metric_tuple_t> & res);
 
   // commands
   void execute_long_command(const std::vector<char> & buffer, memory_buffer_t & res);

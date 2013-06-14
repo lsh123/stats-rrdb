@@ -22,11 +22,12 @@
  * CREATE METRIC "<name>" KEEP <policy> ;
  *
  */
-typedef struct statement_create_
+class statement_create
 {
+public:
   std::string      _name;
   retention_policy _policy;
-} statement_create;
+};
 
 /**
  * DROP statement string representation:
@@ -34,10 +35,11 @@ typedef struct statement_create_
  * DROP METRIC "<name>" ;
  *
  */
-typedef struct statement_drop_
+class statement_drop
 {
+public:
   std::string      _name;
-} statement_drop;
+};
 
 
 /**
@@ -46,27 +48,29 @@ typedef struct statement_drop_
  * UPDATE [METRIC] "<name>" ADD <value> AT <timestamp>;
  *
  */
-typedef struct statement_update_
+class statement_update
 {
+public:
   std::string      _name;
   double           _value;
   boost::int64_t   _ts;
-} statement_update;
+};
 
 
 /**
  * SELECT statement string representation:
  *
- * SELECT * FROM [METRIC] "<name>" BETWEEN <timestamp1> AND <timestamp2> ;
+ * SELECT * FROM [METRIC] "<name>" BETWEEN <timestamp1> AND <timestamp2> GROUP BY <interval> ;
  *
  */
-typedef struct statement_select_
+class statement_select
 {
+public:
   std::string      _name;
   boost::int64_t   _ts_begin;
   boost::int64_t   _ts_end;
-} statement_select;
-
+  interval_t       _group_by;
+};
 
 /**
  * SHOW METRIC POLICY statement string representation:
@@ -74,10 +78,11 @@ typedef struct statement_select_
  * SHOW METRIC POLICY "<name>" ;
  *
  */
-typedef struct statement_show_policy_
+class statement_show_policy
 {
+public:
   std::string      _name;
-} statement_show_policy;
+};
 
 /**
  * SHOW METRICS print all the metrics available
@@ -85,10 +90,11 @@ typedef struct statement_show_policy_
  * SHOW METRICS LIKE "<name>";
  *
  */
-typedef struct statement_show_metrics_
+class statement_show_metrics
 {
+public:
   std::string      _like;
-} statement_show_metrics;
+};
 
 /**
  * Statement: any of the above

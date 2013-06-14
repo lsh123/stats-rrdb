@@ -11,6 +11,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 
+#include "parser/statements.h"
+
 #include "rrdb/rrdb_metric.h"
 #include "rrdb/rrdb_metric_block.h"
 #include "rrdb/rrdb.h"
@@ -23,6 +25,41 @@
 
 // make it configurable?
 #define RRDB_METRIC_SUBFOLDERS_NUM      512
+
+class rrdb_metric_select_ctx : public rrdb_metric_block::select_ctx
+{
+public:
+  rrdb_metric_select_ctx(const statement_select & query) :
+    _query(query),
+    _cur_interval(0)
+  {
+    _ts_begin = query._ts_begin;
+    _ts_end   = query._ts_end;
+  }
+
+  virtual ~rrdb_metric_select_ctx()
+  {
+
+  }
+
+public:
+  // rrdb_metric_block::select_ctx
+  void append(const rrdb_metric_tuple_t & tuple, const interval_t & interval)
+  {
+    _res.push_back(tuple);
+  }
+
+  inline void flush(std::vector<rrdb_metric_tuple_t> & res)
+  {
+    res.swap(_res);
+  }
+
+private:
+  const statement_select &         _query;
+  std::vector<rrdb_metric_tuple_t> _res;
+  interval_t                       _cur_interval;
+};
+
 
 rrdb_metric::rrdb_metric()
 {
@@ -158,20 +195,21 @@ void rrdb_metric::update(const boost::uint64_t & ts, const double & value)
   }
 }
 
-void rrdb_metric::select(const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res)
+void rrdb_metric::select(const statement_select & query, std::vector<rrdb_metric_tuple_t> & res)
 {
   boost::lock_guard<spinlock> guard(_lock);
   if(_header._blocks_size <= 0) {
       return;
   }
 
-  boost::uint64_t ts(ts_end);
+  rrdb_metric_select_ctx ctx(query);
   BOOST_FOREACH(const rrdb_metric_block & block, _blocks) {
-    ts = block.select(ts_begin, ts, res);
-
-    // done?
-    if(ts <= ts_begin) break;
+    if(!block.select(ctx)) {
+        break;
+    }
   }
+
+  ctx.flush(res);
 }
 
 

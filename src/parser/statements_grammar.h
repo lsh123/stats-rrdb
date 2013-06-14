@@ -37,6 +37,7 @@ BOOST_FUSION_ADAPT_STRUCT(
     (std::string,      _name)
     (boost::int64_t,   _ts_begin)
     (boost::int64_t,   _ts_end)
+    (interval_t,       _group_by)
 )
 BOOST_FUSION_ADAPT_STRUCT(
     statement_show_policy,
@@ -59,6 +60,7 @@ private:
   qi::rule < Iterator, std::string(), ascii::space_type >      _name;
   qi::rule < Iterator, std::string(), ascii::space_type >      _quoted_name;
   retention_policy_grammar<Iterator>                           _policy;
+  interval_grammar< Iterator >                                 _interval;
 
   qi::rule < Iterator, statement(),              ascii::space_type > _statement;
   qi::rule < Iterator, statement_create(),       ascii::space_type > _statement_create;
@@ -89,6 +91,7 @@ public:
         nocaselit("select") >> nocaselit("*")
           >> nocaselit("from") >> -nocaselit("metric") >> _quoted_name
           >> nocaselit("between") >> qi::ulong_ >> nocaselit("and") >> qi::ulong_
+          >> nocaselit("group") >> nocaselit("by") >> _interval
      ;
 
      _statement_create %=

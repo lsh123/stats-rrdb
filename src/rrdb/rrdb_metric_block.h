@@ -18,6 +18,7 @@
 
 #include "spinlock.h"
 #include "exception.h"
+#include "parser/interval.h"
 #include "rrdb/rrdb_metric_tuple.h"
 
 //
@@ -77,6 +78,15 @@ public:
     }
   } update_ctx_t;
 
+  class select_ctx {
+  public:
+    virtual void append(const rrdb_metric_tuple_t & tuple, const interval_t & interval) = 0;
+
+  public:
+    boost::int64_t _ts_begin;
+    boost::int64_t _ts_end;
+  }; // select_ctx
+
 public:
   rrdb_metric_block(boost::uint32_t freq = 0, boost::uint32_t count = 0, boost::uint64_t offset = 0);
   virtual ~rrdb_metric_block();
@@ -103,7 +113,7 @@ public:
     return _header._pos_ts + _header._freq;
   }
 
-  boost::uint64_t select(const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res) const;
+  bool select(select_ctx & ctx) const;
   void update(const update_ctx_t & in, update_ctx_t & out);
 
   void write_block(std::fstream & ofs);

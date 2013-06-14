@@ -9,7 +9,7 @@ function start_server() {
 	global $ROOT_FOLDER, $CONFIG_FILE, $PID_FILE;
 
 	echo "=================== Starting server\n";
-	system("valgrind $ROOT_FOLDER/src/statsrrdb  --config \"$CONFIG_FILE\" --daemon \"$PID_FILE\"");
+	system("$ROOT_FOLDER/src/statsrrdb  --config \"$CONFIG_FILE\" --daemon \"$PID_FILE\"");
 	$pid=file_get_contents($PID_FILE);
 	echo "=================== Started server $pid\n";
 }
@@ -45,7 +45,7 @@ try {
 	$stats_rrdb = new StatsRRDB($mode);
 
 	echo "== CREATE METRIC 'test1' \n";
-	$resp = $stats_rrdb->send_command("create metric 'test1' keep 5 secs for 30 sec, 10 secs for 1 min, 30 secs for 10 min;"); 
+	$resp = $stats_rrdb->send_command("create metric 'test1' keep 5 secs for 10 sec, 10 secs for 20 secs, 20 secs for 10 min;"); 
 	check_result($resp, "OK");
 
 	echo "== CREATE METRIC 'test2' \n";
@@ -56,21 +56,20 @@ try {
 	$resp = $stats_rrdb->send_command("show metrics like 'te';");
 	check_result($resp, "test2;test1;");
 
-	for($ii = 0; $ii < 20; $ii++) {
+	for($ii = 0; $ii < 30; $ii++) {
 		echo "== UPDATE METRIC 'test1' $ii -> 1\n";
 		$ts = 1371104586 + $ii;
-		$resp = $stats_rrdb->send_command("UPDATE 'test2' ADD 1 AT $ts ;");
+		$resp = $stats_rrdb->send_command("UPDATE 'test1' ADD 1 AT $ts ;");
 		check_result($resp, "OK");
 	}	
 
 	echo "== SELECT * FROM METRIC 'test1'\n";
-	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104580 AND 1371104990 ;");
-	check_result($resp, "ts,count,sum,sum_sqr,min,max\n");
+	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104580 AND 1371104990 GROUP BY 5 sec;");
+	echo "$resp\n";
 
 	echo "== SELECT * FROM METRIC 'test2'\n";
-	$resp = $stats_rrdb->send_command("SELECT * FROM 'test2' BETWEEN 1371104580 AND 1371104990 ;");
-	// check_result($resp, "ts,count,sum,sum_sqr,min,max\n1371104580,2,3,5,1,2\n");
-	echo "$resp\n";
+	$resp = $stats_rrdb->send_command("SELECT * FROM 'test2' BETWEEN 1371104580 AND 1371104990 GROUP BY 5 sec;");
+	check_result($resp, "ts,count,sum,sum_sqr,min,max\n");
 	
 	restart_server();
 
@@ -78,29 +77,37 @@ try {
     $resp = $stats_rrdb->send_command("show metrics like 'te';");
 	check_result($resp, "test1;test2;");
 
+	for($ii = 0; $ii < 30; $ii++) {
+		echo "== UPDATE METRIC 'test1' $ii -> 1\n";
+		$ts = 1371104586 + 30 + $ii;
+		$resp = $stats_rrdb->send_command("UPDATE 'test1' ADD 1 AT $ts ;");
+		check_result($resp, "OK");
+	}
+
 	echo "== SHOW METRIC POLICY\n";
 	$resp = $stats_rrdb->send_command("show metric policy 'test1';");
-	check_result($resp, "5 secs for 30 secs, 10 secs for 1 min, 30 secs for 10 mins");
+	check_result($resp, "5 secs for 10 secs, 10 secs for 20 secs, 20 secs for 10 mins");
+
+	echo "== SELECT * FROM METRIC 'test1' BETWEEN 1371104600 AND 1371104990 GROUP BY 5 sec\n";
+	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104600 AND 1371104990 GROUP BY 5 sec;");
+	echo "$resp\n";
+
+	echo "== SELECT * FROM METRIC 'test1' BETWEEN 1371104500 AND 1371104990 GROUP BY 10 sec\n";
+	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104500 AND 1371104990 GROUP BY 10 sec;");
+	echo "$resp\n";
+
+	echo "== SELECT * FROM METRIC 'test1' BETWEEN 1371104500 AND 1371104990 GROUP BY 15 sec\n";
+	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104500 AND 1371104990 GROUP BY 15 sec;");
+	echo "$resp\n";
+
 
     echo "== SHOW METRIC POLICY\n";
     $resp = $stats_rrdb->send_command("show metric policy 'test2';");
 	check_result($resp, "10 secs for 1 week, 1 min for 1 month, 10 mins for 1 year, 30 mins for 10 years");
-    
-	for($ii = 0; $ii < 20; $ii++) {
-		echo "== UPDATE METRIC 'test1' $ii -> 1\n";
-		$ts = 1371104586 + 30 + $ii;
-		$resp = $stats_rrdb->send_command("UPDATE 'test2' ADD 1 AT $ts ;");
-		check_result($resp, "OK");
-	}
-
-	echo "== SELECT * FROM METRIC 'test1'\n";
-	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104580 AND 1371104990 ;");
-	check_result($resp, "ts,count,sum,sum_sqr,min,max\n");
 
 	echo "== SELECT * FROM METRIC 'test2'\n";
-	$resp = $stats_rrdb->send_command("SELECT * FROM  metric 'test2' BETWEEN 1371104580 AND 1371104990 ;");
-	// check_result($resp, "ts,count,sum,sum_sqr,min,max\n1371104580,3,6,14,1,3\n");
-	echo "$resp\n";
+	$resp = $stats_rrdb->send_command("SELECT * FROM  metric 'test2' BETWEEN 1371104580 AND 1371104990 GROUP BY 5 sec;");
+	check_result($resp, "ts,count,sum,sum_sqr,min,max\n");
 
 	echo "== SHOW METRIC (error)\n";
 	$resp = $stats_rrdb->send_command("show metric 'test';");

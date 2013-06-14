@@ -135,35 +135,39 @@ void rrdb_metric_block::update(const update_ctx_t & in, update_ctx_t & out)
   }
 }
 
-boost::uint64_t rrdb_metric_block::select(const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res) const
+bool rrdb_metric_block::select(rrdb_metric_block::select_ctx & ctx) const
 {
-  CHECK_AND_LOG2(_tuples.get(), ts_end);
-  CHECK_AND_LOG2(_header._pos < _header._count, NULL);
+  CHECK_AND_LOG2(_tuples.get(), false);
+  CHECK_AND_LOG2(_header._pos < _header._count, false);
 
-  log::write(log::LEVEL_DEBUG, "Select from %lld to %lld (we have %lld to %lld)", ts_begin, ts_end, this->get_earliest_ts(), this->get_latest_ts());
+  log::write(log::LEVEL_DEBUG, "Select from %lld to %lld (we have %lld to %lld)", ctx._ts_begin, ctx._ts_end, this->get_earliest_ts(), this->get_latest_ts());
 
-  if(ts_end < this->get_earliest_ts() || this->get_latest_ts() < ts_begin) {
-      return ts_end;
+  if(ctx._ts_end < this->get_earliest_ts()) {
+      // try earlier blocks
+      return true;
+  }
+  if(this->get_latest_ts() < ctx._ts_begin) {
+      // no point, stop
+      return false;
   }
 
-  boost::uint64_t ts(ts_end);
   boost::uint32_t pos(_header._pos);
   do {
       const rrdb_metric_tuple_t & tuple = _tuples[pos];
-      if(tuple._ts < ts_begin) {
-          break;
+      if(tuple._ts < ctx._ts_begin) {
+          return false;
       }
-      if(tuple._ts < ts_end) {
-          ts = tuple._ts;
-          res.push_back(tuple);
+      if(tuple._ts < ctx._ts_end) {
+          ctx._ts_end = tuple._ts;
+          ctx.append(tuple, _header._freq);
       }
 
       // move to prev one
       pos = this->get_prev_pos(pos);
   } while(pos != _header._pos);
 
-  // done
-  return ts;
+  // try next block
+  return true;
 }
 
 void rrdb_metric_block::write_block(std::fstream & ofs)

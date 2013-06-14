@@ -24,6 +24,7 @@
 // forward
 class rrdb;
 class rrdb_metric_block;
+class statement_select;
 
 //
 // RRDB Metric file header format:
@@ -69,7 +70,7 @@ public:
   static boost::shared_ptr<rrdb_metric> load_file(const std::string & filename);
 
   void update(const boost::uint64_t & ts, const double & value);
-  void select(const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res);
+  void select(const statement_select & query, std::vector<rrdb_metric_tuple_t> & res);
 
 private:
   static std::string get_full_path(const std::string & folder, const std::string & name);
