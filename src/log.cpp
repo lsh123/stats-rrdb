@@ -8,7 +8,7 @@
 #include <fstream>
 #include <stdio.h>
 #include <syslog.h>
-#include <stdarg.h>
+
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
