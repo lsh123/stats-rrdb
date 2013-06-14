@@ -93,7 +93,7 @@ public:
     }
 
     // log
-    LOG(log::LEVEL_DEBUG3, "TCP Server sent %zu bytes", bytes_transferred);
+    LOG(log::LEVEL_DEBUG3, "TCP Server sent %lu bytes", SIZE_T_CAST bytes_transferred);
 
     // do nothing
   }
@@ -211,12 +211,12 @@ void server_tcp::handle_read(
       LOG(log::LEVEL_ERROR, "TCP Server read failed - %d: %s", error.value(), error.message().c_str());
       return;
   } else if(error != boost::asio::error::eof) {
-      LOG(log::LEVEL_ERROR, "TCP Server received request larger than the buffer size %zu bytes, consider increasing server.tcp_max_message_size config parameter", _buffer_size);
+      LOG(log::LEVEL_ERROR, "TCP Server received request larger than the buffer size %lu bytes, consider increasing server.tcp_max_message_size config parameter", SIZE_T_CAST _buffer_size);
       return;
   }
 
   // log
-  LOG(log::LEVEL_DEBUG3, "TCP Server read %zu bytes", bytes_transferred);
+  LOG(log::LEVEL_DEBUG3, "TCP Server read %lu bytes", SIZE_T_CAST bytes_transferred);
 
   // off-load task for processing to the buffer pool
   new_connection->get_input_buffer().resize(bytes_transferred);

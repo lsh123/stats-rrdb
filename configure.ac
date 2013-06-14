@@ -16,6 +16,9 @@ BOOST_SYSTEM([mt])
 BOOST_FILESYSTEM([mt])
 BOOST_PROGRAM_OPTIONS([mt])
 
+dnl setup pedantic compilation
+CFLAGS="$CFLAGS -pedantic -Wall -Werror -Wformat=2 -Wno-variadic-macros"
+CPPFLAGS="$CPPFLAGS -pedantic -Wall -Werror -Wformat=2 -Wno-variadic-macros"
 
 AC_CONFIG_FILES(Makefile src/Makefile)
 AC_OUTPUT

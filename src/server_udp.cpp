@@ -154,7 +154,7 @@ void server_udp::handle_receive(
   }
 
   // log
-  LOG(log::LEVEL_DEBUG3, "UDP Server received %zu bytes", bytes_transferred);
+  LOG(log::LEVEL_DEBUG3, "UDP Server received %lu bytes", SIZE_T_CAST bytes_transferred);
 
   // offload task for processing to the buffer pool
   new_connection->get_buffer().resize(bytes_transferred);
@@ -198,7 +198,7 @@ void server_udp::handle_send(
   }
 
   // log
-  LOG(log::LEVEL_DEBUG3, "UDP Server sent %zu bytes", bytes_transferred);
+  LOG(log::LEVEL_DEBUG3, "UDP Server sent %lu bytes", SIZE_T_CAST bytes_transferred);
 
   // do nothing for now
 }

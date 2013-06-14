@@ -37,7 +37,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
   CHECK_AND_THROW(_header._pos < _header._count);
   CHECK_AND_THROW(_header._freq > 0);
 
-  const boost::uint64_t & ts(in.get_ts());
+  const boost::int64_t & ts(in.get_ts());
   if(_header._pos_ts + _header._duration <= ts) {
       // complete shift forward, notify about rollup
       out._state = UpdateState_Tuple;
@@ -54,7 +54,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
   } else if(_header._pos_ts <= ts) {
       // we are somewhere ahead but not too much
       rrdb_metric_tuple_t * tuple = &_tuples[_header._pos];
-      boost::uint64_t next_tuple_ts = tuple->_ts + _header._freq;
+      boost::int64_t next_tuple_ts = tuple->_ts + _header._freq;
       if(ts < next_tuple_ts) {
           // our current tuple will do
           out._state = UpdateState_Stop;
@@ -115,7 +115,7 @@ void rrdb_metric_block::update(const update_ctx_t & in, update_ctx_t & out)
 {
   rrdb_metric_tuple_t * tuple = this->find_tuple(in, out);
   if(!tuple) {
-      LOG(log::LEVEL_DEBUG, "Can not find tuple for timestamp %llu", in.get_ts());
+      LOG(log::LEVEL_DEBUG, "Can not find tuple for timestamp %ld", in.get_ts());
       return;
   }
   CHECK_AND_THROW(tuple->_ts <= in.get_ts() && in.get_ts() < tuple->_ts + _header._freq);
@@ -194,22 +194,22 @@ void rrdb_metric_block::read_block(std::fstream & ifs)
       throw exception("Unexpected rrdb metric block magic: %04x", _header._magic);
   }
   if(_header._freq <= 0) {
-      throw exception("Unexpected rrdb metric block frequency: %llu", _header._freq);
+      throw exception("Unexpected rrdb metric block frequency: %u", _header._freq);
   }
   if(_header._count <= 0) {
-      throw exception("Unexpected rrdb metric block count: %llu", _header._count);
+      throw exception("Unexpected rrdb metric block count: %u", _header._count);
   }
   if(_header._duration != _header._freq * _header._count) {
-      throw exception("Unexpected rrdb metric block duration: %llu (expected %llu)", _header._duration, _header._freq * _header._count);
+      throw exception("Unexpected rrdb metric block duration: %u (expected %u)", _header._duration, _header._freq * _header._count);
   }
   if(_header._pos >= _header._count) {
-      throw exception("Unexpected rrdb metric block pos: %llu", _header._pos);
+      throw exception("Unexpected rrdb metric block pos: %u", _header._pos);
   }
   if(_header._offset != offset) {
-      throw exception("Unexpected rrdb metric block offset: %llu (expected %llu)", _header._offset, offset);
+      throw exception("Unexpected rrdb metric block offset: %lu (expected %lu)", _header._offset, offset);
   }
   if(_header._data_size != _header._count * sizeof(rrdb_metric_tuple_t)) {
-      throw exception("Unexpected rrdb metric block data size: %llu (expected %llu)", _header._data_size, _header._count * sizeof(rrdb_metric_tuple_t));
+      throw exception("Unexpected rrdb metric block data size: %lu (expected %su)", _header._data_size, _header._count * sizeof(rrdb_metric_tuple_t));
   }
 
   // read data
@@ -217,6 +217,6 @@ void rrdb_metric_block::read_block(std::fstream & ifs)
   ifs.read((char*)_tuples.get(), _header._data_size);
 
   if(_tuples[_header._pos]._ts != _header._pos_ts) {
-      throw exception("Unexpected rrdb metric block pos %d pos_ts: %llu (expected from tuple: %llu)",  _header._pos, _header._pos_ts, _tuples[_header._pos]._ts);
+      throw exception("Unexpected rrdb metric block pos %u pos_ts: %ld (expected from tuple: %ld)",  _header._pos, _header._pos_ts, _tuples[_header._pos]._ts);
   }
 }

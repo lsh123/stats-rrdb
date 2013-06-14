@@ -49,14 +49,14 @@ typedef struct rrdb_metric_block_header_t_ {
 class rrdb_metric_block
 {
   enum status {
-    Status_Wrapped = 0x0001,
+    Status_Wrapped = 0x0001
   };
 
 public:
   enum update_state {
     UpdateState_Stop  = 0,
     UpdateState_Value = 1,
-    UpdateState_Tuple = 2,
+    UpdateState_Tuple = 2
   };
 
   typedef struct update_ctx_t_ {
@@ -66,7 +66,7 @@ public:
     double              _value;
     rrdb_metric_tuple_t _tuple;
 
-    inline boost::uint64_t get_ts() const {
+    inline boost::int64_t get_ts() const {
       switch(_state) {
       case UpdateState_Value:
         return _ts;
@@ -106,10 +106,10 @@ public:
   inline boost::uint64_t get_size() const {
     return _header._data_size + sizeof(_header);
   }
-  inline boost::uint64_t get_earliest_ts() const {
+  inline boost::int64_t get_earliest_ts() const {
     return _header._pos_ts - _header._duration;
   }
-  inline boost::uint64_t get_latest_ts() const {
+  inline boost::int64_t get_latest_ts() const {
     return _header._pos_ts + _header._freq;
   }
 

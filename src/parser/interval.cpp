@@ -75,7 +75,7 @@ std::string interval_get_name(const interval_t & unit, const interval_t & val)
   case INTERVAL_YEAR:
     return (val > 1) ? "years" : "year";
   default:
-    throw exception("Unknown interval unit %llu", unit);
+    throw exception("Unknown interval unit %u", unit);
   }
 }
 

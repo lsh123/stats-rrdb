@@ -8,10 +8,12 @@
 #ifndef THREAD_POOL_H_
 #define THREAD_POOL_H_
 
+#include <string>
+
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/detail/atomic_count.hpp>
+#include <boost/atomic.hpp>
 
 
 class thread_pool_task
@@ -32,11 +34,11 @@ private:
   void wrap_task_run(boost::shared_ptr<thread_pool_task> task);
 
 private:
-  boost::asio::io_service       _io_service;
-  boost::asio::io_service::work _work;
-  boost::thread_group           _threads;
-  boost::detail::atomic_count   _used_threads;
-  std::size_t                   _pool_size;
+  std::size_t                    _pool_size;
+  boost::asio::io_service        _io_service;
+  boost::asio::io_service::work  _work;
+  boost::thread_group            _threads;
+  boost::atomic<std::size_t>     _used_threads;
 };
 
 #endif /* THREAD_POOL_H_ */

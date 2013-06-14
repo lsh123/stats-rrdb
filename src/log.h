@@ -17,6 +17,8 @@
 
 class config;
 
+#define SIZE_T_CAST (unsigned long)
+
 class log
 {
 public:
@@ -27,7 +29,7 @@ public:
     LEVEL_INFO     = 3,
     LEVEL_DEBUG    = 4,
     LEVEL_DEBUG2   = 5,
-    LEVEL_DEBUG3   = 6,
+    LEVEL_DEBUG3   = 6
    };
 
 public:

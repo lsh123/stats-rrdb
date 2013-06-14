@@ -10,9 +10,9 @@
 #include "thread_pool.h"
 
 thread_pool::thread_pool(std::size_t pool_size) :
-   _work(_io_service),
-   _pool_size(pool_size),
-   _used_threads(0)
+  _pool_size(pool_size),
+  _work(_io_service),
+  _used_threads(0)
 {
   LOG(log::LEVEL_DEBUG, "Creating thread pool");
 
@@ -22,7 +22,7 @@ thread_pool::thread_pool(std::size_t pool_size) :
   }
 
   // done
-  LOG(log::LEVEL_INFO, "Created thread pool with %zu threads", _pool_size);
+  LOG(log::LEVEL_INFO, "Created thread pool with %lu threads", SIZE_T_CAST _pool_size);
 }
 
 thread_pool::~thread_pool()
@@ -51,7 +51,7 @@ void thread_pool::run(boost::shared_ptr<thread_pool_task> task)
   }
 
   //
-  LOG(log::LEVEL_DEBUG3, "Starting task, %lli out of %zu thread(s) used", (long int)_used_threads, _pool_size);
+  LOG(log::LEVEL_DEBUG3, "Starting task, %lu out of %lu thread(s) used", SIZE_T_CAST _used_threads, SIZE_T_CAST _pool_size);
 
   // go!
   _io_service.post(boost::bind( &thread_pool::wrap_task_run, this, task)) ;
@@ -72,7 +72,7 @@ void thread_pool::wrap_task_run(boost::shared_ptr<thread_pool_task> task)
   --_used_threads;
 
   //
-  LOG(log::LEVEL_DEBUG3, "Finished task, %lli out of %zu thread(s) used",(long int) _used_threads, _pool_size);
+  LOG(log::LEVEL_DEBUG3, "Finished task, %lu out of %lu thread(s) used", SIZE_T_CAST _used_threads, SIZE_T_CAST _pool_size);
 }
 
 

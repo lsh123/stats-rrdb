@@ -14,7 +14,7 @@ class spinlock
 {
   typedef enum {
     State_Unlocked = 0,
-    State_Locked   = 1,
+    State_Locked   = 1
   } lock_state;
 
 public:

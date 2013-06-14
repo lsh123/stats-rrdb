@@ -136,7 +136,7 @@ void log::write(enum levels level, const char * msg, va_list args)
     if(log::_log_dest == "stderr") {
         std::cerr << log::format_time() << " - " << log::level2str(level) << " - " << buffer << std::endl;
     } else if(log::_log_dest == "syslog") {
-        syslog(log::level2syslog(level), buffer);
+        syslog(log::level2syslog(level), "%s", buffer);
     } else {
         std::fstream ofs(log::_log_dest.c_str(), std::ios_base::app | std::ios_base::out);
         ofs << log::format_time() << " - " << log::level2str(level) << " - " << buffer << std::endl;

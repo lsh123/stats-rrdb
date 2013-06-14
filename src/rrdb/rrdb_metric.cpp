@@ -255,7 +255,7 @@ std::string rrdb_metric::get_full_path(const std::string & folder, const std::st
   // calculate subfolder
   std::size_t name_hash = boost::hash<std::string>()(name) % RRDB_METRIC_SUBFOLDERS_NUM;
   char buf[64];
-  snprintf(buf, sizeof(buf), "%zu", name_hash);
+  snprintf(buf, sizeof(buf), "%lu", SIZE_T_CAST name_hash);
   std::string subfolder = folder + "/" + buf;
 
   // ensure folders exist
