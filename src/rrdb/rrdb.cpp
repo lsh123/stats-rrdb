@@ -28,35 +28,29 @@ class statement_execute_visitor : public boost::static_visitor<void>
 {
 
 public:
-  statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb, rrdb::t_result_buffers & res) :
+  statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb, std::ostringstream & res) :
       _rrdb(rrdb),
       _res(res)
   {
-  }
-
-private:
-  inline void set_response(const std::string & resp) const
-  {
-    _res.push_back(boost::asio::buffer(resp));
   }
 
 public:
   void operator()(const statement_create & st) const
   {
     _rrdb->create_metric(st._name, st._policy);
-    this->set_response("OK");
+    _res << "OK";
   }
 
   void operator()(const statement_drop & st) const
   {
     _rrdb->drop_metric(st._name);
-    this->set_response("OK");
+    _res << "OK";
   }
 
   void operator()(const statement_update & st) const
   {
     _rrdb->update_metric(st._name, st._ts, st._value);
-    this->set_response("OK");
+    _res << "OK";
   }
 
   void operator()(const statement_select & st) const
@@ -64,10 +58,9 @@ public:
     std::vector<rrdb_metric_tuple_t> tuples;
     _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, tuples);
 
-    std::ostringstream res;
-    res << "ts,count,sum,sum_sqr,min,max" << std::endl;
+    _res << "ts,count,sum,sum_sqr,min,max" << std::endl;
     BOOST_FOREACH(const rrdb_metric_tuple_t & tuple, tuples) {
-      res << tuple._ts
+      _res << tuple._ts
           << ','
           << tuple._count
           << ','
@@ -81,29 +74,26 @@ public:
           << std::endl;
       ;
     }
-    this->set_response(res.str());
   }
 
   void operator()(const statement_show_policy & st) const
   {
     boost::shared_ptr<rrdb_metric> metric = _rrdb->get_metric(st._name);
-    this->set_response(retention_policy_write(metric->get_policy()));
+    _res << retention_policy_write(metric->get_policy());
 
   }
 
   void operator()(const statement_show_metrics & st) const
   {
     std::vector<std::string> metrics = _rrdb->get_metrics(st._like);
-    std::ostringstream res;
     BOOST_FOREACH(const std::string & name, metrics){
-      res << name << ";";
+      _res << name << ";";
     }
-    this->set_response(res.str());
   }
 
 private:
-  const boost::shared_ptr<rrdb>         _rrdb;
-  mutable rrdb::t_result_buffers &      _res;
+  const boost::shared_ptr<rrdb> _rrdb;
+  mutable std::ostringstream &  _res;
 };
 // statement_execute_visitor
 
@@ -413,7 +403,7 @@ void rrdb::select_from_metric(const std::string & name, const boost::uint64_t & 
 }
 
 
-void rrdb::execute_long_command(const std::vector<char> & buffer, t_result_buffers & res)
+void rrdb::execute_long_command(const std::vector<char> & buffer, std::ostringstream & res)
 {
   // log::write(log::LEVEL_DEBUG, "RRDB command: '%s'", std::string(buffer.begin(), buffer.end()).c_str());
 

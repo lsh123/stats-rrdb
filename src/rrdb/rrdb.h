@@ -31,7 +31,6 @@ class rrdb :
     public boost::enable_shared_from_this<rrdb>
 {
 public:
-  typedef std::vector<boost::asio::const_buffer> t_result_buffers;
   typedef boost::unordered_map< std::string, boost::shared_ptr<rrdb_metric> > t_metrics_map;
   typedef std::vector< boost::shared_ptr<rrdb_metric> > t_metrics_vector;
 
@@ -55,7 +54,7 @@ public:
   void select_from_metric(const std::string & name, const boost::uint64_t & ts_begin, const boost::uint64_t & ts_end, std::vector<rrdb_metric_tuple_t> & res);
 
   // commands
-  void execute_long_command(const std::vector<char> & buffer, t_result_buffers & res);
+  void execute_long_command(const std::vector<char> & buffer, std::ostringstream & res);
   void execute_short_command(const std::vector<char> & buffer);
 
 

@@ -19,6 +19,7 @@
 
 using namespace boost::asio::ip;
 
+
 /**
  * One connection
  */
@@ -56,22 +57,25 @@ public:
   // thread_pool_task
   void run() {
     // execute command
-    rrdb::t_result_buffers res;
+    std::ostringstream res;
     try {
         _server_tcp->get_rrdb()->execute_long_command(_buffer, res);
     } catch(std::exception & e) {
         log::write(log::LEVEL_ERROR, "Exception executing long rrdb command: %s", e.what());
 
+        res.str(std::string());
         res.clear();
-        res.push_back(boost::asio::buffer(server_tcp::format_error(e.what())));
+        res << "ERROR: " << e.what();
     } catch(...) {
         log::write(log::LEVEL_ERROR, "Unknown exception long short rrdb command");
 
+        res.str(std::string());
         res.clear();
-        res.push_back(boost::asio::buffer(server_tcp::format_error("unhandled exception")));
+        res << "ERROR: " << "unhandled exception";
     }
 
     // send
+    _buffer.clear();
     _server_tcp->send_response(_socket, res);
   }
 
@@ -201,16 +205,11 @@ void server_tcp::handle_read(
 
 void server_tcp::send_response(
      boost::asio::ip::tcp::socket & socket,
-     const std::vector<boost::asio::const_buffer> & buffers
+     const std::ostringstream & buffer
 ) {
-
-  if(buffers.size() == 0) {
-      return;
-  }
-
   boost::asio::async_write(
       socket,
-      buffers,
+      boost::asio::buffer(buffer.str()),
       boost::bind(
           &server_tcp::handle_write,
           this,
@@ -233,8 +232,4 @@ void server_tcp::handle_write(
   log::write(log::LEVEL_DEBUG3, "TCP Server sent %zu bytes", bytes_transferred);
 
   // do nothing
-}
-
-std::string server_tcp::format_error(const char * what) {
-  return std::string("ERROR - ") + what;
 }

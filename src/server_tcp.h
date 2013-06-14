@@ -37,7 +37,7 @@ public:
 
   void send_response(
       boost::asio::ip::tcp::socket & socket,
-      const std::vector<boost::asio::const_buffer> & buffers
+      const std::ostringstream & buffer
   );
 
 protected:
@@ -60,8 +60,6 @@ protected:
   inline boost::shared_ptr<rrdb> get_rrdb() const {
     return _rrdb;
   }
-
-  static std::string format_error(const char * what);
 
 private:
   boost::shared_ptr<thread_pool>                    _thread_pool;
