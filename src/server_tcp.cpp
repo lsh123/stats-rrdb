@@ -58,7 +58,7 @@ public:
     // execute command
     rrdb::t_result_buffers res;
     try {
-        _server_tcp->send_response(_socket, res);
+        _server_tcp->get_rrdb()->execute_long_command(_buffer, res);
     } catch(std::exception & e) {
         log::write(log::LEVEL_ERROR, "Exception executing long rrdb command: %s", e.what());
 
@@ -72,7 +72,7 @@ public:
     }
 
     // send
-    _server_tcp->get_rrdb()->execute_long_command(_buffer, res);
+    _server_tcp->send_response(_socket, res);
   }
 
 private:

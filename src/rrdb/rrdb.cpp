@@ -43,25 +43,24 @@ private:
 public:
   void operator()(const statement_create & st) const
   {
-    //_rrdb->create_metric(st._name, st._policy);
+    _rrdb->create_metric(st._name, st._policy);
     this->set_response("OK");
   }
 
   void operator()(const statement_drop & st) const
   {
-    // _rrdb->drop_metric(st._name);
+    _rrdb->drop_metric(st._name);
     this->set_response("OK");
   }
 
   void operator()(const statement_update & st) const
   {
-    // _rrdb->update_metric(st._name, st._ts, st._value);
+    _rrdb->update_metric(st._name, st._ts, st._value);
     this->set_response("OK");
   }
 
   void operator()(const statement_select & st) const
   {
-    /*
     std::vector<rrdb_metric_tuple_t> tuples;
     _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, tuples);
 
@@ -83,34 +82,24 @@ public:
       ;
     }
     this->set_response(res.str());
-    */
-    this->set_response("aaa");
-
   }
 
   void operator()(const statement_show_policy & st) const
   {
-    /*
     boost::shared_ptr<rrdb_metric> metric = _rrdb->get_metric(st._name);
     this->set_response(retention_policy_write(metric->get_policy()));
-    */
-    this->set_response("aaa");
 
   }
 
   void operator()(const statement_show_metrics & st) const
   {
-    /*
     std::vector<std::string> metrics = _rrdb->get_metrics(st._like);
     std::ostringstream res;
     BOOST_FOREACH(const std::string & name, metrics){
       res << name << ";";
     }
     this->set_response(res.str());
-    */
-    this->set_response("aaa");
   }
-
 
 private:
   const boost::shared_ptr<rrdb>         _rrdb;

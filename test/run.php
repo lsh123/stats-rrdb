@@ -9,7 +9,7 @@ function start_server() {
 	global $ROOT_FOLDER, $CONFIG_FILE, $PID_FILE;
 
 	echo "=================== Starting server\n";
-	system("valgrind $ROOT_FOLDER/src/statsrrdb  --config \"$CONFIG_FILE\" --daemon \"$PID_FILE\"");
+	system("$ROOT_FOLDER/src/statsrrdb  --config \"$CONFIG_FILE\" --daemon \"$PID_FILE\"");
 	$pid=file_get_contents($PID_FILE);
 	echo "=================== Started server $pid\n";
 }
@@ -102,11 +102,9 @@ try {
 	// check_result($resp, "ts,count,sum,sum_sqr,min,max\n1371104580,3,6,14,1,3\n");
 	echo "$resp\n";
 
-/*
 	echo "== SHOW METRIC (error)\n";
 	$resp = $stats_rrdb->send_command("show metric 'test';");
 	check_result($resp, "ERROR - Unable to parse the statement");
-*/
 
 	echo "== DROP METRIC 'test1'\n";
 	$resp = $stats_rrdb->send_command("drop metric 'test1';");
