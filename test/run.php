@@ -17,7 +17,7 @@ function stop_server() {
 	global $PID_FILE;
 
 	echo "=================== Stopping server\n";
-        $pid=file_get_contents($PID_FILE);
+	$pid=file_get_contents($PID_FILE);
 	system("kill $pid");
 	echo "=================== Stopped server $pid\n";
 
@@ -74,7 +74,7 @@ try {
 	restart_server();
 
 	echo "== SHOW METRICS\n";
-    	$resp = $stats_rrdb->send_command("show metrics like 'te';");
+	$resp = $stats_rrdb->send_command("show metrics like 'te';");
 	check_result($resp, "test1;test2;");
 
 	for($ii = 0; $ii < 30; $ii++) {

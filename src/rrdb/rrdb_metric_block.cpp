@@ -63,7 +63,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
 
       // we are shifting forward, notify about rollup
       out._state = UpdateState_Tuple;
-      out._tuple = _tuples[_header._pos];
+      out._tuple = (*tuple);
 
       // find the tuple
       do {

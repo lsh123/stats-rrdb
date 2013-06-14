@@ -85,6 +85,7 @@ public:
         )
     );
   }
+
   void handle_write(const boost::system::error_code& error, std::size_t bytes_transferred)
   {
     // any errors?

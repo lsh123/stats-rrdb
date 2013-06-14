@@ -113,4 +113,7 @@ statement statement_parse(const std::string & str);
 statement statement_parse(std::string::const_iterator beg, std::string::const_iterator end);
 statement statement_parse(std::vector<char>::const_iterator beg, std::vector<char>::const_iterator end);
 
+// <command>|<param1>|<param2>|....
+statement statement_parse_short(const std::string & str);
+
 #endif /* STATEMENTS_H_ */

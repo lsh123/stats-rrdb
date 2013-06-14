@@ -420,7 +420,7 @@ void rrdb::execute_long_command(const std::vector<char> & buffer, memory_buffer_
   boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
 }
 
-void rrdb::execute_short_command(const std::vector<char> & buffer)
+void rrdb::execute_short_command(const std::string & buffer)
 {
 
 }

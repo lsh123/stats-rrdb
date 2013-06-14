@@ -36,15 +36,27 @@ class StatsRRDB {
 		stream_socket_shutdown($fp, STREAM_SHUT_WR);
 		
 		// read reply if requested
-		if(!$ignore_reply) {
+		if($ignore_reply) {
+			fclose($fp);
+			return true;
+		}
+		
+		switch($this->_mode) {
+		case self::Mode_Udp:
+			echo "Reading the data back\n";
+			$res = fread($fp, $this->_buf_size);
+			echo "Read the data back\n";
+			break;
+		case self::Mode_Tcp:
 			$res = '';
 			while (!feof($fp)) {
 				$res .= fgets($fp, $this->_buf_size);
 			}
-		} else {
-			$res = true;
+			break;
+		default:
+			throw new Exception("Unknown protocol: " + $this->mode);
 		}
-		
+				
 		// done
 		fclose($fp);
 		return $res;

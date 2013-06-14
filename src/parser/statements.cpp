@@ -7,6 +7,8 @@
 
 #include <sstream>
 
+#include <boost/algorithm/string.hpp>
+
 #include "statements.h"
 #include "statements_grammar.h"
 
@@ -43,4 +45,13 @@ statement statement_parse(std::vector<char>::const_iterator beg, std::vector<cha
   }
 
   return ret;
+}
+
+
+statement statement_parse_short(const std::string & str)
+{
+  std::vector< std::string > data;
+  boost::algorithm::split(data, str, boost::algorithm::is_any_of("|"), boost::algorithm::token_compress_off);
+
+  return statement();
 }

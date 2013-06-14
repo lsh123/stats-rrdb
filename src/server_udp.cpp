@@ -27,9 +27,15 @@ class connection_udp:
     public boost::enable_shared_from_this<connection_udp>
 {
 public:
-  connection_udp(std::size_t buffer_size):
-    _buffer(buffer_size)
+  connection_udp(
+      const boost::shared_ptr<boost::asio::ip::udp::socket> & socket,
+      const boost::shared_ptr<rrdb> & rrdb,
+      std::size_t buffer_size
+  ) :
+    _socket(socket),
+    _rrdb(rrdb)
   {
+    _input_buffer.reserve(buffer_size);
   }
 
   virtual ~connection_udp()
@@ -41,35 +47,76 @@ public:
     return _remote_endpoint;
   }
 
-  std::vector<char> & get_buffer()
+  std::string & get_input_buffer()
   {
-    return _buffer;
-  }
-
-  void set_server(boost::shared_ptr<server_udp> server_udp)
-  {
-    _server_udp = server_udp;
+    return _input_buffer;
   }
 
 public:
   // thread_pool_task
   void run() {
+    memory_buffer_t res(_output_buffer);
     try {
-        _server_udp->get_rrdb()->execute_short_command(_buffer);
-        _server_udp->send_response(_remote_endpoint, "OK");
+        _rrdb->execute_short_command(_input_buffer);
+
+        res << "OK";
     } catch(std::exception & e) {
         LOG(log::LEVEL_ERROR, "Exception executing short rrdb command: %s", e.what());
-        _server_udp->send_response(_remote_endpoint, "ERROR");
+
+        res.clear();
+        res << "ERROR: " << e.what();
     } catch(...) {
         LOG(log::LEVEL_ERROR, "Unknown exception executing short rrdb command");
-        _server_udp->send_response(_remote_endpoint, "ERROR");
+
+        res.clear();
+        res << "ERROR: " << "unknown exception";
     }
+    res.flush();
+
+    // clear input data
+    _input_buffer.clear();
+    _rrdb.reset();
+
+    // TODO:
+    // do we bother to send UDP responses?
+    // if(!_send_response) {
+    //    return;
+    // }
+    _socket->async_send_to(
+        boost::asio::buffer(_output_buffer),
+        _remote_endpoint,
+        boost::bind(
+          &connection_udp::handle_send,
+          shared_from_this(),
+          boost::asio::placeholders::error,
+          boost::asio::placeholders::bytes_transferred
+        )
+    );
   }
 
+  void handle_send(
+      const boost::system::error_code& error,
+      std::size_t bytes_transferred
+  ) {
+    // any errors?
+    if (error) {
+        LOG(log::LEVEL_ERROR, "UDP Server send failed - %d: %s", error.value(), error.message().c_str());
+    }
+
+    // log
+    LOG(log::LEVEL_DEBUG3, "UDP Server sent %lu bytes", SIZE_T_CAST bytes_transferred);
+
+    // do nothing for now
+  }
+
+
 private:
+  boost::shared_ptr<boost::asio::ip::udp::socket> _socket;
+  boost::shared_ptr<rrdb>                         _rrdb;
+
   udp::endpoint                 _remote_endpoint;
-  std::vector<char>             _buffer;
-  boost::shared_ptr<server_udp> _server_udp;
+  std::string                   _input_buffer;
+  memory_buffer_data_t          _output_buffer;
 }; // class connection_udp
 
 
@@ -127,10 +174,15 @@ void server_udp::stop()
 
 void server_udp::receive()
 {
-  boost::shared_ptr<connection_udp> new_connection(new connection_udp(_buffer_size));
+  boost::shared_ptr<connection_udp> new_connection(
+      new connection_udp(_socket, _rrdb, _buffer_size)
+  );
 
   _socket->async_receive_from(
-      boost::asio::buffer(new_connection->get_buffer()),
+      boost::asio::buffer(
+          (void*)new_connection->get_input_buffer().c_str(),
+          new_connection->get_input_buffer().capacity()
+      ),
       new_connection->get_endpoint(),
       boost::bind(
           &server_udp::handle_receive,
@@ -157,48 +209,9 @@ void server_udp::handle_receive(
   LOG(log::LEVEL_DEBUG3, "UDP Server received %lu bytes", SIZE_T_CAST bytes_transferred);
 
   // offload task for processing to the buffer pool
-  new_connection->get_buffer().resize(bytes_transferred);
-  new_connection->set_server(shared_from_this());
+  new_connection->get_input_buffer().resize(bytes_transferred);
   _thread_pool->run(new_connection);
 
   // next one, please
   this->receive();
-}
-
-
-void server_udp::send_response(
-   const boost::asio::ip::udp::endpoint & endpoint,
-   const std::string & message
-) {
-
-  // do we bother to send UDP responses?
-  if(!_send_response) {
-      return;
-  }
-
-  _socket->async_send_to(
-      boost::asio::buffer(message),
-      endpoint,
-      boost::bind(
-        &server_udp::handle_send,
-        shared_from_this(),
-        boost::asio::placeholders::error,
-        boost::asio::placeholders::bytes_transferred
-      )
-  );
-}
-
-void server_udp::handle_send(
-    const boost::system::error_code& error,
-    std::size_t bytes_transferred
-) {
-  // any errors?
-  if (error) {
-      LOG(log::LEVEL_ERROR, "UDP Server send failed - %d: %s", error.value(), error.message().c_str());
-  }
-
-  // log
-  LOG(log::LEVEL_DEBUG3, "UDP Server sent %lu bytes", SIZE_T_CAST bytes_transferred);
-
-  // do nothing for now
 }

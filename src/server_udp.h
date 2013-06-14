@@ -37,21 +37,12 @@ public:
   void start();
   void stop();
 
-  void send_response(
-   const boost::asio::ip::udp::endpoint & endpoint,
-   const std::string & message
-  );
-
 protected:
   void receive();
 
   void handle_receive(
     boost::shared_ptr<connection_udp> new_connection,
     const boost::system::error_code & error,
-    std::size_t bytes_transferred
-  );
-  void handle_send(
-    const boost::system::error_code& error,
     std::size_t bytes_transferred
   );
 
