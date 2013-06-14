@@ -35,11 +35,6 @@ public:
   void start();
   void stop();
 
-  void send_response(
-      boost::asio::ip::tcp::socket & socket,
-      const std::vector<char> & buffer
-  );
-
 protected:
   void accept();
 
@@ -49,10 +44,6 @@ protected:
   );
   void handle_read(
       boost::shared_ptr<connection_tcp> new_connection,
-      const boost::system::error_code& error,
-      std::size_t bytes_transferred
-  );
-  void handle_write(
       const boost::system::error_code& error,
       std::size_t bytes_transferred
   );
