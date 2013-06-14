@@ -58,15 +58,24 @@ public:
     std::vector<rrdb_metric_tuple_t> tuples;
     _rrdb->select_from_metric(st, tuples);
 
-    _res << "ts,count,sum,sum_sqr,min,max" << std::endl;
+    _res << "ts,count,sum,avg,stddev,min,max" << std::endl;
+    double avg, stddev;
     BOOST_FOREACH(const rrdb_metric_tuple_t & tuple, tuples) {
+      if(tuple._count > 0) {
+          avg = tuple._sum / tuple._count;
+          stddev = sqrt(tuple._sum_sqr / tuple._count - avg * avg) ;
+      } else {
+          avg = stddev = 0;
+      }
       _res << tuple._ts
           << ','
           << tuple._count
           << ','
           << tuple._sum
           << ','
-          << tuple._sum_sqr
+          << avg
+          << ','
+          << stddev
           << ','
           << tuple._min
           << ','

@@ -74,7 +74,7 @@ try {
 	restart_server();
 
 	echo "== SHOW METRICS\n";
-    $resp = $stats_rrdb->send_command("show metrics like 'te';");
+    	$resp = $stats_rrdb->send_command("show metrics like 'te';");
 	check_result($resp, "test1;test2;");
 
 	for($ii = 0; $ii < 30; $ii++) {
@@ -87,6 +87,14 @@ try {
 	echo "== SHOW METRIC POLICY\n";
 	$resp = $stats_rrdb->send_command("show metric policy 'test1';");
 	check_result($resp, "5 secs for 10 secs, 10 secs for 20 secs, 20 secs for 10 mins");
+
+    echo "== SELECT * FROM METRIC 'test1' BETWEEN 1371104600 AND 1371104990 GROUP BY 0 sec\n";
+    $resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104600 AND 1371104990 GROUP BY 0 sec;");
+    echo "$resp\n";
+
+    echo "== SELECT * FROM METRIC 'test1' BETWEEN 1371104600 AND 1371104990 GROUP BY 1 sec\n";
+    $resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104600 AND 1371104990 GROUP BY 1 sec;");
+    echo "$resp\n";
 
 	echo "== SELECT * FROM METRIC 'test1' BETWEEN 1371104600 AND 1371104990 GROUP BY 5 sec\n";
 	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104600 AND 1371104990 GROUP BY 5 sec;");
@@ -112,7 +120,7 @@ try {
 	echo "== SHOW METRIC (error)\n";
 	$resp = $stats_rrdb->send_command("show metric 'test';");
 	check_result($resp, "ERROR: Unable to parse the statement");
-
+/*
 	echo "== DROP METRIC 'test1'\n";
 	$resp = $stats_rrdb->send_command("drop metric 'test1';");
 	check_result($resp, "OK");
@@ -120,6 +128,7 @@ try {
 	echo "== DROP METRIC 'test2'\n";
 	$resp = $stats_rrdb->send_command("drop metric 'test2';");
 	check_result($resp, "OK");
+	*/
 } catch(Exception $e) {
 	echo "Exception: " . $e->getMessage() . "\n";
 }

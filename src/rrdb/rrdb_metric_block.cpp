@@ -140,7 +140,7 @@ bool rrdb_metric_block::select(rrdb_metric_block::select_ctx & ctx) const
   CHECK_AND_LOG2(_tuples.get(), false);
   CHECK_AND_LOG2(_header._pos < _header._count, false);
 
-  log::write(log::LEVEL_DEBUG, "Select from %lld to %lld (we have %lld to %lld)", ctx._ts_begin, ctx._ts_end, this->get_earliest_ts(), this->get_latest_ts());
+  // log::write(log::LEVEL_DEBUG, "Select from %lld to %lld (we have %lld to %lld)", ctx._ts_begin, ctx._ts_end, this->get_earliest_ts(), this->get_latest_ts());
 
   if(ctx._ts_end < this->get_earliest_ts()) {
       // try earlier blocks

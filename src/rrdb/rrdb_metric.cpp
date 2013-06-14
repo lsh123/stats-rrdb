@@ -35,6 +35,8 @@ public:
   {
     _ts_begin = query._ts_begin;
     _ts_end   = query._ts_end;
+
+    this->reset();
   }
 
   virtual ~rrdb_metric_select_ctx()
@@ -46,17 +48,52 @@ public:
   // rrdb_metric_block::select_ctx
   void append(const rrdb_metric_tuple_t & tuple, const interval_t & interval)
   {
-    _res.push_back(tuple);
+    if(_query._group_by == 0) {
+        _res.push_back(tuple);
+        return;
+    }
+
+    // append
+    if(_cur_tuple._count == 0) {
+        _cur_tuple._ts = tuple._ts;
+    }
+    rrdb_metric_tuple_update(_cur_tuple, tuple);
+    _cur_interval += interval;
+
+    // time to close group by?
+    if(_cur_interval >= _query._group_by) {
+        this->close_group_by();
+        this->reset();
+    }
   }
 
   inline void flush(std::vector<rrdb_metric_tuple_t> & res)
   {
+    this->close_group_by();
     res.swap(_res);
+  }
+
+private:
+  inline void reset()
+  {
+    memset(&_cur_tuple, 0, sizeof(_cur_tuple));
+    _cur_interval = 0;
+  }
+
+  inline void close_group_by()
+  {
+    if(_cur_interval > 0) {
+        log::write(log::LEVEL_DEBUG, "cur = %lld, gb=%lld", _cur_interval, _query._group_by);
+        rrdb_metric_tuple_normalize(_cur_tuple,  (double)_query._group_by / (double)_cur_interval);
+        _res.push_back(_cur_tuple);
+    }
   }
 
 private:
   const statement_select &         _query;
   std::vector<rrdb_metric_tuple_t> _res;
+
+  rrdb_metric_tuple_t              _cur_tuple;
   interval_t                       _cur_interval;
 };
 
