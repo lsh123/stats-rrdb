@@ -9,7 +9,7 @@ function start_server() {
 	global $ROOT_FOLDER, $CONFIG_FILE, $PID_FILE;
 
 	echo "=================== Starting server\n";
-	system("$ROOT_FOLDER/src/statsrrdb  --config \"$CONFIG_FILE\" --daemon \"$PID_FILE\"");
+	system("$ROOT_FOLDER/src/stats-rrdb  --config \"$CONFIG_FILE\" --daemon \"$PID_FILE\"");
 	$pid=file_get_contents($PID_FILE);
 	echo "=================== Started server $pid\n";
 }

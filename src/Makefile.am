@@ -1,10 +1,10 @@
 NULL=
 
 bin_PROGRAMS= \
-	statsrrdb \
+	stats-rrdb \
 	$(NULL)
 	
-statsrrdb_SOURCES= \
+stats_rrdb_SOURCES= \
 	config.cpp \
 	exception.cpp \
 	log.cpp \
@@ -23,7 +23,7 @@ statsrrdb_SOURCES= \
 	thread_pool.cpp \
 	$(NULL)
 
-statsrrdb_CPPFLAGS= \
+stats_rrdb_CPPFLAGS= \
 	$(BOOST_CPPFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_CPPFLAGS) \
 	$(BOOST_SYSTEM_CPPFLAGS) \
@@ -31,7 +31,7 @@ statsrrdb_CPPFLAGS= \
 	$(BOOST_THREAD_CPPFLAGS) \
 	$(NULL)
 
-statsrrdb_LDFLAGS= \
+stats_rrdb_LDFLAGS= \
 	$(BOOST_LDPFLAGS) \
 	$(BOOST_PROGRAM_OPTIONS_LDPFLAGS) \
 	$(BOOST_SYSTEM_LDFLAGS) \
@@ -39,7 +39,7 @@ statsrrdb_LDFLAGS= \
 	$(BOOST_THREAD_LDFLAGS) \
 	$(NULL)
 
-statsrrdb_LDADD= \
+stats_rrdb_LDADD= \
 	$(BOOST_LIBS) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(BOOST_SYSTEM_LIBS) \
