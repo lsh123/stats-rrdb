@@ -113,6 +113,11 @@ public:
     return _header._duration;
   }
 
+  // tuple
+  rrdb_metric_tuple_t & get_cur_tuple() {
+    return _tuples[_header._pos];
+  }
+
   // TIMESTAMPS STUFF
   inline boost::int64_t get_cur_ts() const {
     return _header._pos_ts;

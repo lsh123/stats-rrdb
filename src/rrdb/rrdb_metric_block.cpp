@@ -120,6 +120,7 @@ void rrdb_metric_block::update(const update_ctx_t & in, update_ctx_t & out)
       LOG(log::LEVEL_DEBUG, "Can not find tuple ts: %ld (current block time: %ld, duration: %ld)", in.get_ts(), this->get_cur_ts(), this->get_duration());
       return;
   }
+  CHECK_AND_THROW(this->get_cur_ts() == this->get_cur_tuple()._ts);
   CHECK_AND_THROW(tuple->_ts <= in.get_ts());
   CHECK_AND_THROW(in.get_ts() < tuple->_ts + _header._freq);
 
