@@ -2,11 +2,14 @@
 $ROOT_FOLDER = dirname($argv[0]) . "/..";
 include_once($ROOT_FOLDER . "/sdk/php/stats_rrdb.php");
 
-$CONFIG_FILE = "$ROOT_FOLDER/deploy/stats-rrdb.conf";
-$PID_FILE = "/tmp/stats-rrdb.pid";
+$CONFIG_FILE = "$ROOT_FOLDER/test/stats-rrdb.conf";
+$TEST_FOLDER = "/tmp/stats-rrdb.test";
+$PID_FILE = "$TEST_FOLDER/stats-rrdb.pid";
 
 function start_server() {
-	global $ROOT_FOLDER, $CONFIG_FILE, $PID_FILE;
+	global $ROOT_FOLDER, $TEST_FOLDER, $CONFIG_FILE, $PID_FILE;
+
+	@mkdir($TEST_FOLDER);
 
 	echo "=================== Starting server\n";
 	system("$ROOT_FOLDER/src/stats-rrdb  --config \"$CONFIG_FILE\" --daemon \"$PID_FILE\"");

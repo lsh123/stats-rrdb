@@ -6,8 +6,8 @@ DDL and Query Language (TCP connections)
 
 * 	Common types:
 
-	"&lt;name&gt;" - the name of the metric: quoted string that matches the 
-	following regexp (a-zA-Z0-9._-)*
+	"&lt;name&gt;" - the name of the metric: quoted string that starts with a letter 
+	(a-zA-Z) and contains only letters, digits or "._-" characters (a-zA-Z0-9._-)
 	
 	&lt;policy&gt; - the data retention policy (see below)
 	

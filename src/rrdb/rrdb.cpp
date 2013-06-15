@@ -282,6 +282,9 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
   // log
   LOG(log::LEVEL_DEBUG, "RRDB: creating metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
 
+  // TODO: check name
+  // starts with a letter, doesn't contain anything but (a-zA-Z0-9._-)
+
   // check the policy
   retention_policy_validate(policy);
 
