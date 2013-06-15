@@ -176,6 +176,7 @@ void rrdb::flush_to_disk_thread()
       while (!boost::this_thread::interruption_requested()) {
           {
             boost::this_thread::disable_interruption d;
+
             this->flush_to_disk();
           }
 
@@ -199,6 +200,8 @@ void rrdb::flush_to_disk()
 {
   LOG(log::LEVEL_DEBUG2, "Flushing to disk");
 
+  time_t start = time(NULL);
+
   t_metrics_vector dirty_metrics = this->get_dirty_metrics();
   BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, dirty_metrics) {
     try {
@@ -207,6 +210,11 @@ void rrdb::flush_to_disk()
       LOG(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
     }
   }
+
+  // eat our own dog food
+  time_t end = time(NULL);
+  this->update_metric("self.flush_to_disk.duration", end, (end - start));
+
 
   LOG(log::LEVEL_DEBUG2, "Flushed to disk");
 }
@@ -414,7 +422,7 @@ void rrdb::select_from_metric(const statement_select & query, std::vector<rrdb_m
 
 void rrdb::execute_tcp_command(const std::vector<char> & buffer, memory_buffer_t & res)
 {
-  // LOG(log::LEVEL_DEBUG, "RRDB command: '%s'", std::string(buffer.begin(), buffer.end()).c_str());
+  // LOG(log::LEVEL_DEBUG3, "RRDB command: '%s'", std::string(buffer.begin(), buffer.end()).c_str());
 
   statement st = statement_parse_tcp(buffer.begin(), buffer.end());
   boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
@@ -422,7 +430,7 @@ void rrdb::execute_tcp_command(const std::vector<char> & buffer, memory_buffer_t
 
 void rrdb::execute_udp_command(const std::string & buffer, memory_buffer_t & res)
 {
-  LOG(log::LEVEL_DEBUG3, "Short command: %s", buffer.c_str());
+  // LOG(log::LEVEL_DEBUG3, "Short command: %s", buffer.c_str());
 
   statement st = statement_parse_udp(buffer);
   boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
