@@ -155,7 +155,68 @@ allow user to create/view/delete metrics, update metrics with data, and query me
 		....
 
 
-
 Update Language (UDP connections)
 ---------
 
+The update language is used for UDP connections and it is designed to be brief and simple.
+The statements consists of a command and zero or more parameters separated with '|':
+
+		<command>|<param1>|<param2>|...
+
+After the command is executed, the Stats-RRDB server will send back either a success code:
+
+		OK
+		
+Or an error code with an error message describing the error:
+
+		ERROR: <error message>
+
+However, the Stats-RRDB server can be configured to do not send the success or failure
+results of the UDP commands to improve performance.
+
+The following commands are supported:
+
+* 	Update data command 'u' will add a new data point to the metric. It is similar 
+	to the "UPDATE METRIC" statement in the Query Language. It has 3 parameters as 
+	follows:
+
+		u|<name>|<value>|<timestamp>
+
+	Where &lt;name&gt; is the metric name (string), &lt;value&gt; is the double 
+	value to be recorded, and &lt;timestamp&gt; is the Unix epoch timestamp.
+	
+	If the metric does not exists then it will be create using the default retention
+	policy specified in the Stats-RRDB server config file.
+	
+	For example, the following UDP command will update metric "system.cpu.load" 
+	with value 0.34 recorded at 1371278126 (Sat, 15 Jun 2013 06:35:26 GMT):
+	
+		u|system.cpu.load|0.34|1371278126
+	
+*	Create metric command 'c' will create a new metric with defined retention policy.
+	It is similar to the "CREATE METRIC" statement in the Query Language. It has 
+	2 parameters as follows:
+
+		c|<name>|<retention policy>
+
+	Where &lt;name&gt; is the metric name (string), and &lt;retention policy&gt;
+	is the data retention policy as defined above. This commmand will fail if 
+	a metric with a given name already exists.
+	
+	For example, the following UDP command will create metric "system.cpu.load" 
+	with the data retention policy discussed above:
+	
+		c|system.cpu.load|1 sec FOR 1 min, 10 sec FOR 1 hour, 10 mins FOR 1 month, 30 mins FOR 1 year
+
+*	Delete metric command 'd' will remove the metric and all associated data.
+	It is similar to the "DROP METRIC" statement in the Query Language. It has 
+	1 parameter as follows:
+
+		d|<name>
+
+	Where &lt;name&gt; is the metric name (string). This commmand will fail if 
+	a metric with a given name does not exist.
+	
+	For example, the following UDP command will drop metric "system.cpu.load":
+	
+		d|system.cpu.load
