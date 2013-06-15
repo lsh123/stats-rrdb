@@ -47,7 +47,7 @@ do_subst = sed \
     $(NULL)
 
 #
-# Rules
+# Extra rules
 #
 init.d/${PACKAGE_NAME}: init.d/stats-rrdb.in
 	$(do_subst) < $(srcdir)/init.d/stats-rrdb.in > "init.d/${PACKAGE_NAME}"

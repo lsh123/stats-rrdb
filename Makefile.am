@@ -16,6 +16,16 @@ EXTRA_DIST = \
 	stats-rrdb.spec \
 	$(NULL)
 
+#
+# Extra files to clean
+#
+CLEANFILES = \
+	${PACKAGE_NAME}-${PACKAGE_VERSION}.tar.gz \
+	$(NULL)
+
+#
+# Extra rules
+#
 dist-rpm: dist 
 	rpmbuild -ta ${PACKAGE_NAME}-${PACKAGE_VERSION}.tar.gz
 	
