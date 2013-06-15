@@ -83,7 +83,7 @@ exit 0
 %files
 %defattr(-,root,root,-)
 
-%doc AUTHORS ChangeLog COPYING NEWS README.md
+%doc AUTHORS ChangeLog COPYING NEWS README.md LANGUAGE.md
 %{_bindir}/%{name}
 %{_initrddir}/%{name}
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf

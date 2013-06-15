@@ -12,7 +12,9 @@ EXTRA_DIST = \
 	ChangeLog \
 	COPYING \
 	NEWS \
+	LANGUAGE.md \
 	README.md \
+	misc \
 	stats-rrdb.spec \
 	$(NULL)
 
