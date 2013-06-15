@@ -42,6 +42,11 @@ For installation instructions see [Install](INSTALL.md).
 
 Roadmap
 ---------
-* 0.5.0 (ready) - complete language, storage, TCP/UDP servers, tests, rpms
-* 1.0.0 - memory usage controls, dynamic blocks loading, journal file, graphing examples 
-* 1.x.0 - more metric types (e.g. 95 percentile, etc.)
+* 	0.5.0 - complete language, storage, TCP/UDP servers, tests, rpms
+
+* 	1.0.0 - memory usage controls, dynamic blocks loading, journal file, graphing examples 
+
+* 	1.x.0 - more metric types (e.g. 95 percentile, etc.), "select min, avg, max from ..." 
+	(instead of "select * from ..."), query multiple metrics in the same time, multiple
+	updates in one UDP packet, multiple queries in one TCP request
+
