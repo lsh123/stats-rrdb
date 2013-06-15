@@ -28,7 +28,8 @@ public:
   thread_pool(std::size_t pool_size);
   virtual ~thread_pool();
 
-  void run(boost::shared_ptr<thread_pool_task> task);
+  std::size_t run(boost::shared_ptr<thread_pool_task> task);
+
 
 private:
   void wrap_task_run(boost::shared_ptr<thread_pool_task> task);

@@ -227,6 +227,11 @@ void server_tcp::handle_read(
 
   // off-load task for processing to the buffer pool
   new_connection->get_input_buffer().resize(bytes_transferred);
-  _thread_pool->run(new_connection);
+  std::size_t used_threads = _thread_pool->run(new_connection);
+
+  // eat our own dog food
+  time_t now = time(NULL);
+  _rrdb->update_metric("self.tcp.requests", now, 1.0);
+  _rrdb->update_metric("self.tcp.requests", now, used_threads);
 }
 

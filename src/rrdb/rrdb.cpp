@@ -418,9 +418,6 @@ void rrdb::execute_tcp_command(const std::vector<char> & buffer, memory_buffer_t
 
   statement st = statement_parse_tcp(buffer.begin(), buffer.end());
   boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
-
-  // eat our own dog food
-  this->update_metric("self.tcp.count", time(NULL), 1.0);
 }
 
 void rrdb::execute_udp_command(const std::string & buffer, memory_buffer_t & res)
@@ -429,8 +426,5 @@ void rrdb::execute_udp_command(const std::string & buffer, memory_buffer_t & res
 
   statement st = statement_parse_udp(buffer);
   boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
-
-  // eat our own dog food
-  this->update_metric("self.udp.count", time(NULL), 1.0);
 }
 

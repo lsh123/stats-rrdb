@@ -214,7 +214,12 @@ void server_udp::handle_receive(
 
   // offload task for processing to the buffer pool
   new_connection->get_input_buffer().resize(bytes_transferred);
-  _thread_pool->run(new_connection);
+  std::size_t used_threads = _thread_pool->run(new_connection);
+
+  // eat our own dog food
+  time_t now = time(NULL);
+  _rrdb->update_metric("self.udp.requests", now, 1.0);
+  _rrdb->update_metric("self.udp.requests", now, used_threads);
 
   // next one, please
   this->receive();

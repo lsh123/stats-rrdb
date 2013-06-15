@@ -42,19 +42,23 @@ thread_pool::~thread_pool()
   LOG(log::LEVEL_INFO, "Stopped thread pool");
 }
 
-void thread_pool::run(boost::shared_ptr<thread_pool_task> task)
+std::size_t thread_pool::run(boost::shared_ptr<thread_pool_task> task)
 {
   // ready to execute?
-  if((++_used_threads) > _pool_size) {
-    --_used_threads;
+  std::size_t used_threads = _used_threads.fetch_add(1, boost::memory_order_release);
+  if(used_threads >= _pool_size) {
+    _used_threads.fetch_sub(1, boost::memory_order_relaxed);
     throw new exception("No available threads to execute the task");
   }
 
   //
-  LOG(log::LEVEL_DEBUG3, "Starting task, %lu out of %lu thread(s) used", SIZE_T_CAST _used_threads, SIZE_T_CAST _pool_size);
+  LOG(log::LEVEL_DEBUG3, "Starting task, %lu out of %lu thread(s) used", SIZE_T_CAST used_threads, SIZE_T_CAST _pool_size);
 
   // go!
   _io_service.post(boost::bind( &thread_pool::wrap_task_run, this, task)) ;
+
+  // done
+  return used_threads;
 }
 
 void thread_pool::wrap_task_run(boost::shared_ptr<thread_pool_task> task)
@@ -69,10 +73,10 @@ void thread_pool::wrap_task_run(boost::shared_ptr<thread_pool_task> task)
   }
 
   // done!
-  --_used_threads;
+  size_t used_threads = _used_threads.fetch_sub(1, boost::memory_order_relaxed);
 
   //
-  LOG(log::LEVEL_DEBUG3, "Finished task, %lu out of %lu thread(s) used", SIZE_T_CAST _used_threads, SIZE_T_CAST _pool_size);
+  LOG(log::LEVEL_DEBUG3, "Finished task, %lu out of %lu thread(s) used", SIZE_T_CAST used_threads, SIZE_T_CAST _pool_size);
 }
 
 
