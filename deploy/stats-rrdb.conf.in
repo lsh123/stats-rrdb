@@ -17,6 +17,6 @@ thread_pool_size=5
 send_response=true
 
 [log]
-level=debug
-destination=@localstatedir@/run/@PACKAGE_NAME@/@PACKAGE_NAME@.log
+level=info
+destination=@localstatedir@/log/@PACKAGE_NAME@/@PACKAGE_NAME@.log
 time_format=%m/%d/%Y %H:%M:%S

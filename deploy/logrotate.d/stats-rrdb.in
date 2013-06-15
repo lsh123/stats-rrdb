@@ -1,0 +1,11 @@
+#
+# @PACKAGE_NAME@ logrotate script
+#
+@localstatedir@/log/@PACKAGE_NAME@/*.log {
+    create 644 @STATS_RRDB_GROUP@ @STATS_RRDB_GROUP@
+    notifempty
+    daily
+    rotate 5
+    missingok
+    compress
+}

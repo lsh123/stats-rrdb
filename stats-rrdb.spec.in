@@ -1,5 +1,5 @@
-%define username	statsrrdb
-%define groupname	statsrrdb
+%define username	@STATS_RRDB_USER@
+%define groupname	@STATS_RRDB_GROUP@
 
 Name:				@PACKAGE_NAME@
 Version:			@PACKAGE_VERSION@
@@ -10,7 +10,7 @@ License:			MIT
 URL:				https://github.com/lsh123/stats-rrdb
 Source0:			%{name}-%{version}.tar.gz
 
-Requires:			boost153
+Requires:			boost153 logrotate
 Requires(post):		/sbin/chkconfig
 Requires(preun):	/sbin/chkconfig, /sbin/service
 Requires(postun):	/sbin/service
@@ -49,7 +49,6 @@ mkdir -p %{buildroot}/%{_localstatedir}/log/%{name}
 # data directory
 mkdir -p %{buildroot}/%{_localstatedir}/%{name}
 
-
 %clean
 rm -rf %{buildroot}
 
@@ -83,17 +82,18 @@ exit 0
 
 %files
 %defattr(-,root,root,-)
+
 %doc AUTHORS ChangeLog COPYING NEWS README.md
+%{_bindir}/%{name}
+%{_initrddir}/%{name}
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 
 %dir %attr(755,%{username},%{groupname}) %{_localstatedir}/run/%{name}
 %dir %attr(755,%{username},%{groupname}) %{_localstatedir}/log/%{name}
 %dir %attr(750,%{username},%{groupname}) %{_localstatedir}/%{name}
 
-%{_bindir}/%{name}
-%{_initrddir}/%{name}
-
 
 %changelog
 * Fri Jun  14 2013 Aleksey Sanin <aleksey@aleksey.com>
-- Initial spec file created via rpmdev-newspec
+- Initial spec file created via rpmdev-newspec, added conf file, init.d, logrotate.d and various dirs

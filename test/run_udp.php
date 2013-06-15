@@ -2,7 +2,7 @@
 $ROOT_FOLDER = dirname($argv[0]) . "/..";
 include_once($ROOT_FOLDER . "/sdk/php/stats_rrdb.php");
 
-$CONFIG_FILE = "$ROOT_FOLDER/stats-rrdb.conf";
+$CONFIG_FILE = "$ROOT_FOLDER/deploy/stats-rrdb.conf";
 $PID_FILE = "/tmp/stats-rrdb.pid";
 
 function start_server() {

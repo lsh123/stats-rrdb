@@ -19,6 +19,10 @@ dnl setup pedantic compilation
 CFLAGS="$CFLAGS -pedantic -Wall -Werror -Wformat=2 -Wno-variadic-macros"
 CPPFLAGS="$CPPFLAGS -pedantic -Wall -Werror -Wformat=2 -Wno-variadic-macros"
 
+dnl hard code the user/group for now
+AC_SUBST(STATS_RRDB_USER,  "statsrrdb")
+AC_SUBST(STATS_RRDB_GROUP, "statsrrdb")
+
 AC_CONFIG_FILES(
 	Makefile 
 	deploy/Makefile
