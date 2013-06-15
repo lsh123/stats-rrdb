@@ -57,7 +57,7 @@ public:
   void run() {
     memory_buffer_t res(_output_buffer);
     try {
-        _rrdb->execute_short_command(_input_buffer, res);
+        _rrdb->execute_udp_command(_input_buffer, res);
     } catch(std::exception & e) {
         LOG(log::LEVEL_ERROR, "Exception executing short rrdb command: %s", e.what());
 

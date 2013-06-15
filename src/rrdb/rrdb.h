@@ -57,8 +57,8 @@ public:
   void select_from_metric(const statement_select & query, std::vector<rrdb_metric_tuple_t> & res);
 
   // commands
-  void execute_long_command(const std::vector<char> & buffer, memory_buffer_t & res);
-  void execute_short_command(const std::string & buffer, memory_buffer_t & res);
+  void execute_tcp_command(const std::vector<char> & buffer, memory_buffer_t & res);
+  void execute_udp_command(const std::string & buffer, memory_buffer_t & res);
 
 private:
   void load_metrics();

@@ -3,7 +3,7 @@ include_once("../stats_rrdb.php");
 date_default_timezone_set("UTC");
 
 $display_modes = array('table' => 'Table', 'line-graph' => 'Line Graph' );
-$columns       = array('all' => 'All', 'count' => 'Count', 'avg' => 'Avg', 'stddev' => 'StdDev', 'min' => 'Min', 'max' => 'Max');
+$columns       = array('all' => 'All', 'count' => 'Count', 'sum' => 'Sum', 'avg' => 'Avg', 'stddev' => 'StdDev', 'min' => 'Min', 'max' => 'Max');
 
 $client = new StatsRRDB(StatsRRDB::Mode_Tcp);
 $res = $client->send_command("show metrics like '.' ;");

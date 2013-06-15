@@ -412,19 +412,25 @@ void rrdb::select_from_metric(const statement_select & query, std::vector<rrdb_m
 }
 
 
-void rrdb::execute_long_command(const std::vector<char> & buffer, memory_buffer_t & res)
+void rrdb::execute_tcp_command(const std::vector<char> & buffer, memory_buffer_t & res)
 {
   // LOG(log::LEVEL_DEBUG, "RRDB command: '%s'", std::string(buffer.begin(), buffer.end()).c_str());
 
-  statement st = statement_parse(buffer.begin(), buffer.end());
+  statement st = statement_parse_tcp(buffer.begin(), buffer.end());
   boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
+
+  // eat our own dog food
+  this->update_metric("self.tcp.count", time(NULL), 1.0);
 }
 
-void rrdb::execute_short_command(const std::string & buffer, memory_buffer_t & res)
+void rrdb::execute_udp_command(const std::string & buffer, memory_buffer_t & res)
 {
   LOG(log::LEVEL_DEBUG3, "Short command: %s", buffer.c_str());
 
-  statement st = statement_parse_short(buffer);
+  statement st = statement_parse_udp(buffer);
   boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
+
+  // eat our own dog food
+  this->update_metric("self.udp.count", time(NULL), 1.0);
 }
 

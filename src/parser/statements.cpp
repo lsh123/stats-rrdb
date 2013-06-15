@@ -17,7 +17,7 @@
 #include "exception.h"
 #include "log.h"
 
-statement statement_parse(std::string::const_iterator beg, std::string::const_iterator end)
+statement statement_parse_tcp(std::string::const_iterator beg, std::string::const_iterator end)
 {
   statement ret;
   statement_grammar<std::string::const_iterator> grammar;
@@ -30,12 +30,12 @@ statement statement_parse(std::string::const_iterator beg, std::string::const_it
   return ret;
 }
 
-statement statement_parse(const std::string & str)
+statement statement_parse_tcp(const std::string & str)
 {
-  return statement_parse(str.begin(), str.end());
+  return statement_parse_tcp(str.begin(), str.end());
 }
 
-statement statement_parse(std::vector<char>::const_iterator beg, std::vector<char>::const_iterator end)
+statement statement_parse_tcp(std::vector<char>::const_iterator beg, std::vector<char>::const_iterator end)
 {
   statement ret;
   statement_grammar<std::vector<char>::const_iterator> grammar;
@@ -50,7 +50,7 @@ statement statement_parse(std::vector<char>::const_iterator beg, std::vector<cha
 
 
 
-statement statement_parse_short(const std::string & str)
+statement statement_parse_udp(const std::string & str)
 {
   std::vector< std::string > data;
   boost::algorithm::split(data, str, boost::algorithm::is_any_of("|"), boost::algorithm::token_compress_off);
