@@ -14,7 +14,8 @@
 #include "exception.h"
 #include "log.h"
 #include "config.h"
-#include "thread_pool.h"
+
+#include "server/thread_pool.h"
 
 #include "rrdb/rrdb.h"
 
