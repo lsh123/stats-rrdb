@@ -7,8 +7,8 @@ stats-rrdb is a high-performance server for collecting, aggregating and storing
 various statistics. It's a combination of the famous [statsd](https://github.com/etsy/statsd/)
 and [graphite](http://graphite.wikidot.com/) without the UI from the later.
 
-stats-rrdb provides simple out-of-the box configuration; [DDL and query language](LANGUAGE); 
-optimized [UDP data format](LANGUAGE), support for current and historical data; and, of course, 
+stats-rrdb provides simple out-of-the box configuration; [DDL and query language](LANGUAGE.md); 
+optimized [UDP data format](LANGUAGE.md), support for current and historical data; and, of course, 
 high-performance of C++ code.
 
 stats-rrdb is focused on data and data only. It *does not* provide any graphical interface 
@@ -37,7 +37,7 @@ Last but not the least, it is *fun* to write server side software :)
 
 Installation
 ---------
-For installation instructions see [Install](INSTALL).
+For installation instructions see [Install](INSTALL.md).
 
 
 Roadmap
