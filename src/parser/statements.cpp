@@ -8,6 +8,7 @@
 #include <sstream>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "statements.h"
 #include "statements_grammar.h"
@@ -48,10 +49,55 @@ statement statement_parse(std::vector<char>::const_iterator beg, std::vector<cha
 }
 
 
+
 statement statement_parse_short(const std::string & str)
 {
   std::vector< std::string > data;
   boost::algorithm::split(data, str, boost::algorithm::is_any_of("|"), boost::algorithm::token_compress_off);
+  if(data.empty()) {
+      throw exception("Invalid request: command is missing");
+  }
 
-  return statement();
+  const std::string & cmd(data[0]);
+  if(cmd == "u" || cmd == "U") {
+      // Update metric
+      //
+      // u|<name>|<value>|<timestamp>
+      if(data.size() != 4) {
+          throw exception("Invalid request: 'update' command expects 3 arguments - 'u|<name>|<value>|<timestamp>'");
+      }
+
+      statement_update st;
+      st._name  = data[1];
+      st._value = boost::lexical_cast<double>(data[2]);
+      st._ts    = boost::lexical_cast<boost::int64_t>(data[3]);
+      return st;
+  } else if(cmd == "c" || cmd == "C") {
+      // Create metric
+      //
+      // c|<name>|<retention policy>
+      if(data.size() != 3) {
+          throw exception("Invalid request: 'create' command expects 2 arguments - 'c|<name>|<retention policy>'");
+      }
+
+      statement_create st;
+      st._name   = data[1];
+      st._policy = retention_policy_parse(data[2]);
+      return st;
+  } else if(cmd == "d" || cmd == "D") {
+      // Drop metric
+      //
+      // d|<name>
+      if(data.size() != 2) {
+          throw exception("Invalid request: 'drop' command expects 1 argument - 'd|<name>'");
+      }
+
+      statement_drop st;
+      st._name   = data[1];
+      return st;
+  }
+
+  // no luck
+  throw exception("Invalid request: command '%s' is unknow", cmd.c_str());
 }
+

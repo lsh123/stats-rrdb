@@ -58,7 +58,7 @@ public:
 
   // commands
   void execute_long_command(const std::vector<char> & buffer, memory_buffer_t & res);
-  void execute_short_command(const std::string & buffer);
+  void execute_short_command(const std::string & buffer, memory_buffer_t & res);
 
 private:
   void load_metrics();

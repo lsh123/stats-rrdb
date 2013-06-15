@@ -69,6 +69,12 @@ public:
     }
     res.flush();
 
+    // add default OK
+    if(_output_buffer.empty()) {
+        res << "OK";
+        res.flush();
+    }
+
     // clear input data
     _input_buffer.clear();
     _rrdb.reset();

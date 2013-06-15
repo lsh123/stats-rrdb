@@ -38,19 +38,16 @@ public:
   void operator()(const statement_create & st) const
   {
     _rrdb->create_metric(st._name, st._policy);
-    _res << "OK";
   }
 
   void operator()(const statement_drop & st) const
   {
     _rrdb->drop_metric(st._name);
-    _res << "OK";
   }
 
   void operator()(const statement_update & st) const
   {
     _rrdb->update_metric(st._name, st._ts, st._value);
-    _res << "OK";
   }
 
   void operator()(const statement_select & st) const
@@ -420,7 +417,11 @@ void rrdb::execute_long_command(const std::vector<char> & buffer, memory_buffer_
   boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
 }
 
-void rrdb::execute_short_command(const std::string & buffer)
+void rrdb::execute_short_command(const std::string & buffer, memory_buffer_t & res)
 {
+  LOG(log::LEVEL_DEBUG3, "Short command: %s", buffer.c_str());
 
+  statement st = statement_parse_short(buffer);
+  boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
 }
+

@@ -35,7 +35,7 @@ public:
     _socket(socket),
     _rrdb(rrdb)
   {
-    _input_buffer.reserve(buffer_size);
+    _input_buffer.resize(buffer_size);
   }
 
   virtual ~connection_udp()
@@ -57,9 +57,7 @@ public:
   void run() {
     memory_buffer_t res(_output_buffer);
     try {
-        _rrdb->execute_short_command(_input_buffer);
-
-        res << "OK";
+        _rrdb->execute_short_command(_input_buffer, res);
     } catch(std::exception & e) {
         LOG(log::LEVEL_ERROR, "Exception executing short rrdb command: %s", e.what());
 
@@ -72,6 +70,12 @@ public:
         res << "ERROR: " << "unknown exception";
     }
     res.flush();
+
+    // add default OK
+    if(_output_buffer.empty()) {
+        res << "OK";
+        res.flush();
+    }
 
     // clear input data
     _input_buffer.clear();
@@ -181,7 +185,7 @@ void server_udp::receive()
   _socket->async_receive_from(
       boost::asio::buffer(
           (void*)new_connection->get_input_buffer().c_str(),
-          new_connection->get_input_buffer().capacity()
+          new_connection->get_input_buffer().size()
       ),
       new_connection->get_endpoint(),
       boost::bind(

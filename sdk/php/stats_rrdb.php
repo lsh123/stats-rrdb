@@ -43,9 +43,7 @@ class StatsRRDB {
 		
 		switch($this->_mode) {
 		case self::Mode_Udp:
-			echo "Reading the data back\n";
 			$res = fread($fp, $this->_buf_size);
-			echo "Read the data back\n";
 			break;
 		case self::Mode_Tcp:
 			$res = '';

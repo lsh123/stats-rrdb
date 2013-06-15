@@ -40,9 +40,7 @@ restart_server();
 
 try {
 	// create
-	$mode = isset($argv[1]) ? $argv[1] : StatsRRDB::Mode_Tcp;
-	echo "Starting mode {$mode}\n";
-	$stats_rrdb = new StatsRRDB($mode);
+	$stats_rrdb = new StatsRRDB(StatsRRDB::Mode_Tcp);
 
 	echo "== CREATE METRIC 'test1' \n";
 	$resp = $stats_rrdb->send_command("create metric 'test1' keep 5 secs for 10 sec, 10 secs for 20 secs, 20 secs for 10 min;"); 
