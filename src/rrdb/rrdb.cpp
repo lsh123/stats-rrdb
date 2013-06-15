@@ -361,7 +361,7 @@ std::vector<std::string> rrdb::get_metrics(const std::string & like)
   {
     boost::lock_guard<spinlock> guard(_metrics_lock);
     BOOST_FOREACH(const t_metrics_map::value_type & v, _metrics) {
-      if(v.first.find(like_lc) == std::string::npos) {
+      if(!like_lc.empty() && v.first.find(like_lc) == std::string::npos) {
           continue;
       }
       res.push_back(v.first);
