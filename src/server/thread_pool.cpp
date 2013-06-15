@@ -7,7 +7,7 @@
 
 #include "exception.h"
 #include "log.h"
-#include "thread_pool.h"
+#include "server/thread_pool.h"
 
 thread_pool::thread_pool(std::size_t pool_size) :
   _pool_size(pool_size),

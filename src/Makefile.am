@@ -10,7 +10,6 @@ EXTRA_DIST = \
 	log.h \
 	memory_buffer.h \
 	spinlock.h \
-	thread_pool.h \
 	parser/grammar.h \
 	parser/interval.h \
 	parser/interval_grammar.h \
@@ -25,6 +24,7 @@ EXTRA_DIST = \
 	server/server_tcp.h \
 	server/server_udp.h \
 	server/server.h \
+	server/thread_pool.h \
 	$(NULL)
 	
 stats_rrdb_SOURCES= \
@@ -36,7 +36,6 @@ stats_rrdb_SOURCES= \
 	parser/retention_policy.cpp \
 	parser/statements.cpp \
 	stats_rrdb.cpp \
-	thread_pool.cpp \
 	rrdb/rrdb.cpp \
 	rrdb/rrdb_metric.cpp \
 	rrdb/rrdb_metric_block.cpp \
@@ -44,6 +43,7 @@ stats_rrdb_SOURCES= \
 	server/server_tcp.cpp \
 	server/server_udp.cpp \
 	server/server.cpp \
+	server/thread_pool.cpp \
 	$(NULL)
 
 stats_rrdb_CPPFLAGS= \
