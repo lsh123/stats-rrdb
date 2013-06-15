@@ -1,5 +1,5 @@
 [rrdb]
-default_policy=1 sec FOR 1 min, 10 sec FOR 10 min, 1 min FOR 1 week, 10 min FOR 1 year, 1 hour FOR 10 years
+default_policy=1 sec FOR 30 min, 10 sec FOR 1 day, 1 min FOR 1 month, 10 min FOR 1 year, 1 hour FOR 10 years
 path=@localstatedir@/@PACKAGE_NAME@
 flush_interval=1 min
 
