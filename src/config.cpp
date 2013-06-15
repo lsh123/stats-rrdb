@@ -75,6 +75,7 @@ bool config::init(int argc, char ** argv)
   }
 
   // config?
+  std::string config_file;
   if(this->has("config")) {
       std::string config_file = this->get<std::string>("config");
 
@@ -85,11 +86,17 @@ bool config::init(int argc, char ** argv)
       }
 
       store(parse_config_file(file, config_file_desc), _data);
-      LOG(log::LEVEL_INFO, "Loaded configuration file '%s'", config_file.c_str());
   }
 
   // initialize log file
   log::init(*this);
+
+  try {
+      LOG(log::LEVEL_INFO, "Loaded configuration file '%s'", config_file.c_str());
+  } catch(...) {
+      std::cerr << "Can not write to log file " << config_file << std::endl;
+      std::terminate();
+  }
 
   // good - continue
   return true;

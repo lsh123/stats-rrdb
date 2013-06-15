@@ -1,6 +1,6 @@
 [rrdb]
 default_policy=1 sec FOR 1 min, 10 sec FOR 10 min, 1 min FOR 1 week, 10 min FOR 1 year, 1 hour FOR 10 years
-path=/tmp/rrdb
+path=@localstatedir@/@PACKAGE_NAME@
 flush_interval=1 min
 
 [server_tcp]
@@ -18,5 +18,5 @@ send_response=true
 
 [log]
 level=debug
-destination=/tmp/stats-rrdb.log
+destination=@localstatedir@/run/@PACKAGE_NAME@/@PACKAGE_NAME@.log
 time_format=%m/%d/%Y %H:%M:%S

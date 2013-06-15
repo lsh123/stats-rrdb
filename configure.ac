@@ -21,10 +21,9 @@ CPPFLAGS="$CPPFLAGS -pedantic -Wall -Werror -Wformat=2 -Wno-variadic-macros"
 
 AC_CONFIG_FILES(
 	Makefile 
+	deploy/Makefile
 	src/Makefile
-	
 	stats-rrdb.spec
-	stats-rrdb
 )
 
 AC_OUTPUT

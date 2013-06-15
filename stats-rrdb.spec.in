@@ -1,0 +1,99 @@
+%define username	statsrrdb
+%define groupname	statsrrdb
+
+Name:				@PACKAGE_NAME@
+Version:			@PACKAGE_VERSION@
+Release:			1%{?dist}
+Summary:			High Performance Round Robin DB Server for stats collection
+Group:				System Environment/Daemons
+License:			MIT
+URL:				https://github.com/lsh123/stats-rrdb
+Source0:			%{name}-%{version}.tar.gz
+
+Requires:			boost153
+Requires(post):		/sbin/chkconfig
+Requires(preun):	/sbin/chkconfig, /sbin/service
+Requires(postun):	/sbin/service
+
+BuildRoot:			%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildRequires:		boost153-devel
+
+%description
+stats-rrdb is a high-performance RRDB (Round Robin DB) server for storing,
+aggregating and querying of various statistical data
+
+%prep
+%setup -q
+
+%build
+%configure
+
+make %{?_smp_mflags}
+
+%check
+echo "Run checks another day"
+
+%install
+rm -rf %{buildroot}
+make install DESTDIR=%{buildroot} INSTALL="%{__install} -p"                                         
+
+# Init script
+install -Dp -m0755 deploy/init.d/%{name} %{buildroot}%{_initrddir}/%{name}
+
+# pid directory
+mkdir -p %{buildroot}/%{_localstatedir}/run/%{name}
+
+# log directory
+mkdir -p %{buildroot}/%{_localstatedir}/log/%{name}
+
+# data directory
+mkdir -p %{buildroot}/%{_localstatedir}/%{name}
+
+
+%clean
+rm -rf %{buildroot}
+
+
+%pre
+getent group %{groupname} >/dev/null || groupadd -r %{groupname}
+getent passwd %{username} >/dev/null || \
+useradd -r -g %{groupname} -d %{_localstatedir}/run/%{name} \
+    -s /sbin/nologin -c "StatsRRDB" %{username}
+exit 0
+
+
+%post
+/sbin/chkconfig --add %{name}
+
+
+%preun
+if [ "$1" = 0 ] ; then
+    /sbin/service %{name} stop > /dev/null 2>&1
+    /sbin/chkconfig --del %{name}
+fi
+exit 0
+
+
+%postun
+if [ "$1" -ge 1 ]; then
+    /sbin/service %{name} condrestart > /dev/null 2>&1
+fi
+exit 0
+
+
+%files
+%defattr(-,root,root,-)
+%doc AUTHORS ChangeLog COPYING NEWS README.md
+%config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
+
+%dir %attr(755,%{username},%{groupname}) %{_localstatedir}/run/%{name}
+%dir %attr(755,%{username},%{groupname}) %{_localstatedir}/log/%{name}
+%dir %attr(750,%{username},%{groupname}) %{_localstatedir}/%{name}
+
+%{_bindir}/%{name}
+%{_initrddir}/%{name}
+
+
+%changelog
+* Fri Jun  14 2013 Aleksey Sanin <aleksey@aleksey.com>
+- Initial spec file created via rpmdev-newspec

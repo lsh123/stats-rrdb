@@ -1,0 +1,76 @@
+#! /bin/sh
+#
+# chkconfig:   - 55 45
+# description: High Performance Round Robin DB Server for stats collection
+# processname: @PACKAGE_NAME@
+# config:      @sysconfdir@/@PACKAGE_NAME@/@PACKAGE_NAME@.conf
+# pidfile:     @localstatedir@/run/@PACKAGE_NAME@/@PACKAGE_NAME@.pid
+
+# Standard LSB functions
+#. /lib/lsb/init-functions
+
+# Source function library.
+. /etc/init.d/functions
+
+# Check that networking is up.
+. /etc/sysconfig/network
+
+if [ "$NETWORKING" = "no" ]
+then
+	exit 0
+fi
+
+RETVAL=0
+prog="@bindir@/@PACKAGE_NAME@"
+config=@sysconfdir@/@PACKAGE_NAME@/@PACKAGE_NAME@.conf
+pidfile=@localstatedir@/run/@PACKAGE_NAME@/@PACKAGE_NAME@.pid
+lockfile=${LOCKFILE-@localstatedir@/lock/subsys/@PACKAGE_NAME@}
+
+start () {
+	echo -n $"Starting $prog: "
+	daemon --pidfile ${pidfile} $prog -c ${config} -d ${pidfile}
+	RETVAL=$?
+	echo
+	[ $RETVAL -eq 0 ] && touch ${lockfile}
+}
+stop () {
+	echo -n $"Stopping $prog: "
+	killproc -p ${pidfile} ${prog}
+	RETVAL=$?
+	echo
+	if [ $RETVAL -eq 0 ] ; then
+		rm -f ${lockfile} ${pidfile}
+	fi
+}
+
+restart () {
+        stop
+        start
+}
+
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+	status -p ${pidfile} ${prog}
+	RETVAL=$?
+	;;
+  restart|reload|force-reload)
+	restart
+	;;
+  condrestart|try-restart)
+	[ -f ${lockfile} ] && restart || :
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|restart|reload|force-reload|condrestart|try-restart}"
+	RETVAL=2
+        ;;
+esac
+
+exit $RETVAL

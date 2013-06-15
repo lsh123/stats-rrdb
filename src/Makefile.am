@@ -3,6 +3,29 @@ NULL=
 bin_PROGRAMS= \
 	stats-rrdb \
 	$(NULL)
+
+EXTRA_DIST = \
+	config.h \
+	exception.h \
+	log.h \
+	memory_buffer.h \
+	parser/grammar.h \
+	parser/interval.h \
+	parser/interval_grammar.h \
+	parser/retention_policy.h \
+	parser/retention_policy_grammar.h \
+	parser/statements.h \
+	parser/statements_grammar.h \
+	rrdb/rrdb.h \
+	rrdb/rrdb_metric.h \
+	rrdb/rrdb_metric_block.h \
+	rrdb/rrdb_metric_tuple.h \
+	server_tcp.h \
+	server_udp.h \
+	server.h \
+	spinlock.h \
+	thread_pool.h \
+	$(NULL)
 	
 stats_rrdb_SOURCES= \
 	config.cpp \

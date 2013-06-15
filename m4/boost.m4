@@ -397,7 +397,7 @@ for boost_rtopt_ in $boost_rtopt '' -d; do
       esac
       boost_save_LIBS=$LIBS
       LIBS="$Boost_lib_LIBS $LIBS"
-      test x"$boost_ldpath" != x && LDFLAGS="$LDFLAGS -L$boost_ldpath"
+      test x"$boost_ldpath" != x && LDFLAGS="$LDFLAGS -L$boost_ldpath -Wl,-rpath -Wl,$boost_ldpath"
 dnl First argument of AC_LINK_IFELSE left empty because the test file is
 dnl generated only once above (before we start the for loops).
       _BOOST_AC_LINK_IFELSE([],
@@ -556,32 +556,17 @@ BOOST_DEFUN([Date_Time],
 ])# BOOST_DATE_TIME
 
 
+
 # BOOST_FILESYSTEM([PREFERRED-RT-OPT])
-# ------------------------------------
-# Look for Boost.Filesystem.  For the documentation of PREFERRED-RT-OPT, see
-# the documentation of BOOST_FIND_LIB above.
-# Do not check for boost/filesystem.hpp because this file was introduced in
-# 1.34.
+# -----------------------------------------
+# Look for Boost.Filesystem.  For the documentation of PREFERRED-RT-OPT,
+# see the documentation of BOOST_FIND_LIB above.
 BOOST_DEFUN([Filesystem],
-[# Do we have to check for Boost.System?  This link-time dependency was
-# added as of 1.35.0.  If we have a version <1.35, we must not attempt to
-# find Boost.System as it didn't exist by then.
-if test $boost_major_version -ge 135; then
-BOOST_SYSTEM([$1])
-fi # end of the Boost.System check.
-boost_filesystem_save_LIBS=$LIBS
-boost_filesystem_save_LDFLAGS=$LDFLAGS
-m4_pattern_allow([^BOOST_SYSTEM_(LIBS|LDFLAGS)$])dnl
-LIBS="$LIBS $BOOST_SYSTEM_LIBS"
-LDFLAGS="$LDFLAGS $BOOST_SYSTEM_LDFLAGS"
-BOOST_FIND_LIB([filesystem], [$1],
-                [boost/filesystem/path.hpp], [boost::filesystem::path p;])
-if test $enable_static_boost = yes && test $boost_major_version -ge 135; then
-    AC_SUBST([BOOST_FILESYSTEM_LIBS], ["$BOOST_FILESYSTEM_LIBS $BOOST_SYSTEM_LIBS"])
-fi
-LIBS=$boost_filesystem_save_LIBS
-LDFLAGS=$boost_filesystem_save_LDFLAGS
-])# BOOST_FILESYSTEM
+[BOOST_FIND_LIB([filesystem], [$1],
+                [boost/filesystem.hpp],
+                [boost::filesystem::path p("/");])
+])# BOOST_PROGRAM_OPTIONS
+
 
 
 # BOOST_FOREACH()
