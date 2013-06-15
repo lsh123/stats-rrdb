@@ -3,6 +3,9 @@ default_policy=1 sec FOR 30 min, 10 sec FOR 1 day, 1 min FOR 1 month, 10 min FOR
 path=@localstatedir@/@PACKAGE_NAME@
 flush_interval=1 min
 
+[server]
+user=@STATS_RRDB_USER@
+
 [server_tcp]
 address=127.0.0.1
 port=9876

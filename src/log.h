@@ -44,6 +44,8 @@ public:
   static void write(enum levels level, const char * msg, ...);
   static void write(enum levels level, const char * msg, va_list args);
 
+  static std::string get_log_file();
+
 private:
   static std::string level2str(enum levels level);
   static enum levels str2level(const std::string & str);

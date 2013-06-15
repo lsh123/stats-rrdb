@@ -29,6 +29,8 @@ public:
 
 public:
   void daemonize(const std::string & pid_file = std::string());
+  void setuid_user(const std::string & user);
+
   void run();
   void stop();
 

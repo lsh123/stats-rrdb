@@ -44,6 +44,9 @@ bool config::init(int argc, char ** argv)
       ("rrdb.default_policy",          value<std::string>(), "default metric policy (default: '1 sec for 1 min, 1 min for 1 year')")
       ("rrdb.flush_interval",          value<std::string>(), "how often we flus to disk (default: '10 sec')")
 
+      // server
+      ("server.user",                  value<std::string>(), "the user name to switch the process to (default: not set)")
+
       // server_tcp
       ("server_tcp.address",           value<std::string>(), "tcp listener address (default: 0.0.0.0)")
       ("server_tcp.port",              value<int>(),         "tcp listener port (default: 9876)")
@@ -75,14 +78,13 @@ bool config::init(int argc, char ** argv)
   }
 
   // config?
-  std::string config_file;
   if(this->has("config")) {
-      std::string config_file = this->get<std::string>("config");
+      _config_file = this->get<std::string>("config");
 
-      LOG(log::LEVEL_DEBUG, "Loading configuration file '%s'", config_file.c_str());
-      std::ifstream file(config_file.c_str(), std::ios_base::in);
+      LOG(log::LEVEL_DEBUG, "Loading configuration file '%s'", _config_file.c_str());
+      std::ifstream file(_config_file.c_str(), std::ios_base::in);
       if(file.fail()) {
-          throw exception("Unable to open file '%s'", config_file.c_str());
+          throw exception("Unable to open file '%s'", _config_file.c_str());
       }
 
       store(parse_config_file(file, config_file_desc), _data);
@@ -92,9 +94,9 @@ bool config::init(int argc, char ** argv)
   log::init(*this);
 
   try {
-      LOG(log::LEVEL_INFO, "Loaded configuration file '%s'", config_file.c_str());
+      LOG(log::LEVEL_INFO, "Loaded configuration file '%s'", _config_file.c_str());
   } catch(...) {
-      std::cerr << "Can not write to log file " << config_file << std::endl;
+      std::cerr << "Can not write to log file " << _config_file << std::endl;
       std::terminate();
   }
 

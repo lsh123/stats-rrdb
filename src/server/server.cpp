@@ -5,18 +5,20 @@
  *      Author: aleksey
  */
 #include <unistd.h>
+#include <pwd.h>
+#include <grp.h>
 
 #include <fstream>
 
-#include "server.h"
+#include "server/server.h"
 
 #include "log.h"
 #include "config.h"
 #include "thread_pool.h"
 
 #include "rrdb/rrdb.h"
-#include "server_udp.h"
-#include "server_tcp.h"
+#include "server/server_udp.h"
+#include "server/server_tcp.h"
 
 server::server(boost::shared_ptr<config> config) :
   _exit_signals(_io_service)
@@ -144,6 +146,38 @@ void server::notify_after_fork(bool is_parent)
   }
 }
 
+void server::setuid_user(const std::string & user)
+{
+  // do we know this username?
+  struct passwd *pwd = getpwnam(user.c_str());
+  if(pwd == NULL) {
+      throw exception("Can not find user '%s' to setuid() to it", user.c_str());
+  }
+
+  // switch the log file - the only resources we've touched
+  std::string log_file = log::get_log_file();
+  if(!log_file.empty() && chown(log_file.c_str(), pwd->pw_uid, pwd->pw_gid )) {
+      throw exception("Can not chown() log file '%s' to user '%s' with id %u and primary group id %u: errno %d", log_file.c_str(), user.c_str(), pwd->pw_uid, pwd->pw_gid, errno);
+  }
+
+  // use user's supplemental group list
+  if(initgroups(user.c_str(), pwd->pw_gid)) {
+      throw exception("Can not initgroups() for user '%s' with id %u and primary group id %u: errno %d", user.c_str(), pwd->pw_uid, pwd->pw_gid, errno);
+  }
+
+  // use primary group ID
+  if(setgid(pwd->pw_gid)) {
+      throw exception("Can not setgid() for user '%s' with id %u and primary group id %u: errno %d", user.c_str(), pwd->pw_uid, pwd->pw_gid, errno);
+  }
+
+  // use the specified user ID
+  if (setuid(pwd->pw_uid)) {
+      throw exception("Can not setuid() for user '%s' with id %u and primary group id %u: errno %d", user.c_str(), pwd->pw_uid, pwd->pw_gid, errno);
+  }
+
+  // done
+  LOG(log::LEVEL_INFO, "Switched to user '%s' with id %u and primary group id %u", user.c_str(), pwd->pw_uid, pwd->pw_gid);
+}
 
 void server::run()
 {

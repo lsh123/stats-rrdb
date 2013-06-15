@@ -18,7 +18,7 @@
 #include "log.h"
 #include "config.h"
 #include "exception.h"
-#include "server.h"
+#include "server/server.h"
 
 int main(int argc, char ** argv)
 {
@@ -39,13 +39,16 @@ int main(int argc, char ** argv)
     if(cfg->has("daemon")) {
         main_server->daemonize(cfg->get<std::string>("daemon"));
     }
+    if(cfg->has("server.user")) {
+        main_server->setuid_user(cfg->get<std::string>("server.user"));
+    }
     main_server->run();
 
   } catch (std::exception & e) {
-    LOG(log::LEVEL_ERROR, "%s", e.what());
+    std::cerr << "EXCEPTION: " << e.what() << std::endl;
     return(1);
   } catch (...) {
-    LOG(log::LEVEL_ERROR, "Unknown un-handled exception");
+    std::cerr << "EXCEPTION: Unknown Exception" << std::endl;
     return(1);
   }
 

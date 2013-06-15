@@ -31,6 +31,7 @@ public:
 
 
 private:
+  std::string                           _config_file;
   boost::program_options::variables_map _data;
 }; //  class config
 

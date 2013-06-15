@@ -5,7 +5,7 @@
  *      Author: aleksey
  */
 
-#include "server_tcp.h"
+#include "server/server_tcp.h"
 
 #include <iostream>
 #include <boost/array.hpp>

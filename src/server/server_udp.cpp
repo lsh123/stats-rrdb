@@ -5,7 +5,7 @@
  *      Author: aleksey
  */
 
-#include "server_udp.h"
+#include "server/server_udp.h"
 
 #include <iostream>
 #include <boost/array.hpp>

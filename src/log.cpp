@@ -148,3 +148,15 @@ void log::write(enum levels level, const char * msg, va_list args)
       std::terminate();
   }
 }
+
+std::string log::get_log_file()
+{
+    if(log::_log_dest == "stderr") {
+        return std::string();
+    } else if(log::_log_dest == "syslog") {
+        return std::string();
+    } else {
+        return _log_dest;
+    }
+}
+
