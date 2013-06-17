@@ -34,6 +34,8 @@ public:
   void run();
   void stop();
 
+  void test(const std::string & params);
+
 private:
   void signal_handler(const boost::system::error_code& error, int signal_number);
   void notify_before_fork();

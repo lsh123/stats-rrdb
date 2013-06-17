@@ -30,6 +30,10 @@ public:
 
   std::size_t run(boost::shared_ptr<thread_pool_task> task);
 
+  inline double get_load_factor() const
+  {
+      return _used_threads.load(boost::memory_order_relaxed) / (double)_pool_size;
+  }
 
 private:
   void wrap_task_run(boost::shared_ptr<thread_pool_task> task);

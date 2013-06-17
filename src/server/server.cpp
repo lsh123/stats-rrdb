@@ -17,6 +17,8 @@
 #include "server/thread_pool.h"
 
 #include "rrdb/rrdb.h"
+#include "rrdb/rrdb_test.h"
+
 #include "server/server_udp.h"
 #include "server/server_tcp.h"
 
@@ -197,3 +199,7 @@ void server::stop()
   _rrdb->stop();
 }
 
+void server::test(const std::string & params)
+{
+  rrdb_test::run_test(_rrdb, params);
+}
