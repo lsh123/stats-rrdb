@@ -290,28 +290,18 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
   // log
   LOG(log::LEVEL_DEBUG, "RRDB: creating metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
 
-  // TODO: check name
-  // starts with a letter, doesn't contain anything but (a-zA-Z0-9._-)
-
-  // check the policy
-  retention_policy_validate(policy);
-
   // force lower case for names
   std::string name_lc(name);
   boost::algorithm::to_lower(name_lc);
 
-  // try to find the metric
-  boost::shared_ptr<rrdb_metric> res = this->find_metric_lc(name_lc);
-  if(res) {
-      if(throw_if_exists) {
-        throw exception("The metric '%s' already exists", name.c_str());
-      } else {
-          return res;
-      }
-  }
+  // TODO: check name
+  // starts with a letter, doesn't contain anything but (a-zA-Z0-9._-), length
+
+  // check the policy
+  retention_policy_validate(policy);
 
   // create new and try to insert into map, lock access to _metrics
-  res.reset(new rrdb_metric(name_lc, policy));
+  boost::shared_ptr<rrdb_metric> res(new rrdb_metric(name_lc, policy));
   {
     // make sure there is always only one metric for the name
     boost::lock_guard<spinlock> guard(_metrics_lock);
@@ -321,7 +311,7 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
         if(throw_if_exists) {
             throw exception("The metric '%s' already exists", name.c_str());
         } else {
-            return res;
+            return (*it).second;
         }
     }
     _metrics[name_lc] = res;

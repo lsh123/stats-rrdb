@@ -62,8 +62,8 @@ public:
         _rrdb->execute_udp_command(_input_buffer, res);
 
         // eat our own dog food
-        time_t now = time(NULL);
-        _rrdb->update_metric("self.udp.requests", now, 1.0);
+        // time_t now = time(NULL);
+        // _rrdb->update_metric("self.udp.requests", now, 1.0);
     } catch(std::exception & e) {
         LOG(log::LEVEL_ERROR, "Exception executing short rrdb command: %s", e.what());
 
