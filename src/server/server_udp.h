@@ -59,7 +59,7 @@ private:
   int          _port;
   std::size_t  _thread_pool_size;
   std::size_t  _buffer_size;
-  bool         _send_response;
+  bool         _send_success_response;
 }; // server_udp
 
 #endif /* SERVER_UDP_H_ */

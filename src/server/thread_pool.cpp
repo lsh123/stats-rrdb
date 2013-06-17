@@ -48,7 +48,7 @@ std::size_t thread_pool::run(boost::shared_ptr<thread_pool_task> task)
   std::size_t used_threads = _used_threads.fetch_add(1, boost::memory_order_release);
   if(used_threads >= _pool_size) {
     _used_threads.fetch_sub(1, boost::memory_order_relaxed);
-    throw new exception("No available threads to execute the task");
+    throw exception("No available threads to execute the task: %ld out of %ld used", SIZE_T_CAST used_threads, SIZE_T_CAST _pool_size);
   }
 
   //

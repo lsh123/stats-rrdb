@@ -135,7 +135,7 @@ void rrdb_metric_block::update(const update_ctx_t & in, update_ctx_t & out)
     rrdb_metric_tuple_update(*tuple, in._tuple);
     break;
   default:
-    throw new exception("Unexpected update ctx state %d", in._state);
+    throw exception("Unexpected update ctx state %d", in._state);
   }
 }
 

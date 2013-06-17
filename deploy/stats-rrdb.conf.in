@@ -17,7 +17,7 @@ address=0.0.0.0
 port=9876
 max_message_size=4096
 thread_pool_size=5
-send_response=true
+send_success_response=false
 
 [log]
 level=info

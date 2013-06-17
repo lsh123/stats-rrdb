@@ -58,7 +58,7 @@ bool config::init(int argc, char ** argv)
       ("server_udp.port",              value<int>(),         "udp listener port (default: 9876)")
       ("server_udp.max_message_size",  value<std::size_t>(), "udp max message size in bytes (default: 2048)")
       ("server_udp.thread_pool_size",  value<std::size_t>(), "udp server number of worker threads (default: 5)")
-      ("server_udp.send_response",     value<bool>(),        "udp server sends response (default: false)")
+      ("server_udp.send_success_response",  value<bool>(),   "udp server will send success 'OK' response (default: false)")
 
       // log
       ("log.level",       value<std::string>(),    "log level (default: info)")

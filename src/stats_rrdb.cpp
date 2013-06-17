@@ -45,9 +45,13 @@ int main(int argc, char ** argv)
     main_server->run();
 
   } catch (const std::exception & e) {
+    LOG(log::LEVEL_CRITICAL,  "EXCEPTION: %s", e.what());
+
     std::cerr << "EXCEPTION: " << e.what() << std::endl;
     return(1);
   } catch (...) {
+    LOG(log::LEVEL_CRITICAL,  "EXCEPTION: Unknown exception");
+
     std::cerr << "EXCEPTION: Unknown Exception" << std::endl;
     throw;
   }

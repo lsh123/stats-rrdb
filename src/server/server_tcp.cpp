@@ -57,6 +57,10 @@ public:
     memory_buffer_t res(_output_buffer);
     try {
         _rrdb->execute_tcp_command(_input_buffer, res);
+
+        // eat our own dog food
+        time_t now = time(NULL);
+        _rrdb->update_metric("self.tcp.requests", now, 1.0);
     } catch(std::exception & e) {
         LOG(log::LEVEL_ERROR, "Exception executing long rrdb command: %s", e.what());
 
@@ -165,9 +169,13 @@ void server_tcp::stop()
 
 void server_tcp::accept()
 {
-  boost::shared_ptr<connection_tcp> new_connection(new connection_tcp(_acceptor->get_io_service(), _rrdb, _buffer_size));
-  // new_connection->set_rrdb(_rrdb);
-
+  boost::shared_ptr<connection_tcp> new_connection(
+      new connection_tcp(
+          _acceptor->get_io_service(),
+          _rrdb,
+          _buffer_size
+       )
+  );
   _acceptor->async_accept(
       new_connection->get_socket(),
       boost::bind(
@@ -183,27 +191,31 @@ void server_tcp::handle_accept(
     boost::shared_ptr<connection_tcp> new_connection,
     const boost::system::error_code& error
 ) {
-  // any errors?
-  if (error) {
-      LOG(log::LEVEL_ERROR, "TCP Server accept failed - %d: %s", error.value(), error.message().c_str());
-      return;
+  try {
+      // any errors?
+      if (error) {
+          LOG(log::LEVEL_ERROR, "TCP Server accept failed - %d: %s", error.value(), error.message().c_str());
+          return;
+      }
+
+      // log
+      LOG(log::LEVEL_DEBUG3, "TCP Server accepted new connection");
+
+      // start async read
+      async_read(
+          new_connection->get_socket(),
+          boost::asio::buffer(new_connection->get_input_buffer()),
+          boost::bind(
+              &server_tcp::handle_read,
+              this,
+              new_connection,
+              boost::asio::placeholders::error,
+              boost::asio::placeholders::bytes_transferred
+          )
+      );
+  } catch(const std::exception & e) {
+      LOG(log::LEVEL_CRITICAL,  "Exception in tcp accept handler: %s", e.what());
   }
-
-  // log
-  LOG(log::LEVEL_DEBUG3, "TCP Server accepted new connection");
-
-  // start async read
-  async_read(
-      new_connection->get_socket(),
-      boost::asio::buffer(new_connection->get_input_buffer()),
-      boost::bind(
-          &server_tcp::handle_read,
-          this,
-          new_connection,
-          boost::asio::placeholders::error,
-          boost::asio::placeholders::bytes_transferred
-      )
-  );
 
   // next one, please
   this->accept();
@@ -214,25 +226,24 @@ void server_tcp::handle_read(
     const boost::system::error_code& error,
     std::size_t bytes_transferred
 ) {
-  // any errors?
-  if (error && error != boost::asio::error::eof) {
-      LOG(log::LEVEL_ERROR, "TCP Server read failed - %d: %s", error.value(), error.message().c_str());
-      return;
-  } else if(error != boost::asio::error::eof) {
-      LOG(log::LEVEL_ERROR, "TCP Server received request larger than the buffer size %lu bytes, consider increasing server.tcp_max_message_size config parameter", SIZE_T_CAST _buffer_size);
-      return;
+  try {
+      // any errors?
+      if (error && error != boost::asio::error::eof) {
+          LOG(log::LEVEL_ERROR, "TCP Server read failed - %d: %s", error.value(), error.message().c_str());
+          return;
+      } else if(error != boost::asio::error::eof) {
+          LOG(log::LEVEL_ERROR, "TCP Server received request larger than the buffer size %lu bytes, consider increasing server.tcp_max_message_size config parameter", SIZE_T_CAST _buffer_size);
+          return;
+      }
+
+      // log
+      LOG(log::LEVEL_DEBUG3, "TCP Server read %lu bytes", SIZE_T_CAST bytes_transferred);
+
+      // off-load task for processing to the buffer pool
+      new_connection->get_input_buffer().resize(bytes_transferred);
+      _thread_pool->run(new_connection);
+  } catch(const std::exception & e) {
+      LOG(log::LEVEL_CRITICAL,  "Exception in tcp read handler: %s", e.what());
   }
-
-  // log
-  LOG(log::LEVEL_DEBUG3, "TCP Server read %lu bytes", SIZE_T_CAST bytes_transferred);
-
-  // off-load task for processing to the buffer pool
-  new_connection->get_input_buffer().resize(bytes_transferred);
-  std::size_t used_threads = _thread_pool->run(new_connection);
-
-  // eat our own dog food
-  time_t now = time(NULL);
-  _rrdb->update_metric("self.tcp.requests", now, 1.0);
-  _rrdb->update_metric("self.tcp.requests", now, used_threads);
 }
 

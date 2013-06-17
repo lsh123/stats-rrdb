@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <syslog.h>
 
-
+#include <boost/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/algorithm/string.hpp>
@@ -134,17 +134,45 @@ void log::write(enum levels level, const char * msg, va_list args)
   vsnprintf(buffer, sizeof(buffer), msg, args);
   try {
     if(log::_log_dest == "stderr") {
-        std::cerr << log::format_time() << " - " << log::level2str(level) << " - " << buffer << std::endl;
+        std::cerr
+          << log::format_time()
+          << " - "
+          << log::level2str(level)
+          << " - "
+          << boost::this_thread::get_id()
+          << " - "
+          << buffer
+          << std::endl
+        ;
     } else if(log::_log_dest == "syslog") {
         syslog(log::level2syslog(level), "%s", buffer);
     } else {
         std::fstream ofs(log::_log_dest.c_str(), std::ios_base::app | std::ios_base::out);
-        ofs << log::format_time() << " - " << log::level2str(level) << " - " << buffer << std::endl;
+        ofs
+          << log::format_time()
+          << " - "
+          << log::level2str(level)
+          << " - "
+          << boost::this_thread::get_id()
+          << " - "
+          << buffer
+          << std::endl
+        ;
         ofs.flush();
         ofs.close();
     }
   } catch(...) {
-      std::cerr << log::format_time() << " - " << log::level2str(log::LEVEL_CRITICAL) << " - " << "Unable to write to log: " << log::_log_dest << std::endl;
+      std::cerr
+        << log::format_time()
+        << " - "
+        << log::level2str(log::LEVEL_CRITICAL)
+        << " - "
+        << boost::this_thread::get_id()
+        << " - "
+        << "Unable to write to log: "
+        << log::_log_dest
+        << std::endl
+      ;
       std::terminate();
   }
 }

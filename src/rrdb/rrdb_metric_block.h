@@ -73,7 +73,7 @@ public:
       case UpdateState_Tuple:
         return _tuple._ts;
       default:
-        throw new exception("Unexpected update ctx state %d", _state);
+        throw exception("Unexpected update ctx state %d", _state);
       }
     }
   } update_ctx_t;

@@ -30,10 +30,12 @@ public:
   connection_udp(
       const boost::shared_ptr<boost::asio::ip::udp::socket> & socket,
       const boost::shared_ptr<rrdb> & rrdb,
-      std::size_t buffer_size
+      std::size_t buffer_size,
+      bool send_success_response
   ) :
     _socket(socket),
-    _rrdb(rrdb)
+    _rrdb(rrdb),
+    _send_success_response(send_success_response)
   {
     _input_buffer.resize(buffer_size);
   }
@@ -58,6 +60,10 @@ public:
     memory_buffer_t res(_output_buffer);
     try {
         _rrdb->execute_udp_command(_input_buffer, res);
+
+        // eat our own dog food
+        time_t now = time(NULL);
+        _rrdb->update_metric("self.udp.requests", now, 1.0);
     } catch(std::exception & e) {
         LOG(log::LEVEL_ERROR, "Exception executing short rrdb command: %s", e.what());
 
@@ -73,6 +79,10 @@ public:
 
     // add default OK
     if(_output_buffer.empty()) {
+        // do we bother to send 'OK' UDP responses?
+        if(!_send_success_response) {
+            return;
+        }
         res << "OK";
         res.flush();
     }
@@ -81,11 +91,7 @@ public:
     _input_buffer.clear();
     _rrdb.reset();
 
-    // TODO:
-    // do we bother to send UDP responses?
-    // if(!_send_response) {
-    //    return;
-    // }
+    // send!
     _socket->async_send_to(
         boost::asio::buffer(_output_buffer),
         _remote_endpoint,
@@ -117,6 +123,7 @@ public:
 private:
   boost::shared_ptr<boost::asio::ip::udp::socket> _socket;
   boost::shared_ptr<rrdb>                         _rrdb;
+  bool                                            _send_success_response;
 
   udp::endpoint                 _remote_endpoint;
   std::string                   _input_buffer;
@@ -134,7 +141,7 @@ server_udp::server_udp(
   _port(config->get<int>("server_udp.port", 9876)),
   _thread_pool_size(config->get<std::size_t>("server_udp.thread_pool_size", 5)),
   _buffer_size(config->get<std::size_t>("server_udp.max_message_size", 2048)),
-  _send_response(config->get<bool>("server_udp.send_response", false))
+  _send_success_response(config->get<bool>("server_udp.send_success_response", false))
 {
   // log
   LOG(log::LEVEL_DEBUG, "Starting UDP server on %s:%d", _address.c_str(), _port);
@@ -179,7 +186,12 @@ void server_udp::stop()
 void server_udp::receive()
 {
   boost::shared_ptr<connection_udp> new_connection(
-      new connection_udp(_socket, _rrdb, _buffer_size)
+      new connection_udp(
+          _socket,
+          _rrdb,
+          _buffer_size,
+          _send_success_response
+      )
   );
 
   _socket->async_receive_from(
@@ -203,23 +215,22 @@ void server_udp::handle_receive(
     const boost::system::error_code& error,
     std::size_t bytes_transferred
 ) {
-  // any errors?
-  if (error) {
-      LOG(log::LEVEL_ERROR, "UDP Server receive failed - %d: %s", error.value(), error.message().c_str());
-      return;
+  try {
+      // any errors?
+      if (error) {
+          LOG(log::LEVEL_ERROR, "UDP Server receive failed - %d: %s", error.value(), error.message().c_str());
+          return;
+      }
+
+      // log
+      LOG(log::LEVEL_DEBUG3, "UDP Server received %lu bytes", SIZE_T_CAST bytes_transferred);
+
+      // offload task for processing to the buffer pool
+      new_connection->get_input_buffer().resize(bytes_transferred);
+      _thread_pool->run(new_connection);
+  } catch(const std::exception & e) {
+      LOG(log::LEVEL_CRITICAL,  "Exception in udp accept receive: %s", e.what());
   }
-
-  // log
-  LOG(log::LEVEL_DEBUG3, "UDP Server received %lu bytes", SIZE_T_CAST bytes_transferred);
-
-  // offload task for processing to the buffer pool
-  new_connection->get_input_buffer().resize(bytes_transferred);
-  std::size_t used_threads = _thread_pool->run(new_connection);
-
-  // eat our own dog food
-  time_t now = time(NULL);
-  _rrdb->update_metric("self.udp.requests", now, 1.0);
-  _rrdb->update_metric("self.udp.requests", now, used_threads);
 
   // next one, please
   this->receive();
