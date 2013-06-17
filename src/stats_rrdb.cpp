@@ -44,12 +44,12 @@ int main(int argc, char ** argv)
     }
     main_server->run();
 
-  } catch (std::exception & e) {
+  } catch (const std::exception & e) {
     std::cerr << "EXCEPTION: " << e.what() << std::endl;
     return(1);
   } catch (...) {
     std::cerr << "EXCEPTION: Unknown Exception" << std::endl;
-    return(1);
+    throw;
   }
 
   return(0);

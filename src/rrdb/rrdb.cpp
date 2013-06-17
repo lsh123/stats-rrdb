@@ -285,7 +285,7 @@ boost::shared_ptr<rrdb_metric> rrdb::get_metric(const std::string & name)
   return res;
 }
 
-boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, const retention_policy & policy)
+boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, const retention_policy & policy, bool throw_if_exists)
 {
   // log
   LOG(log::LEVEL_DEBUG, "RRDB: creating metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
@@ -303,7 +303,11 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
   // try to find the metric
   boost::shared_ptr<rrdb_metric> res = this->find_metric_lc(name_lc);
   if(res) {
-      throw exception("The metric '%s' already exists", name.c_str());
+      if(throw_if_exists) {
+        throw exception("The metric '%s' already exists", name.c_str());
+      } else {
+          return res;
+      }
   }
 
   // create new and try to insert into map, lock access to _metrics
@@ -314,13 +318,14 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
     t_metrics_map::const_iterator it = _metrics.find(name_lc);
     if(it != _metrics.end()) {
         // someone inserted it in the meantime
-        throw exception("The metric '%s' already exists", name.c_str());
+        if(throw_if_exists) {
+            throw exception("The metric '%s' already exists", name.c_str());
+        } else {
+            return res;
+        }
     }
     _metrics[name_lc] = res;
   }
-
-  // create file - outside the spin lock
-  res->save_file(_path);
 
   // log
   LOG(log::LEVEL_INFO, "RRDB: created metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
@@ -402,7 +407,7 @@ void rrdb::update_metric(const std::string & name, const boost::uint64_t & ts, c
 {
   boost::shared_ptr<rrdb_metric> metric = this->find_metric(name);
   if(!metric) {
-      metric = this->create_metric(name, _default_policy);
+      metric = this->create_metric(name, _default_policy, false);
   }
 
   metric->update(ts, value);

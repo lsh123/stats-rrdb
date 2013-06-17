@@ -191,6 +191,8 @@ void rrdb_metric::update(const boost::uint64_t & ts, const double & value)
   }
   CHECK_AND_THROW(_blocks.size() == _header._blocks_size);
 
+  LOG(log::LEVEL_DEBUG2, "Update '%s' with %f at timestamp %ld", _name.get(), value, ts);
+
   // mark dirty
   _header._status |= Status_Dirty;
 

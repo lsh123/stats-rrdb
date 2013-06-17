@@ -48,7 +48,7 @@ public:
   // metrics map operations
   boost::shared_ptr<rrdb_metric> get_metric(const std::string & name);
   boost::shared_ptr<rrdb_metric> find_metric(const std::string & name);
-  boost::shared_ptr<rrdb_metric> create_metric(const std::string & name, const retention_policy & policy);
+  boost::shared_ptr<rrdb_metric> create_metric(const std::string & name, const retention_policy & policy, bool throw_if_exists = true);
   void drop_metric(const std::string & name);
   std::vector<std::string> get_metrics(const std::string & like = std::string());
 

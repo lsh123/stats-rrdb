@@ -53,7 +53,7 @@ foreach($values as $value) {
 		    <td>
 		    <select name="metric" style="width: 300px">
 		    <?php foreach($metrics as $metric): ?>
-			<option name="<?php echo $metric; ?>" 
+			<option value="<?php echo $metric; ?>" 
 			    <?php echo ($cur_metric == $metric) ? "SELECTED" : ""?>
 			><?php echo $metric; ?></option>
 		    <?php endforeach; ?>
@@ -168,7 +168,7 @@ foreach($values as $value) {
     			chart.draw(data, 
     				{ width:  800
     				, height: 400
-    				, title: '<?php echo $metric; ?>: <?php echo $column; ?>'
+    				, title: '<?php echo $cur_metric; ?>: <?php echo $column; ?>'
     				, titleTextStyle: window.text_big
     				, backgroundColor: window.bgColor
     				, legend: 'none'
