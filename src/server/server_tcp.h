@@ -18,6 +18,8 @@ class config;
 class thread_pool;
 class rrdb;
 class connection_tcp;
+class server_status;
+
 
 class server_tcp :
     public boost::enable_shared_from_this<server_tcp>
@@ -25,15 +27,15 @@ class server_tcp :
   friend class connection_tcp;
 
 public:
-  server_tcp(
-      boost::asio::io_service& io_service,
-      boost::shared_ptr<rrdb> rrdb,
-      boost::shared_ptr<config> config
-  );
+  server_tcp(boost::shared_ptr<rrdb> rrdb);
   virtual ~server_tcp();
+
+  void initialize(boost::asio::io_service& io_service, boost::shared_ptr<config> config);
 
   void start();
   void stop();
+
+  void update_status(boost::shared_ptr<server_status> status);
 
 protected:
   void accept();

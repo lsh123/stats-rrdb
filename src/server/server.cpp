@@ -19,19 +19,31 @@
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_test.h"
 
+#include "server/server_status.h"
 #include "server/server_udp.h"
 #include "server/server_tcp.h"
 
-server::server(boost::shared_ptr<config> config) :
+server::server() :
+  _server_status(new server_status()),
   _exit_signals(_io_service)
-
 {
-  LOG(log::LEVEL_DEBUG, "Starting the server");
+}
+
+server::~server()
+{
+}
+
+void server::initialize(boost::shared_ptr<config> config)
+{
+  // create
+    _rrdb.reset(new rrdb(shared_from_this()));
+  _server_udp.reset(new server_udp(_rrdb));
+  _server_tcp.reset(new server_tcp(_rrdb));
 
   // init
-  _rrdb.reset(new rrdb(config));
-  _server_udp.reset(new server_udp(_io_service, _rrdb, config));
-  _server_tcp.reset(new server_tcp(_io_service, _rrdb, config));
+  _rrdb->initialize(config);
+  _server_udp->initialize(_io_service, config);
+  _server_tcp->initialize(_io_service, config);
 
   // Register signal handlers so that the server may be shut down.
   _exit_signals.add(SIGHUP);
@@ -45,13 +57,6 @@ server::server(boost::shared_ptr<config> config) :
       boost::asio::placeholders::error,
       boost::asio::placeholders::signal_number
   ));
-
-  // done
-  LOG(log::LEVEL_INFO, "Started the server");
-}
-
-server::~server()
-{
 }
 
 void server::signal_handler(const boost::system::error_code& error, int signal_number)
@@ -183,11 +188,16 @@ void server::setuid_user(const std::string & user)
 
 void server::run()
 {
+  LOG(log::LEVEL_DEBUG, "Starting the server");
+
   _rrdb->start();
   _server_udp->start();
   _server_tcp->start();
 
   _io_service.run();
+
+  // done
+  LOG(log::LEVEL_INFO, "Started the server");
 }
 
 void server::stop()
@@ -197,6 +207,20 @@ void server::stop()
   _server_tcp->stop();
 
   _rrdb->stop();
+}
+
+boost::shared_ptr<const server_status> server::get_status()
+{
+  boost::lock_guard<spinlock> guard(_server_status_lock);
+  if(!_server_status->is_valid()) {
+      boost::shared_ptr<server_status> new_server_status(new server_status());
+      _server_udp->update_status(new_server_status);
+      _server_tcp->update_status(new_server_status);
+      _rrdb->update_status(new_server_status);
+
+      _server_status.swap(new_server_status);
+  }
+  return _server_status;
 }
 
 void server::test(const std::string & params)

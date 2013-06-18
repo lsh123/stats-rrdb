@@ -35,7 +35,9 @@ int main(int argc, char ** argv)
 
 
     // main server
-    boost::shared_ptr<server> main_server(new server(cfg));
+    boost::shared_ptr<server> main_server(new server());
+    main_server->initialize(cfg);
+
     if(cfg->has("test")) {
         main_server->test(cfg->get<std::string>("test"));
         return(0);

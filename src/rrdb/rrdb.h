@@ -29,6 +29,8 @@
 class config;
 class rrdb_metric;
 class statement_select;
+class server;
+class server_status;
 
 class rrdb :
     public boost::enable_shared_from_this<rrdb>
@@ -38,12 +40,16 @@ public:
   typedef std::vector< boost::shared_ptr<rrdb_metric> > t_metrics_vector;
 
 public:
-  rrdb(boost::shared_ptr<config> config);
+  rrdb(boost::shared_ptr<server> server);
   virtual ~rrdb();
+
+  void initialize(boost::shared_ptr<config> config);
 
   bool is_running();
   void start();
   void stop();
+
+  void update_status(boost::shared_ptr<server_status> status);
 
   // metrics map operations
   boost::shared_ptr<rrdb_metric> get_metric(const std::string & name);
@@ -69,13 +75,15 @@ private:
   t_metrics_vector get_dirty_metrics();
 
 private:
-  // config
-  std::string      _path;
-  interval_t       _flush_interval;
-  retention_policy _default_policy;
+  boost::weak_ptr<server> _server;
 
-  t_metrics_map    _metrics;
-  spinlock         _metrics_lock;
+  // config
+  std::string             _path;
+  interval_t              _flush_interval;
+  retention_policy        _default_policy;
+
+  t_metrics_map           _metrics;
+  spinlock                _metrics_lock;
 
   // TODO: make it a pool?
   boost::shared_ptr< boost::thread > _flush_to_disk_thread;

@@ -20,6 +20,7 @@ class config;
 class thread_pool;
 class rrdb;
 class connection_udp;
+class server_status;
 
 class server_udp :
     public boost::enable_shared_from_this<server_udp>
@@ -27,15 +28,15 @@ class server_udp :
   friend class connection_udp;
 
 public:
-  server_udp(
-      boost::asio::io_service& io_service,
-      boost::shared_ptr<rrdb> rrdb,
-      boost::shared_ptr<config> config
-  );
+  server_udp(boost::shared_ptr<rrdb> rrdb);
   virtual ~server_udp();
+
+  void initialize(boost::asio::io_service& io_service, boost::shared_ptr<config> config);
 
   void start();
   void stop();
+
+  void update_status(boost::shared_ptr<server_status> status);
 
 protected:
   void receive();

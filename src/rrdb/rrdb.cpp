@@ -17,9 +17,13 @@
 
 #include "parser/statements.h"
 
+#include "server/server_status.h"
+#include "server/server.h"
+
 #include "config.h"
 #include "log.h"
 #include "exception.h"
+
 
 //
 //
@@ -106,22 +110,30 @@ private:
 //
 //
 //
-rrdb::rrdb(boost::shared_ptr<config> config) :
-    _path(config->get<std::string>("rrdb.path", "/var/lib/rrdb")), _flush_interval(
-        interval_parse(
-            config->get<std::string>("rrdb.flush_interval", "1 min"))), _default_policy(
-        retention_policy_parse(
-            config->get<std::string>("rrdb.default_policy", "1 min FOR 1 day")))
-{
-  LOG(log::LEVEL_DEBUG, "Starting rrdb");
+rrdb::rrdb(boost::shared_ptr<server> server) :
+  _server(server),
+  _path("/var/lib/rrdb"),
+  _flush_interval(interval_parse("1 min")),
+  _default_policy(retention_policy_parse("1 min FOR 1 day"))
 
-  LOG(log::LEVEL_INFO, "Started rrdb: flush_interval='%s'", interval_write(_flush_interval).c_str());
-  LOG(log::LEVEL_INFO, "Started rrdb: default_policy='%s'", retention_policy_write(_default_policy).c_str());
+{
 }
 
 rrdb::~rrdb()
 {
   this->stop();
+}
+
+void rrdb::initialize(boost::shared_ptr<config> config)
+{
+  _path           = config->get<std::string>("rrdb.path", _path);
+
+  _flush_interval = interval_parse(
+      config->get<std::string>("rrdb.flush_interval", interval_write(_flush_interval))
+  );
+  _default_policy = retention_policy_parse(
+      config->get<std::string>("rrdb.default_policy", retention_policy_write(_default_policy))
+  );
 }
 
 bool rrdb::is_running()
@@ -139,6 +151,8 @@ void rrdb::start()
 
   // load metrics from disk
   this->load_metrics();
+
+  LOG(log::LEVEL_INFO, "Loaded RRDB data files");
 
   // start flush thread
   _flush_to_disk_thread.reset(new boost::thread(boost::bind(&rrdb::flush_to_disk_thread, this)));
@@ -164,6 +178,12 @@ void rrdb::stop()
   this->flush_to_disk();
 
   LOG(log::LEVEL_INFO, "Stopped RRDB server");
+}
+
+
+void rrdb::update_status(boost::shared_ptr<server_status> status)
+{
+
 }
 
 void rrdb::flush_to_disk_thread()
@@ -216,7 +236,7 @@ void rrdb::flush_to_disk()
   this->update_metric("self.flush_to_disk.duration", end, (end - start));
 
 
-  LOG(log::LEVEL_DEBUG2, "Flushed to disk");
+  LOG(log::LEVEL_INFO, "Flushed to disk");
 }
 
 boost::shared_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)

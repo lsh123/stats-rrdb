@@ -11,11 +11,15 @@
 #include <boost/array.hpp>
 #include <boost/bind.hpp>
 
+
+#include "server/server_status.h"
+#include "server/thread_pool.h"
+
+#include "rrdb/rrdb.h"
+
 #include "exception.h"
 #include "log.h"
 #include "config.h"
-#include "server/thread_pool.h"
-#include "rrdb/rrdb.h"
 
 using namespace boost::asio::ip;
 
@@ -28,8 +32,8 @@ class connection_udp:
 {
 public:
   connection_udp(
-      const boost::shared_ptr<boost::asio::ip::udp::socket> & socket,
-      const boost::shared_ptr<rrdb> & rrdb,
+     boost::shared_ptr<boost::asio::ip::udp::socket> socket,
+      boost::shared_ptr<rrdb> rrdb,
       std::size_t buffer_size,
       bool send_success_response
   ) :
@@ -77,6 +81,7 @@ public:
     }
     res.flush();
 
+    /*
     // add default OK
     if(_output_buffer.empty()) {
         // do we bother to send 'OK' UDP responses?
@@ -102,6 +107,7 @@ public:
           boost::asio::placeholders::bytes_transferred
         )
     );
+    */
   }
 
   void handle_send(
@@ -131,20 +137,30 @@ private:
 }; // class connection_udp
 
 
-server_udp::server_udp(
-    boost::asio::io_service& io_service,
-    boost::shared_ptr<rrdb> rrdb,
-    boost::shared_ptr<config> config
-) :
+server_udp::server_udp(boost::shared_ptr<rrdb> rrdb) :
   _rrdb(rrdb),
-  _address(config->get<std::string>("server_udp.address", "0.0.0.0")),
-  _port(config->get<int>("server_udp.port", 9876)),
-  _thread_pool_size(config->get<std::size_t>("server_udp.thread_pool_size", 5)),
-  _buffer_size(config->get<std::size_t>("server_udp.max_message_size", 2048)),
-  _send_success_response(config->get<bool>("server_udp.send_success_response", false))
+  _address("0.0.0.0"),
+  _port(9876),
+  _thread_pool_size(5),
+  _buffer_size(2048),
+  _send_success_response(false)
+{
+}
+
+server_udp::~server_udp()
+{
+}
+
+void server_udp::initialize(boost::asio::io_service& io_service, boost::shared_ptr<config> config)
 {
   // log
   LOG(log::LEVEL_DEBUG, "Starting UDP server on %s:%d", _address.c_str(), _port);
+
+  _address          = config->get<std::string>("server_udp.address", _address);
+  _port             = config->get<int>("server_udp.port", _port);
+  _thread_pool_size = config->get<std::size_t>("server_udp.thread_pool_size", _thread_pool_size);
+  _buffer_size      = config->get<std::size_t>("server_udp.max_message_size", _buffer_size);
+  _send_success_response = config->get<bool>("server_udp.send_success_response", _send_success_response);
 
   // create socket
   _socket.reset(new udp::socket(io_service, udp::endpoint(address_v4::from_string(_address), _port)));
@@ -154,10 +170,6 @@ server_udp::server_udp(
 
   // done
   LOG(log::LEVEL_INFO, "Started UDP server on %s:%d", _address.c_str(), _port);
-}
-
-server_udp::~server_udp()
-{
 }
 
 void server_udp::start()
@@ -181,6 +193,11 @@ void server_udp::stop()
   _thread_pool.reset();
 
   LOG(log::LEVEL_INFO, "Stopped UDP server");
+}
+
+void server_udp::update_status(boost::shared_ptr<server_status> status)
+{
+
 }
 
 void server_udp::receive()

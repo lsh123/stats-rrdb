@@ -15,6 +15,7 @@
 #include "log.h"
 #include "config.h"
 
+#include "server/server_status.h"
 #include "server/thread_pool.h"
 
 #include "rrdb/rrdb.h"
@@ -117,19 +118,29 @@ private:
   memory_buffer_data_t          _output_buffer;
 }; // class connection_tcp
 
-server_tcp::server_tcp(
-    boost::asio::io_service& io_service,
-    boost::shared_ptr<rrdb> rrdb,
-    boost::shared_ptr<config> config
-) :
+server_tcp::server_tcp(boost::shared_ptr<rrdb> rrdb) :
   _rrdb(rrdb),
-  _address(config->get<std::string>("server_tcp.address", "0.0.0.0")),
-  _port(config->get<int>("server_tcp.port", 9876)),
-  _thread_pool_size(config->get<std::size_t>("server_tcp.thread_pool_size", 5)),
-  _buffer_size(config->get<std::size_t>("server_tcp.max_message_size", 4096))
+  _address("0.0.0.0"),
+  _port(9876),
+  _thread_pool_size(5),
+  _buffer_size(4096)
+{
+}
+
+server_tcp::~server_tcp()
+{
+}
+
+void server_tcp::initialize(boost::asio::io_service& io_service, boost::shared_ptr<config> config)
 {
   // log
   LOG(log::LEVEL_DEBUG, "Starting TCP server on %s:%d", _address.c_str(), _port);
+
+  // load config
+  _address          = config->get<std::string>("server_tcp.address", _address);
+  _port             = config->get<int>("server_tcp.port", _port);
+  _thread_pool_size = config->get<std::size_t>("server_tcp.thread_pool_size", _thread_pool_size);
+  _buffer_size      = config->get<std::size_t>("server_tcp.max_message_size", _buffer_size);
 
   // create socket
   _acceptor.reset(new tcp::acceptor(io_service, tcp::endpoint(address_v4::from_string(_address), _port)));
@@ -139,10 +150,6 @@ server_tcp::server_tcp(
 
   // done
   LOG(log::LEVEL_INFO, "Started TCP server on %s:%d", _address.c_str(), _port);
-}
-
-server_tcp::~server_tcp()
-{
 }
 
 void server_tcp::start()
@@ -165,6 +172,11 @@ void server_tcp::stop()
   _thread_pool.reset();
 
   LOG(log::LEVEL_INFO, "Stopped TCP server");
+}
+
+void server_tcp::update_status(boost::shared_ptr<server_status> status)
+{
+
 }
 
 void server_tcp::accept()

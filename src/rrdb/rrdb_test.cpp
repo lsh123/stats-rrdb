@@ -60,16 +60,17 @@ void rrdb_test::run_test(boost::shared_ptr<rrdb> rrdb, const std::string & param
   char buf[1024];
   time_t ts1(time(NULL));
   for(std::size_t ii = 0; ii < tasks_num; ii++) {
-      snprintf(buf, sizeof(buf), "u|test.metric.%lu|1|%lu", rand() % metrics_num, ts1 + 1000*ii);
+      snprintf(buf, sizeof(buf), "u|test.metric.%lu|1|%lu", rand() % metrics_num, ts1 + ii / 1000);
       boost::shared_ptr<rrdb_test> t(new rrdb_test(rrdb, buf));
 
       threads->run(t);
-
+/*
       // wait if load factor is bigger than 2.0
       while(threads->get_load_factor() > 2.0) {
           LOG(log::LEVEL_DEBUG, "Load factor > 2.0, sleeping\n");
           boost::this_thread::sleep(boost::posix_time::milliseconds(100));
       }
+*/
   }
 
   // wait until done
