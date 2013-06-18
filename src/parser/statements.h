@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <boost/variant.hpp>
+#include <boost/optional.hpp>
 
 #include "interval.h"
 #include "retention_policy.h"
@@ -45,37 +46,37 @@ public:
 /**
  * UPDATE statement string representation:
  *
- * UPDATE [METRIC] "<name>" ADD <value> AT <timestamp>;
+ * UPDATE [METRIC] "<name>" ADD <value> [ AT <timestamp> ] ;
  *
  */
 class statement_update
 {
 public:
-  std::string      _name;
-  double           _value;
-  boost::int64_t   _ts;
+  std::string                     _name;
+  double                          _value;
+  boost::optional<boost::int64_t> _ts;
 };
 
 
 /**
  * SELECT statement string representation:
  *
- * SELECT * FROM [METRIC] "<name>" BETWEEN <timestamp1> AND <timestamp2> GROUP BY <interval> ;
+ * SELECT * FROM [METRIC] "<name>" BETWEEN <timestamp1> AND <timestamp2> [ GROUP BY <interval> ];
  *
  */
 class statement_select
 {
 public:
-  std::string      _name;
-  boost::int64_t   _ts_begin;
-  boost::int64_t   _ts_end;
-  interval_t       _group_by;
+  std::string                   _name;
+  boost::int64_t                _ts_begin;
+  boost::int64_t                _ts_end;
+  boost::optional<interval_t>   _group_by;
 };
 
 /**
  * SHOW METRIC POLICY statement string representation:
  *
- * SHOW METRIC POLICY "<name>" ;
+ * SHOW [ METRIC ] POLICY "<name>" ;
  *
  */
 class statement_show_policy
@@ -87,23 +88,25 @@ public:
 /**
  * SHOW METRICS print all the metrics available
  *
- * SHOW METRICS LIKE "<name>";
+ * SHOW METRICS [ LIKE "<name>" ] ;
  *
  */
 class statement_show_metrics
 {
 public:
-  std::string      _like;
+  boost::optional<std::string> _like;
 };
 
 /**
  * SHOW STATUS print status
  *
- * SHOW STATUS;
+ * SHOW STATUS [ LIKE "<name>" ] ;
  *
  */
 class statement_show_status
 {
+public:
+  boost::optional<std::string> _like;
 };
 
 /**

@@ -102,7 +102,9 @@ allow user to create/view/delete metrics, update metrics with data, and query me
 * 	The SHOW METRICS statement prints matching the given pattern metrics' names 
 	one per line separated by eol (\n) character:
 
-		SHOW METRICS LIKE "<pattern>";
+		SHOW METRICS [ LIKE "<pattern>" ];
+	
+	If &lt;pattern&gt; is not specified then all the metrics are shown.
 
 	For example, the following SHOW METRICS statement will return all the metrics' 
 	names that have "system" as part of their name:
@@ -116,17 +118,39 @@ allow user to create/view/delete metrics, update metrics with data, and query me
 		system.memory.swap
 		system.io.reads
 		system.io.writes
+
+* 	The SHOW STATUS statement prints status variables with names matching:
+
+		SHOW STATUS [ LIKE "<pattern>" ];
+	
+	If &lt;pattern&gt; is not specified then all the status values are shown. 
+	The data is returned in CSV format with a header line describing the returned 
+	columns. If there is not statis variables matching the given pattern
+	then an error is generated.
+
+	For example, the following SHOW STATUS statement will return all the metrics' 
+	names that have "system" as part of their name:
+
+		SHOW STATUS LIKE "load_factor" ;
+ 
+	The returned values might look as follows:
+
+		name,ts,value
+		self.server_udp.load_factor,1371278126,1.2
+		self.server_tcp.load_factor,1371278126,0.3
+
  
 #### Update statements
 
 * 	The UPDATE METRIC statement adds the given double value to the metric at 
 	the given timestamp
 
-		UPDATE METRIC "<name>" ADD <value> AT <timestamp> ;
+		UPDATE METRIC "<name>" ADD <value> [ AT <timestamp> ] ;
 
 	If the specified metric doesn't exist then it will be automatically created
 	using the default retention policy specified in the configuration file. 
-	The &lt;timestamp&gt; value can be in the past.
+	The &lt;timestamp&gt; value can be in the past. If &lt;timestamp&gt; value 
+	is not specified then the current server time is used.
 
 	For example, the following UPDATE METRIC statement will update metric 
 	"system.cpu.load" with value 0.34 recorded at 1371278126 (Sat, 15 Jun 
@@ -185,9 +209,15 @@ The following commands are supported:
 	follows:
 
 		u|<name>|<value>|<timestamp>
+		
+		or
+		
+		u|<name>|<value>
+		
 
 	Where &lt;name&gt; is the metric name (string), &lt;value&gt; is the double 
-	value to be recorded, and &lt;timestamp&gt; is the Unix epoch timestamp.
+	value to be recorded, and &lt;timestamp&gt; is the Unix epoch timestamp. If
+	&lt;timestamp&gt; is not specified then the current server time is used.
 	
 	If the metric does not exists then it will be create using the default retention
 	policy specified in the Stats-RRDB server config file.

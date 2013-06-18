@@ -30,14 +30,14 @@ BOOST_FUSION_ADAPT_STRUCT(
     statement_update,
     (std::string,      _name)
     (double,           _value)
-    (boost::int64_t,   _ts)
+    (boost::optional<boost::int64_t>, _ts)
 )
 BOOST_FUSION_ADAPT_STRUCT(
     statement_select,
     (std::string,      _name)
     (boost::int64_t,   _ts_begin)
     (boost::int64_t,   _ts_end)
-    (interval_t,       _group_by)
+    (boost::optional<interval_t>,     _group_by)
 )
 BOOST_FUSION_ADAPT_STRUCT(
     statement_show_policy,
@@ -45,8 +45,13 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 BOOST_FUSION_ADAPT_STRUCT(
     statement_show_metrics,
-    (std::string,      _like)
+    (boost::optional<std::string>,      _like)
 )
+BOOST_FUSION_ADAPT_STRUCT(
+    statement_show_status,
+    (boost::optional<std::string>,      _like)
+)
+
 
 template<typename Iterator>
 class statement_grammar:
@@ -92,7 +97,7 @@ public:
         nocaselit("select") >> nocaselit("*")
           >> nocaselit("from") >> -nocaselit("metric") >> _quoted_name
           >> nocaselit("between") >> qi::ulong_ >> nocaselit("and") >> qi::ulong_
-          >> nocaselit("group") >> nocaselit("by") >> _interval
+          >> -(nocaselit("group") >> nocaselit("by") >> _interval)
      ;
 
      _statement_create %=
@@ -123,12 +128,15 @@ public:
     // http://stackoverflow.com/questions/7770791/spirit-unable-to-assign-attribute-to-single-element-struct-or-fusion-sequence
     //
     _statement_show_metrics =
-        (nocaselit("show") >> -nocaselit("metrics") >> nocaselit("like") >> _quoted_name)
-        [ at_c<0>(qi::_val) = qi::_1 ]
+        nocaselit("show") >> nocaselit("metrics")
+        >> -(nocaselit("like") >> _quoted_name)
+        >> boost::spirit::eps
     ;
 
-    _statement_show_status %=
+    _statement_show_status =
         nocaselit("show") >> nocaselit("status")
+        >> -(nocaselit("like") >> _quoted_name)
+        >> boost::spirit::eps
     ;
 
     //

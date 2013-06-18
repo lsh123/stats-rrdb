@@ -83,8 +83,8 @@ private:
   inline void close_group_by()
   {
     if(_cur_interval > 0) {
-        LOG(log::LEVEL_DEBUG3, "select: cur = %lld, gb=%lld", _cur_interval, _query._group_by);
-        rrdb_metric_tuple_normalize(_cur_tuple,  (double)_query._group_by / (double)_cur_interval);
+        LOG(log::LEVEL_DEBUG3, "select: cur = %lld, gb=%lld", _cur_interval, _query._group_by ? *_query._group_by : 0);
+        rrdb_metric_tuple_normalize(_cur_tuple,  _query._group_by ? (*_query._group_by) / (double)_cur_interval : 0);
         _res.push_back(_cur_tuple);
     }
   }

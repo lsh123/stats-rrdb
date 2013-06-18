@@ -51,7 +51,7 @@ public:
 
   void operator()(const statement_update & st) const
   {
-    _rrdb->update_metric(st._name, st._ts, st._value);
+    _rrdb->update_metric(st._name, st._ts ? *st._ts : time(NULL), st._value);
   }
 
   void operator()(const statement_select & st) const
@@ -103,7 +103,7 @@ public:
 
   void operator()(const statement_show_status & st) const
   {
-    boost::shared_ptr<const server_status> status(_rrdb->get_status());
+    boost::shared_ptr<const server_status> status(_rrdb->get_status(st._like));
     if(!status) {
         throw exception("Can not get server status");
     }
@@ -392,11 +392,13 @@ void rrdb::drop_metric(const std::string & name)
   LOG(log::LEVEL_INFO, "RRDB: dropped metric '%s'", name.c_str());
 }
 
-std::vector<std::string> rrdb::get_metrics(const std::string & like)
+std::vector<std::string> rrdb::get_metrics(const boost::optional<std::string> & like)
 {
   // force lower case for names
-  std::string like_lc(like);
-  boost::algorithm::to_lower(like_lc);
+  boost::optional<std::string> like_lc(like);
+  if(like_lc) {
+      boost::algorithm::to_lower(*like_lc);
+  }
 
   // store results here
   std::vector<std::string> res;
@@ -405,7 +407,7 @@ std::vector<std::string> rrdb::get_metrics(const std::string & like)
   {
     boost::lock_guard<spinlock> guard(_metrics_lock);
     BOOST_FOREACH(const t_metrics_map::value_type & v, _metrics) {
-      if(!like_lc.empty() && v.first.find(like_lc) == std::string::npos) {
+      if(like_lc && v.first.find(*like_lc) == std::string::npos) {
           continue;
       }
       res.push_back(v.first);
@@ -455,7 +457,7 @@ void rrdb::select_from_metric(const statement_select & query, std::vector<rrdb_m
   metric->select(query, res);
 }
 
-boost::shared_ptr<const server_status> rrdb::get_status()
+boost::shared_ptr<const server_status> rrdb::get_status(const boost::optional<std::string> & like)
 {
   boost::shared_ptr<server> server(_server.lock());
   return server.use_count() ? server->get_status() : boost::shared_ptr<const server_status>();
