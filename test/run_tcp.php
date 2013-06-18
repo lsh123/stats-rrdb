@@ -23,6 +23,7 @@ function stop_server() {
 	echo "=================== Stopping server\n";
 	$pid=file_get_contents($PID_FILE);
 	system("kill $pid");
+	sleep(3);
 	echo "=================== Stopped server $pid\n";
 
 }

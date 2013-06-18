@@ -22,25 +22,28 @@
 #include "parser/interval.h"
 #include "rrdb/rrdb_metric_tuple.h"
 
+
+typedef boost::uint32_t rrdb_metric_block_pos_t;
+
 //
 // RRDB Metric Block Header format
 //
 typedef struct rrdb_metric_block_header_t_ {
-  boost::uint16_t   _magic;             // magic bytes (0x99DB)
-  boost::uint16_t   _status;            // block status flags
-  boost::uint32_t   _unused1;
+  boost::uint16_t           _magic;             // magic bytes (0x99DB)
+  boost::uint16_t           _status;            // block status flags
+  boost::uint32_t           _unused1;
 
-  my::size_t        _offset;            // current offset in the file
-  my::size_t        _data_size;         // current size (bytes) in the file
+  my::size_t                _offset;            // current offset in the file
+  my::size_t                _data_size;         // current size (bytes) in the file
 
-  my::interval_t     _freq;             // frequency of collections in secs
-  boost::uint32_t   _count;             // number of data tuples
-  my::interval_t    _duration;          // for how long we store data (_freq * _count)
-  boost::uint32_t   _pos;               // current position for circular buffer
+  my::interval_t            _freq;             // frequency of collections in secs
+  my::interval_t            _duration;          // for how long we store data (_freq * _count)
+  rrdb_metric_block_pos_t   _count;             // number of data tuples
+  rrdb_metric_block_pos_t   _pos;               // current position for circular buffer
 
-  my::time_t         _pos_ts;            // current start time for this block
-  boost::uint32_t   _unused2;
-  boost::uint32_t   _unused3;
+  my::time_t                _pos_ts;            // current start time for this block
+  boost::uint32_t           _unused2;
+  boost::uint32_t           _unused3;
 } rrdb_metric_block_header_t;
 
 
@@ -89,7 +92,7 @@ public:
   }; // select_ctx
 
 public:
-  rrdb_metric_block(const boost::uint32_t & freq = 0, const boost::uint32_t & count = 0, const my::size_t & offset = 0);
+  rrdb_metric_block(const rrdb_metric_block_pos_t & freq = 0, const rrdb_metric_block_pos_t & count = 0, const my::size_t & offset = 0);
   virtual ~rrdb_metric_block();
 
   // DATA STUFF
@@ -107,11 +110,11 @@ public:
   inline my::interval_t get_freq() const {
     return _header._freq;
   }
-  inline boost::uint32_t get_count() const {
-    return _header._count;
-  }
   inline my::interval_t get_duration() const {
     return _header._duration;
+  }
+  inline rrdb_metric_block_pos_t get_count() const {
+    return _header._count;
   }
 
   // tuple
@@ -148,11 +151,11 @@ private:
     return ts - (ts % _header._freq);
   }
 
-  inline boost::uint32_t get_next_pos(const boost::uint32_t & pos) const {
-    boost::uint32_t new_pos = pos + 1;
+  inline rrdb_metric_block_pos_t get_next_pos(const rrdb_metric_block_pos_t & pos) const {
+    rrdb_metric_block_pos_t new_pos = pos + 1;
     return (new_pos < _header._count) ? new_pos : 0;
   }
-  inline boost::uint32_t get_prev_pos(const boost::uint32_t & pos) const {
+  inline rrdb_metric_block_pos_t get_prev_pos(const rrdb_metric_block_pos_t & pos) const {
     return (pos > 0) ? (pos - 1) : (_header._count - 1);
   }
 

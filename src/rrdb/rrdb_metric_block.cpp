@@ -12,7 +12,7 @@
 
 #define RRDB_METRIC_BLOCK_MAGIC    0xBB99
 
-rrdb_metric_block::rrdb_metric_block(const boost::uint32_t & freq, const boost::uint32_t & count, const my::size_t & offset)
+rrdb_metric_block::rrdb_metric_block(const rrdb_metric_block_pos_t & freq, const rrdb_metric_block_pos_t & count, const my::size_t & offset)
 {
   memset(&_header, 0, sizeof(_header));
   _header._magic     = RRDB_METRIC_BLOCK_MAGIC;
@@ -89,7 +89,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
 
       // find the spot
       my::time_t tuple_ts = this->get_cur_ts();
-      for(boost::uint32_t pos = this->get_prev_pos(_header._pos); pos != _header._pos; pos = this->get_prev_pos(pos)) {
+      for(rrdb_metric_block_pos_t pos = this->get_prev_pos(_header._pos); pos != _header._pos; pos = this->get_prev_pos(pos)) {
           tuple_ts -= _header._freq;
 
           // overwrite tuple ts just in case (it might not be initialized!)
@@ -155,7 +155,7 @@ bool rrdb_metric_block::select(rrdb_metric_block::select_ctx & ctx) const
       return false;
   }
 
-  boost::uint32_t pos(_header._pos);
+  rrdb_metric_block_pos_t pos(_header._pos);
   do {
       const rrdb_metric_tuple_t & tuple = _tuples[pos];
       if(tuple._ts < ctx._ts_begin) {

@@ -157,6 +157,14 @@ void rrdb::initialize(boost::shared_ptr<config> config)
   _default_policy = retention_policy_parse(
       config->get<std::string>("rrdb.default_policy", retention_policy_write(_default_policy))
   );
+
+
+  LOG(log::LEVEL_DEBUG, "Loading RRDB data files");
+
+  // load metrics from disk
+  this->load_metrics();
+
+  LOG(log::LEVEL_INFO, "Loaded RRDB data files");
 }
 
 bool rrdb::is_running()
@@ -171,11 +179,6 @@ void rrdb::start()
   }
 
   LOG(log::LEVEL_DEBUG, "Starting RRDB server");
-
-  // load metrics from disk
-  this->load_metrics();
-
-  LOG(log::LEVEL_INFO, "Loaded RRDB data files");
 
   // start flush thread
   _flush_to_disk_thread.reset(new boost::thread(boost::bind(&rrdb::flush_to_disk_thread, this)));
@@ -217,11 +220,16 @@ void rrdb::flush_to_disk_thread()
   // try/catch to get any error reported
   try {
       while (!boost::this_thread::interruption_requested()) {
+          time_t start = time(NULL);
           {
             boost::this_thread::disable_interruption d;
 
             this->flush_to_disk();
           }
+          // eat our own dog food
+          time_t end = time(NULL);
+          this->update_metric("self.flush_to_disk.duration", end, (end - start));
+
 
           boost::this_thread::sleep(boost::posix_time::seconds(this->_flush_interval));
       }
@@ -243,20 +251,16 @@ void rrdb::flush_to_disk()
 {
   LOG(log::LEVEL_DEBUG2, "Flushing to disk");
 
-  time_t start = time(NULL);
-
   t_metrics_vector dirty_metrics = this->get_dirty_metrics();
   BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, dirty_metrics) {
     try {
         metric->save_file(_path);
     } catch(std::exception & e) {
       LOG(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
+    } catch(...) {
+        LOG(log::LEVEL_ERROR, "Unknown exception saving metric '%s'", metric->get_name().c_str());
     }
   }
-
-  // eat our own dog food
-  time_t end = time(NULL);
-  this->update_metric("self.flush_to_disk.duration", end, (end - start));
 
   LOG(log::LEVEL_INFO, "Flushed to disk");
 }
@@ -344,6 +348,7 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
 
   // create new and try to insert into map, lock access to _metrics
   boost::shared_ptr<rrdb_metric> res(new rrdb_metric(name_lc, policy));
+  res->set_dirty();
   {
     // make sure there is always only one metric for the name
     boost::lock_guard<spinlock> guard(_metrics_lock);
