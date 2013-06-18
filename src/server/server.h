@@ -55,7 +55,7 @@ private:
 private:
   boost::asio::io_service          _io_service;
 
-  boost::shared_ptr<server_status> _server_status;
+  boost::shared_ptr<const server_status> _server_status;
   spinlock                         _server_status_lock;
 
   boost::shared_ptr<rrdb>          _rrdb;

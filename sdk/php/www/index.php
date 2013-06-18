@@ -7,7 +7,7 @@ $columns       = array('all' => 'All', 'count' => 'Count', 'sum' => 'Sum', 'avg'
 
 $client = new StatsRRDB(StatsRRDB::Mode_Tcp);
 $res = $client->send_command("show metrics like '.' ;");
-$metrics      = preg_split('/;/', $res, -1, PREG_SPLIT_NO_EMPTY);
+$metrics      = preg_split("/\n/", $res, -1, PREG_SPLIT_NO_EMPTY);
 
 $now          = time();
 $cur_metric   = isset($_GET['metric']) ? $_GET['metric'] : $metrics[0];

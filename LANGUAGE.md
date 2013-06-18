@@ -99,8 +99,8 @@ allow user to create/view/delete metrics, update metrics with data, and query me
 		1 sec FOR 1 min, 10 sec FOR 1 hour, 10 mins FOR 1 month, 30 mins FOR 1 year
 		
 
-* 	The SHOW METRICS statement prints the semi-colon (';') separated list of all 
-	the metrics' names that match the given pattern:
+* 	The SHOW METRICS statement prints matching the given pattern metrics' names 
+	one per line separated by eol (\n) character:
 
 		SHOW METRICS LIKE "<pattern>";
 
@@ -111,7 +111,11 @@ allow user to create/view/delete metrics, update metrics with data, and query me
  
 	The returned values might look as follows:
 
-		system.cpu.load;system.memory.usage;system.memory.swap;system.io.reads;system.io.writes;
+		system.cpu.load
+		system.memory.usage
+		system.memory.swap
+		system.io.reads
+		system.io.writes
  
 #### Update statements
 

@@ -176,7 +176,7 @@ void server_tcp::stop()
 
 void server_tcp::update_status(boost::shared_ptr<server_status> status)
 {
-
+  status->add_value("server_tcp.load_factor", _thread_pool->get_load_factor());
 }
 
 void server_tcp::accept()

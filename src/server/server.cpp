@@ -24,7 +24,6 @@
 #include "server/server_tcp.h"
 
 server::server() :
-  _server_status(new server_status()),
   _exit_signals(_io_service)
 {
 }
@@ -212,13 +211,12 @@ void server::stop()
 boost::shared_ptr<const server_status> server::get_status()
 {
   boost::lock_guard<spinlock> guard(_server_status_lock);
-  if(!_server_status->is_valid()) {
+  if(!_server_status || !_server_status->is_valid()) {
       boost::shared_ptr<server_status> new_server_status(new server_status());
       _server_udp->update_status(new_server_status);
       _server_tcp->update_status(new_server_status);
       _rrdb->update_status(new_server_status);
-
-      _server_status.swap(new_server_status);
+      _server_status = boost::static_pointer_cast<const server_status>(new_server_status);
   }
   return _server_status;
 }

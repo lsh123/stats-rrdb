@@ -57,6 +57,7 @@ public:
   boost::shared_ptr<rrdb_metric> create_metric(const std::string & name, const retention_policy & policy, bool throw_if_exists = true);
   void drop_metric(const std::string & name);
   std::vector<std::string> get_metrics(const std::string & like = std::string());
+  boost::shared_ptr<const server_status> get_status();
 
   // values
   void update_metric(const std::string & name, const boost::uint64_t & ts, const double & value);

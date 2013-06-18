@@ -97,6 +97,16 @@ public:
 };
 
 /**
+ * SHOW STATUS print status
+ *
+ * SHOW STATUS;
+ *
+ */
+class statement_show_status
+{
+};
+
+/**
  * Statement: any of the above
  *
  */
@@ -106,7 +116,8 @@ typedef boost::variant<
     statement_update,
     statement_select,
     statement_show_policy,
-    statement_show_metrics
+    statement_show_metrics,
+    statement_show_status
 > statement;
 
 statement statement_parse_tcp(const std::string & str);

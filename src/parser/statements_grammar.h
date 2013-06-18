@@ -69,6 +69,7 @@ private:
   qi::rule < Iterator, statement_select(),       ascii::space_type > _statement_select;
   qi::rule < Iterator, statement_show_policy(),  ascii::space_type > _statement_show_policy;
   qi::rule < Iterator, statement_show_metrics(), ascii::space_type > _statement_show_metrics;
+  qi::rule < Iterator, statement_show_status(),  ascii::space_type > _statement_show_status;
 
 public:
   statement_grammar():
@@ -125,6 +126,11 @@ public:
         (nocaselit("show") >> -nocaselit("metrics") >> nocaselit("like") >> _quoted_name)
         [ at_c<0>(qi::_val) = qi::_1 ]
     ;
+
+    _statement_show_status %=
+        nocaselit("show") >> nocaselit("status")
+    ;
+
     //
     // DONE!
     //
@@ -136,7 +142,8 @@ public:
             _statement_select |
             _statement_create |
             _statement_show_policy   |
-            _statement_show_metrics
+            _statement_show_metrics  |
+            _statement_show_status
         )
         >> nocaselit(";")
     ;

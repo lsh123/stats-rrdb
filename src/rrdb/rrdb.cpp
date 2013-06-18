@@ -69,19 +69,19 @@ public:
           avg = stddev = 0;
       }
       _res << tuple._ts
-          << ','
-          << tuple._count
-          << ','
-          << tuple._sum
-          << ','
-          << avg
-          << ','
-          << stddev
-          << ','
-          << tuple._min
-          << ','
-          << tuple._max
-          << std::endl;
+           << ','
+           << tuple._count
+           << ','
+           << tuple._sum
+           << ','
+           << avg
+           << ','
+           << stddev
+           << ','
+           << tuple._min
+           << ','
+           << tuple._max
+           << std::endl;
       ;
     }
   }
@@ -97,7 +97,28 @@ public:
   {
     std::vector<std::string> metrics = _rrdb->get_metrics(st._like);
     BOOST_FOREACH(const std::string & name, metrics){
-      _res << name << ";";
+      _res << name  << std::endl;
+    }
+  }
+
+  void operator()(const statement_show_status & st) const
+  {
+    boost::shared_ptr<const server_status> status(_rrdb->get_status());
+    if(!status) {
+        throw exception("Can not get server status");
+    }
+    server_status::t_values_map values = status->get_values();
+    if(values.empty()) {
+        throw exception("Server status is empty");
+    }
+
+    // print
+    BOOST_FOREACH(const server_status::t_values_map::value_type & v, values){
+      _res << v.first
+           << ","
+           << v.second
+           << std::endl
+      ;
     }
   }
 
@@ -434,6 +455,11 @@ void rrdb::select_from_metric(const statement_select & query, std::vector<rrdb_m
   metric->select(query, res);
 }
 
+boost::shared_ptr<const server_status> rrdb::get_status()
+{
+  boost::shared_ptr<server> server(_server.lock());
+  return server.use_count() ? server->get_status() : boost::shared_ptr<const server_status>();
+}
 
 void rrdb::execute_tcp_command(const std::vector<char> & buffer, memory_buffer_t & res)
 {

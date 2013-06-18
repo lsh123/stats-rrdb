@@ -197,7 +197,7 @@ void server_udp::stop()
 
 void server_udp::update_status(boost::shared_ptr<server_status> status)
 {
-
+  status->add_value("server_udp.load_factor", _thread_pool->get_load_factor());
 }
 
 void server_udp::receive()
