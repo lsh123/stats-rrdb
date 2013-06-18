@@ -33,7 +33,7 @@ public:
   connection_udp(
      boost::shared_ptr<boost::asio::ip::udp::socket> socket,
       boost::shared_ptr<rrdb> rrdb,
-      std::size_t buffer_size,
+      my::size_t buffer_size,
       bool send_success_response
   ) :
     _socket(socket),
@@ -107,7 +107,7 @@ public:
 
   void handle_send(
       const boost::system::error_code& error,
-      std::size_t bytes_transferred
+      my::size_t bytes_transferred
   ) {
     // any errors?
     if (error) {
@@ -153,8 +153,8 @@ void server_udp::initialize(boost::asio::io_service& io_service, boost::shared_p
 
   _address          = config->get<std::string>("server_udp.address", _address);
   _port             = config->get<int>("server_udp.port", _port);
-  _thread_pool_size = config->get<std::size_t>("server_udp.thread_pool_size", _thread_pool_size);
-  _buffer_size      = config->get<std::size_t>("server_udp.max_message_size", _buffer_size);
+  _thread_pool_size = config->get<my::size_t>("server_udp.thread_pool_size", _thread_pool_size);
+  _buffer_size      = config->get<my::size_t>("server_udp.max_message_size", _buffer_size);
   _send_success_response = config->get<bool>("server_udp.send_success_response", _send_success_response);
 
   // create socket
@@ -228,7 +228,7 @@ void server_udp::receive()
 void server_udp::handle_receive(
     boost::shared_ptr<connection_udp> new_connection,
     const boost::system::error_code& error,
-    std::size_t bytes_transferred
+    my::size_t bytes_transferred
 ) {
   try {
       // any errors?

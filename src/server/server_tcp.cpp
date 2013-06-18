@@ -29,7 +29,7 @@ class connection_tcp:
     public boost::enable_shared_from_this<connection_tcp>
 {
 public:
-  connection_tcp(boost::asio::io_service& io_service, const boost::shared_ptr<rrdb> & rrdb, std::size_t buffer_size) :
+  connection_tcp(boost::asio::io_service& io_service, const boost::shared_ptr<rrdb> & rrdb, const my::size_t & buffer_size) :
     _socket(io_service),
     _rrdb(rrdb),
     _input_buffer(buffer_size)
@@ -93,7 +93,7 @@ public:
     );
   }
 
-  void handle_write(const boost::system::error_code& error, std::size_t bytes_transferred)
+  void handle_write(const boost::system::error_code& error, my::size_t bytes_transferred)
   {
     // any errors?
     if (error) {
@@ -134,8 +134,8 @@ void server_tcp::initialize(boost::asio::io_service& io_service, boost::shared_p
   // load config
   _address          = config->get<std::string>("server_tcp.address", _address);
   _port             = config->get<int>("server_tcp.port", _port);
-  _thread_pool_size = config->get<std::size_t>("server_tcp.thread_pool_size", _thread_pool_size);
-  _buffer_size      = config->get<std::size_t>("server_tcp.max_message_size", _buffer_size);
+  _thread_pool_size = config->get<my::size_t>("server_tcp.thread_pool_size", _thread_pool_size);
+  _buffer_size      = config->get<my::size_t>("server_tcp.max_message_size", _buffer_size);
 
   // create socket
   _acceptor.reset(new tcp::acceptor(io_service, tcp::endpoint(address_v4::from_string(_address), _port)));
@@ -234,7 +234,7 @@ void server_tcp::handle_accept(
 void server_tcp::handle_read(
     boost::shared_ptr<connection_tcp> new_connection,
     const boost::system::error_code& error,
-    std::size_t bytes_transferred
+    my::size_t bytes_transferred
 ) {
   try {
       // any errors?

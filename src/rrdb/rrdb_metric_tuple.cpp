@@ -9,7 +9,7 @@
 
 #include "log.h"
 
-void rrdb_metric_tuple_update(rrdb_metric_tuple_t & tuple, const double & value)
+void rrdb_metric_tuple_update(rrdb_metric_tuple_t & tuple, const my::value_t & value)
 {
   if(tuple._min > value || tuple._count == 0) {
       tuple._min = value;
@@ -35,7 +35,7 @@ void rrdb_metric_tuple_update(rrdb_metric_tuple_t & tuple, const rrdb_metric_tup
   tuple._count   += other._count;
 }
 
-void rrdb_metric_tuple_normalize(rrdb_metric_tuple_t & tuple, const double & factor)
+void rrdb_metric_tuple_normalize(rrdb_metric_tuple_t & tuple, const my::value_t & factor)
 {
   if(factor > 0) {
       // leave alone min/max

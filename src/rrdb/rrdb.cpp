@@ -59,7 +59,7 @@ public:
     _rrdb->select_from_metric(st, tuples);
 
     _res << "ts,count,sum,avg,stddev,min,max" << std::endl;
-    double avg, stddev;
+    my::value_t avg, stddev;
     BOOST_FOREACH(const rrdb_metric_tuple_t & tuple, tuples) {
       if(tuple._count > 0) {
           avg = tuple._sum / tuple._count;
@@ -436,7 +436,7 @@ rrdb::t_metrics_vector rrdb::get_dirty_metrics()
 }
 
 // values
-void rrdb::update_metric(const std::string & name, const boost::uint64_t & ts, const double & value)
+void rrdb::update_metric(const std::string & name, const my::time_t & ts, const my::value_t & value)
 {
   boost::shared_ptr<rrdb_metric> metric = this->find_metric(name);
   if(!metric) {

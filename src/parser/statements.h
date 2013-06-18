@@ -52,9 +52,9 @@ public:
 class statement_update
 {
 public:
-  std::string                     _name;
-  double                          _value;
-  boost::optional<boost::int64_t> _ts;
+  std::string                 _name;
+  double                      _value;
+  boost::optional<my::time_t> _ts;
 };
 
 
@@ -67,10 +67,10 @@ public:
 class statement_select
 {
 public:
-  std::string                   _name;
-  boost::int64_t                _ts_begin;
-  boost::int64_t                _ts_end;
-  boost::optional<my::interval_t>   _group_by;
+  std::string                     _name;
+  my::time_t                      _ts_begin;
+  my::time_t                      _ts_end;
+  boost::optional<my::interval_t> _group_by;
 };
 
 /**

@@ -13,6 +13,7 @@
 
 #include <boost/shared_ptr.hpp>
 
+#include "types.h"
 #include "exception.h"
 
 class config;

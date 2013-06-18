@@ -46,9 +46,9 @@ void rrdb_test::run_test(boost::shared_ptr<rrdb> rrdb, const std::string & param
   if(data.size() != 3) {
       throw exception("Invalid test params: expected <threads>|<tasks>|<metrics>");
   }
-  std::size_t threads_num = boost::lexical_cast<std::size_t>(data[0]);
-  std::size_t tasks_num   = boost::lexical_cast<std::size_t>(data[1]);
-  std::size_t metrics_num = boost::lexical_cast<std::size_t>(data[2]);
+  my::size_t threads_num = boost::lexical_cast<my::size_t>(data[0]);
+  my::size_t tasks_num   = boost::lexical_cast<my::size_t>(data[1]);
+  my::size_t metrics_num = boost::lexical_cast<my::size_t>(data[2]);
 
   // run test
   std::cout << "Starting performance test with "
@@ -59,7 +59,7 @@ void rrdb_test::run_test(boost::shared_ptr<rrdb> rrdb, const std::string & param
   boost::shared_ptr<thread_pool> threads(new thread_pool(threads_num));
   char buf[1024];
   time_t ts1(time(NULL));
-  for(std::size_t ii = 0; ii < tasks_num; ii++) {
+  for(my::size_t ii = 0; ii < tasks_num; ii++) {
       snprintf(buf, sizeof(buf), "u|test.metric.%lu|1|%lu", rand() % metrics_num, ts1 + ii / 1000);
       boost::shared_ptr<rrdb_test> t(new rrdb_test(rrdb, buf));
 
@@ -93,7 +93,7 @@ void rrdb_test::run_test(boost::shared_ptr<rrdb> rrdb, const std::string & param
         << std::endl;
 
   // cleanup
-  for(std::size_t ii = 0; ii < metrics_num; ii++) {
+  for(my::size_t ii = 0; ii < metrics_num; ii++) {
       snprintf(buf, sizeof(buf), "d|test.metric.%lu", ii);
       boost::shared_ptr<rrdb_test> t(new rrdb_test(rrdb, buf));
 

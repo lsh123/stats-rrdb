@@ -35,7 +35,7 @@ retention_policy retention_policy_parse(const std::string & str)
 std::string retention_policy_write(const retention_policy & r_p)
 {
   std::ostringstream ret;
-  std::size_t count = 0;
+  my::size_t count = 0;
   for(retention_policy::const_iterator it = r_p.begin(); it != r_p.end(); ++it, ++count) {
       if(count > 0) {
           ret << ", ";

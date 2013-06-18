@@ -15,6 +15,7 @@
 #include <boost/shared_array.hpp>
 #include <boost/cstdint.hpp>
 
+#include "types.h"
 #include "spinlock.h"
 #include "parser/retention_policy.h"
 #include "rrdb/rrdb_metric_tuple.h"
@@ -69,12 +70,12 @@ public:
   void delete_file(const std::string & folder);
   static boost::shared_ptr<rrdb_metric> load_file(const std::string & filename);
 
-  void update(const boost::uint64_t & ts, const double & value);
+  void update(const my::time_t & ts, const my::value_t & value);
   void select(const statement_select & query, std::vector<rrdb_metric_tuple_t> & res);
 
 private:
   static std::string get_full_path(const std::string & folder, const std::string & name);
-  static std::size_t get_padded_name_len(std::size_t name_len);
+  static my::size_t get_padded_name_len(const my::size_t & name_len);
 
   void write_header(std::fstream & ofs);
   void read_header(std::fstream & ifs);

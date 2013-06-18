@@ -15,6 +15,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/atomic.hpp>
 
+#include "types.h"
 
 class thread_pool_task
 {
@@ -25,22 +26,22 @@ public:
 class thread_pool
 {
 public:
-  thread_pool(std::size_t pool_size);
+  thread_pool(my::size_t pool_size);
   virtual ~thread_pool();
 
-  std::size_t run(boost::shared_ptr<thread_pool_task> task);
+  my::size_t run(boost::shared_ptr<thread_pool_task> task);
 
   inline double get_load_factor() const
   {
       return _used_threads.load(boost::memory_order_relaxed) / (double)_pool_size;
   }
 
-  inline std::size_t get_started_jobs() const
+  inline my::size_t get_started_jobs() const
   {
       return _started_jobs.load(boost::memory_order_relaxed);
   }
 
-  inline std::size_t get_finished_jobs() const
+  inline my::size_t get_finished_jobs() const
   {
       return _finished_jobs.load(boost::memory_order_relaxed);
   }
@@ -49,13 +50,13 @@ private:
   void wrap_task_run(boost::shared_ptr<thread_pool_task> task);
 
 private:
-  std::size_t                    _pool_size;
+  my::size_t                    _pool_size;
   boost::asio::io_service        _io_service;
   boost::asio::io_service::work  _work;
   boost::thread_group            _threads;
-  boost::atomic<std::size_t>     _used_threads;
-  boost::atomic<std::size_t>     _started_jobs;
-  boost::atomic<std::size_t>     _finished_jobs;
+  boost::atomic<my::size_t>     _used_threads;
+  boost::atomic<my::size_t>     _started_jobs;
+  boost::atomic<my::size_t>     _finished_jobs;
 };
 
 #endif /* THREAD_POOL_H_ */

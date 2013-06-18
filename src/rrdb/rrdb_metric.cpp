@@ -84,7 +84,7 @@ private:
   {
     if(_cur_interval > 0) {
         LOG(log::LEVEL_DEBUG3, "select: cur = %lld, gb=%lld", _cur_interval, _query._group_by ? *_query._group_by : 0);
-        rrdb_metric_tuple_normalize(_cur_tuple,  _query._group_by ? (*_query._group_by) / (double)_cur_interval : 0);
+        rrdb_metric_tuple_normalize(_cur_tuple,  _query._group_by ? (*_query._group_by) / (my::value_t)_cur_interval : 0);
         _res.push_back(_cur_tuple);
     }
   }
@@ -123,7 +123,7 @@ rrdb_metric::rrdb_metric(const std::string & name, const retention_policy & poli
   // copy policy
   _header._blocks_size  = policy.size();
   _blocks.reserve(_header._blocks_size);
-  boost::uint64_t offset = sizeof(_header) + _header._name_size;
+  my::size_t offset = sizeof(_header) + _header._name_size;
   BOOST_FOREACH(const retention_policy_elem & elem, policy) {
     _blocks.push_back(rrdb_metric_block(elem._freq, elem._duration / elem._freq, offset));
     offset += _blocks.back().get_size();
@@ -183,7 +183,7 @@ void rrdb_metric::set_deleted()
   _header._status |= Status_Deleted;
 }
 
-void rrdb_metric::update(const boost::uint64_t & ts, const double & value)
+void rrdb_metric::update(const my::time_t & ts, const my::value_t & value)
 {
   boost::lock_guard<spinlock> guard(_lock);
   if(_header._blocks_size <= 0) {
@@ -210,7 +210,7 @@ void rrdb_metric::update(const boost::uint64_t & ts, const double & value)
   one._state = rrdb_metric_block::UpdateState_Value;
   one._ts    = ts;
   one._value = value;
-  std::size_t ii(1); // start from block 1
+  my::size_t ii(1); // start from block 1
   BOOST_FOREACH(rrdb_metric_block & block, _blocks) {
       // swap one and two to avoid copying data
       if(ii == 1) {
@@ -255,7 +255,7 @@ void rrdb_metric::select(const statement_select & query, std::vector<rrdb_metric
 std::string rrdb_metric::get_full_path(const std::string & folder, const std::string & name)
 {
   // calculate subfolder
-  std::size_t name_hash = boost::hash<std::string>()(name) % RRDB_METRIC_SUBFOLDERS_NUM;
+  my::size_t name_hash = boost::hash<std::string>()(name) % RRDB_METRIC_SUBFOLDERS_NUM;
   char buf[64];
   snprintf(buf, sizeof(buf), "%lu", SIZE_T_CAST name_hash);
   std::string subfolder = folder + "/" + buf;
@@ -269,7 +269,7 @@ std::string rrdb_metric::get_full_path(const std::string & folder, const std::st
 }
 
 // align by 64 bits = 8 bytes
-std::size_t rrdb_metric::get_padded_name_len(std::size_t name_len)
+my::size_t rrdb_metric::get_padded_name_len(const my::size_t & name_len)
 {
   return name_len + (8 - (name_len % 8));
 }

@@ -13,6 +13,11 @@
 namespace my {
 
 //
+// Timestamps
+//
+typedef boost::int64_t  time_t;
+
+//
 // Interval: number of seconds between two timestamps
 //
 typedef boost::uint32_t interval_t;
@@ -24,6 +29,18 @@ typedef boost::uint32_t interval_t;
 #define INTERVAL_WEEK   (7 * INTERVAL_DAY)
 #define INTERVAL_MONTH  (30 * INTERVAL_DAY)
 #define INTERVAL_YEAR   (365 * INTERVAL_DAY)
+
+
+//
+// Size
+//
+typedef boost::uint64_t size_t;
+
+
+//
+// Metric value
+//
+typedef double value_t;
 
 } // namespace my
 

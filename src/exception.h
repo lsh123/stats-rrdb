@@ -11,6 +11,7 @@
 #include <string>
 
 #include "log.h"
+#include "types.h"
 
 class exception: public std::exception
 {

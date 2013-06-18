@@ -14,6 +14,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
+#include "types.h"
+
 class config;
 class thread_pool;
 class rrdb;
@@ -45,7 +47,7 @@ protected:
   void handle_read(
       boost::shared_ptr<connection_tcp> new_connection,
       const boost::system::error_code& error,
-      std::size_t bytes_transferred
+      my::size_t bytes_transferred
   );
 
   inline boost::shared_ptr<rrdb> get_rrdb() const {
@@ -59,8 +61,8 @@ private:
 
   std::string  _address;
   int          _port;
-  std::size_t  _thread_pool_size;
-  std::size_t  _buffer_size;
+  my::size_t  _thread_pool_size;
+  my::size_t  _buffer_size;
 }; // server_tcp
 
 #endif /* SERVER_TCP_H_ */

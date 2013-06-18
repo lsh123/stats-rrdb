@@ -9,7 +9,7 @@
 #include "log.h"
 #include "server/thread_pool.h"
 
-thread_pool::thread_pool(std::size_t pool_size) :
+thread_pool::thread_pool(my::size_t pool_size) :
   _pool_size(pool_size),
   _work(_io_service),
   _used_threads(0)
@@ -17,7 +17,7 @@ thread_pool::thread_pool(std::size_t pool_size) :
   LOG(log::LEVEL_DEBUG, "Creating thread pool");
 
   // init
-  for(std::size_t ii = 0; ii < _pool_size; ++ii) {
+  for(my::size_t ii = 0; ii < _pool_size; ++ii) {
       _threads.create_thread(boost::bind(&boost::asio::io_service::run, &_io_service));
   }
 
@@ -42,10 +42,10 @@ thread_pool::~thread_pool()
   LOG(log::LEVEL_INFO, "Stopped thread pool");
 }
 
-std::size_t thread_pool::run(boost::shared_ptr<thread_pool_task> task)
+my::size_t thread_pool::run(boost::shared_ptr<thread_pool_task> task)
 {
   // ready to execute?
-  std::size_t used_threads = _used_threads.fetch_add(1, boost::memory_order_release);
+  my::size_t used_threads = _used_threads.fetch_add(1, boost::memory_order_release);
   if(_used_threads >= _pool_size) {
       // TODO: how to do not spam logs? throttle?
       LOG(log::LEVEL_ERROR, "No available threads to execute the task right away: %ld out of %ld used", SIZE_T_CAST used_threads, SIZE_T_CAST _pool_size);

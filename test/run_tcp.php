@@ -13,6 +13,7 @@ function start_server() {
 
 	echo "=================== Starting server\n";
 	system("$ROOT_FOLDER/src/stats-rrdb  --config \"$CONFIG_FILE\" --daemon \"$PID_FILE\"");
+	sleep(3);
 	$pid=file_get_contents($PID_FILE);
 	echo "=================== Started server $pid\n";
 }
@@ -45,11 +46,11 @@ try {
 	// create
 	$stats_rrdb = new StatsRRDB(StatsRRDB::Mode_Tcp);
 
-	echo "== CREATE METRIC 'test1' \n";
+	echo "== CREATE METRIC 'test1' ; \n";
 	$resp = $stats_rrdb->send_command("create metric 'test1' keep 5 secs for 10 sec, 10 secs for 20 secs, 20 secs for 10 min;"); 
 	check_result($resp, "OK");
 
-	echo "== CREATE METRIC 'test2' \n";
+	echo "== CREATE METRIC 'test2' ; \n";
 	$resp = $stats_rrdb->send_command("create metric 'test2' keep 10 secs for 1 week, 1 min for 1 month, 10 min for 1 year, 30 min for 10 years;");
 	check_result($resp, "OK");
 
@@ -70,7 +71,7 @@ try {
 
 	echo "== SELECT * FROM METRIC 'test2'\n";
 	$resp = $stats_rrdb->send_command("SELECT * FROM 'test2' BETWEEN 1371104580 AND 1371104990 GROUP BY 5 sec;");
-	check_result($resp, "ts,count,sum,sum_sqr,min,max\n");
+	check_result($resp, "ts,count,sum,avg,stddev,min,max\n");
 	
 	restart_server();
 
@@ -122,11 +123,11 @@ try {
 	$resp = $stats_rrdb->send_command("show metric 'test';");
 	check_result($resp, "ERROR: Unable to parse the statement");
 
-	echo "== DROP METRIC 'test1'\n";
+	echo "== DROP METRIC 'test1' ; \n";
 	$resp = $stats_rrdb->send_command("drop metric 'test1';");
 	check_result($resp, "OK");
 
-	echo "== DROP METRIC 'test2'\n";
+	echo "== DROP METRIC 'test2' ; \n";
 	$resp = $stats_rrdb->send_command("drop metric 'test2';");
 	check_result($resp, "OK");
 

@@ -17,6 +17,7 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/thread.hpp>
 
+#include "types.h"
 #include "spinlock.h"
 #include "memory_buffer.h"
 
@@ -59,7 +60,7 @@ public:
   void get_status_metrics(const boost::optional<std::string> & like, std::vector<std::string> & res);
 
   // values
-  void update_metric(const std::string & name, const boost::uint64_t & ts, const double & value);
+  void update_metric(const std::string & name, const my::time_t & ts, const my::value_t & value);
   void select_from_metric(const statement_select & query, std::vector<rrdb_metric_tuple_t> & res);
 
   // commands

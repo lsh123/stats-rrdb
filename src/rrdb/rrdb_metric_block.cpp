@@ -12,7 +12,7 @@
 
 #define RRDB_METRIC_BLOCK_MAGIC    0xBB99
 
-rrdb_metric_block::rrdb_metric_block(boost::uint32_t freq, boost::uint32_t count, boost::uint64_t offset)
+rrdb_metric_block::rrdb_metric_block(const boost::uint32_t & freq, const boost::uint32_t & count, const my::size_t & offset)
 {
   memset(&_header, 0, sizeof(_header));
   _header._magic     = RRDB_METRIC_BLOCK_MAGIC;
@@ -37,7 +37,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
   CHECK_AND_THROW(_header._pos < _header._count);
   CHECK_AND_THROW(_header._freq > 0);
 
-  const boost::int64_t & ts(in.get_ts());
+  const my::time_t & ts(in.get_ts());
   if(this->get_latest_possible_ts() <= ts) {
       // complete shift forward, notify about rollup
       out._state = UpdateState_Tuple;
@@ -54,7 +54,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
   } else if(this->get_cur_ts() <= ts) {
       // we are somewhere ahead but not too much
       rrdb_metric_tuple_t * tuple = &_tuples[_header._pos];
-      boost::int64_t next_tuple_ts = tuple->_ts + _header._freq;
+      my::time_t next_tuple_ts = tuple->_ts + _header._freq;
       if(ts < next_tuple_ts) {
           // our current tuple will do
           out._state = UpdateState_Stop;
@@ -88,7 +88,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
       out = in;
 
       // find the spot
-      boost::int64_t tuple_ts = this->get_cur_ts();
+      my::time_t tuple_ts = this->get_cur_ts();
       for(boost::uint32_t pos = this->get_prev_pos(_header._pos); pos != _header._pos; pos = this->get_prev_pos(pos)) {
           tuple_ts -= _header._freq;
 

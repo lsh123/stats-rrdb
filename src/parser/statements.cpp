@@ -63,7 +63,7 @@ statement statement_parse_udp(const std::string & str)
       // Update metric
       //
       // u|<name>|<value>|<timestamp>
-      std::size_t sz = data.size();
+      my::size_t sz = data.size();
       if(sz != 3 && sz != 4) {
           throw exception("Invalid request: 'update' command expects 2 or 3 arguments - 'u|<name>|<value>[|<timestamp>]'");
       }
@@ -71,7 +71,7 @@ statement statement_parse_udp(const std::string & str)
       statement_update st;
       st._name  = data[1];
       st._value = boost::lexical_cast<double>(data[2]);
-      st._ts    = sz == 4 ? boost::lexical_cast<boost::int64_t>(data[3]) : boost::optional<boost::int64_t>();
+      st._ts    = sz == 4 ? boost::lexical_cast<my::time_t>(data[3]) : boost::optional<my::time_t>();
       return st;
   } else if(cmd == "c" || cmd == "C") {
       // Create metric

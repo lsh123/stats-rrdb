@@ -230,10 +230,12 @@ void server::stop()
 
 void server::update_status()
 {
+  /*
   time_t now = time(NULL);
   _server_udp->update_status(now);
   _server_tcp->update_status(now);
   _rrdb->update_status(now);
+  */
 }
 
 void server::status_update_thread()

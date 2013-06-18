@@ -11,6 +11,8 @@
 #include <string>
 #include <boost/program_options.hpp>
 
+#include "types.h"
+
 class config
 {
 public:
