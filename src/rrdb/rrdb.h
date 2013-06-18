@@ -30,7 +30,6 @@ class config;
 class rrdb_metric;
 class statement_select;
 class server;
-class server_status;
 
 class rrdb :
     public boost::enable_shared_from_this<rrdb>
@@ -49,15 +48,15 @@ public:
   void start();
   void stop();
 
-  void update_status(boost::shared_ptr<server_status> status);
+  void update_status(const time_t & now);
 
   // metrics map operations
   boost::shared_ptr<rrdb_metric> get_metric(const std::string & name);
   boost::shared_ptr<rrdb_metric> find_metric(const std::string & name);
   boost::shared_ptr<rrdb_metric> create_metric(const std::string & name, const retention_policy & policy, bool throw_if_exists = true);
   void drop_metric(const std::string & name);
-  std::vector<std::string> get_metrics(const boost::optional<std::string> & like);
-  boost::shared_ptr<const server_status> get_status(const boost::optional<std::string> & like);
+  void get_metrics(const boost::optional<std::string> & like, std::vector<std::string> & res);
+  void get_status_metrics(const boost::optional<std::string> & like, std::vector<std::string> & res);
 
   // values
   void update_metric(const std::string & name, const boost::uint64_t & ts, const double & value);
@@ -80,7 +79,7 @@ private:
 
   // config
   std::string             _path;
-  interval_t              _flush_interval;
+  my::interval_t              _flush_interval;
   retention_policy        _default_policy;
 
   t_metrics_map           _metrics;

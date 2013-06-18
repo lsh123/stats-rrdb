@@ -18,8 +18,6 @@ class config;
 class thread_pool;
 class rrdb;
 class connection_tcp;
-class server_status;
-
 
 class server_tcp :
     public boost::enable_shared_from_this<server_tcp>
@@ -35,7 +33,7 @@ public:
   void start();
   void stop();
 
-  void update_status(boost::shared_ptr<server_status> status);
+  void update_status(const time_t & now);
 
 protected:
   void accept();

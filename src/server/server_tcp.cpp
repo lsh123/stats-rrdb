@@ -15,7 +15,6 @@
 #include "log.h"
 #include "config.h"
 
-#include "server/server_status.h"
 #include "server/thread_pool.h"
 
 #include "rrdb/rrdb.h"
@@ -58,10 +57,6 @@ public:
     memory_buffer_t res(_output_buffer);
     try {
         _rrdb->execute_tcp_command(_input_buffer, res);
-
-        // eat our own dog food
-        time_t now = time(NULL);
-        _rrdb->update_metric("self.tcp.requests", now, 1.0);
     } catch(std::exception & e) {
         LOG(log::LEVEL_ERROR, "Exception executing long rrdb command: %s", e.what());
 
@@ -174,9 +169,12 @@ void server_tcp::stop()
   LOG(log::LEVEL_INFO, "Stopped TCP server");
 }
 
-void server_tcp::update_status(boost::shared_ptr<server_status> status)
+void server_tcp::update_status(const time_t & now)
 {
-  status->add_value("server_tcp.load_factor", _thread_pool->get_load_factor());
+  // eat our own dog food
+  _rrdb->update_metric("self.tcp.load_factor", now, _thread_pool->get_load_factor());
+  _rrdb->update_metric("self.tcp.started_requests", now, _thread_pool->get_started_jobs());
+  _rrdb->update_metric("self.tcp.finished_requests", now, _thread_pool->get_finished_jobs());
 }
 
 void server_tcp::accept()

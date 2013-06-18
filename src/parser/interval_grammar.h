@@ -16,12 +16,12 @@
 
 template<typename Iterator>
 class interval_grammar:
-    public qi::grammar < Iterator, interval_t(), ascii::space_type >
+    public qi::grammar < Iterator, my::interval_t(), ascii::space_type >
 {
-  typedef qi::grammar < Iterator, interval_t(), ascii::space_type > base_type;
+  typedef qi::grammar < Iterator, my::interval_t(), ascii::space_type > base_type;
 
 private:
-  qi::rule < Iterator, interval_t(), ascii::space_type >  _start;
+  qi::rule < Iterator, my::interval_t(), ascii::space_type >  _start;
 
 public:
   interval_grammar():

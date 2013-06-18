@@ -17,7 +17,6 @@
 
 #include "parser/statements.h"
 
-#include "server/server_status.h"
 #include "server/server.h"
 
 #include "config.h"
@@ -95,7 +94,8 @@ public:
 
   void operator()(const statement_show_metrics & st) const
   {
-    std::vector<std::string> metrics = _rrdb->get_metrics(st._like);
+    std::vector<std::string> metrics;
+    _rrdb->get_metrics(st._like, metrics);
     BOOST_FOREACH(const std::string & name, metrics){
       _res << name  << std::endl;
     }
@@ -103,6 +103,7 @@ public:
 
   void operator()(const statement_show_status & st) const
   {
+    /*
     boost::shared_ptr<const server_status> status(_rrdb->get_status(st._like));
     if(!status) {
         throw exception("Can not get server status");
@@ -120,6 +121,7 @@ public:
            << std::endl
       ;
     }
+    */
   }
 
 private:
@@ -202,9 +204,9 @@ void rrdb::stop()
 }
 
 
-void rrdb::update_status(boost::shared_ptr<server_status> status)
+void rrdb::update_status(const time_t & now)
 {
-
+  // TODO
 }
 
 void rrdb::flush_to_disk_thread()
@@ -255,7 +257,6 @@ void rrdb::flush_to_disk()
   // eat our own dog food
   time_t end = time(NULL);
   this->update_metric("self.flush_to_disk.duration", end, (end - start));
-
 
   LOG(log::LEVEL_INFO, "Flushed to disk");
 }
@@ -392,16 +393,13 @@ void rrdb::drop_metric(const std::string & name)
   LOG(log::LEVEL_INFO, "RRDB: dropped metric '%s'", name.c_str());
 }
 
-std::vector<std::string> rrdb::get_metrics(const boost::optional<std::string> & like)
+void rrdb::get_metrics(const boost::optional<std::string> & like, std::vector<std::string> & res)
 {
   // force lower case for names
   boost::optional<std::string> like_lc(like);
   if(like_lc) {
       boost::algorithm::to_lower(*like_lc);
   }
-
-  // store results here
-  std::vector<std::string> res;
 
   // lock access to _metrics
   {
@@ -413,9 +411,11 @@ std::vector<std::string> rrdb::get_metrics(const boost::optional<std::string> & 
       res.push_back(v.first);
     }
   }
+}
 
-  // done
-  return res;
+void rrdb::get_status_metrics(const boost::optional<std::string> & like, std::vector<std::string> & res)
+{
+  // TODO
 }
 
 rrdb::t_metrics_vector rrdb::get_dirty_metrics()
@@ -455,12 +455,6 @@ void rrdb::select_from_metric(const statement_select & query, std::vector<rrdb_m
   }
 
   metric->select(query, res);
-}
-
-boost::shared_ptr<const server_status> rrdb::get_status(const boost::optional<std::string> & like)
-{
-  boost::shared_ptr<server> server(_server.lock());
-  return server.use_count() ? server->get_status() : boost::shared_ptr<const server_status>();
 }
 
 void rrdb::execute_tcp_command(const std::vector<char> & buffer, memory_buffer_t & res)

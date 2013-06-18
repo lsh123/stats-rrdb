@@ -19,8 +19,8 @@
  */
 typedef struct retention_policy_elem_
 {
-  interval_t _freq;
-  interval_t _duration;
+  my::interval_t _freq;
+  my::interval_t _duration;
 } retention_policy_elem;
 typedef std::vector<retention_policy_elem> retention_policy;
 

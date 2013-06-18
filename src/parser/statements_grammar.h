@@ -37,7 +37,7 @@ BOOST_FUSION_ADAPT_STRUCT(
     (std::string,      _name)
     (boost::int64_t,   _ts_begin)
     (boost::int64_t,   _ts_end)
-    (boost::optional<interval_t>,     _group_by)
+    (boost::optional<my::interval_t>,     _group_by)
 )
 BOOST_FUSION_ADAPT_STRUCT(
     statement_show_policy,

@@ -12,9 +12,9 @@
 #include "log.h"
 
 
-interval_t interval_parse(const std::string & str)
+my::interval_t interval_parse(const std::string & str)
 {
-  interval_t ret;
+  my::interval_t ret;
   interval_grammar<std::string::const_iterator> grammar;
 
   std::string::const_iterator beg = str.begin();
@@ -27,9 +27,9 @@ interval_t interval_parse(const std::string & str)
   return ret;
 }
 
-std::string interval_write(const interval_t & interval) {
+std::string interval_write(const my::interval_t & interval) {
   std::ostringstream ret;
-  interval_t v;
+  my::interval_t v;
 
   if(interval % INTERVAL_YEAR == 0) {
       v = interval/INTERVAL_YEAR;
@@ -57,7 +57,7 @@ std::string interval_write(const interval_t & interval) {
   return ret.str();
 }
 
-std::string interval_get_name(const interval_t & unit, const interval_t & val)
+std::string interval_get_name(const my::interval_t & unit, const my::interval_t & val)
 {
   switch(unit) {
   case INTERVAL_SEC:

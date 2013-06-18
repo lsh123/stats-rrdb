@@ -46,7 +46,7 @@ public:
 
 public:
   // rrdb_metric_block::select_ctx
-  void append(const rrdb_metric_tuple_t & tuple, const interval_t & interval)
+  void append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval)
   {
     if(_query._group_by == 0) {
         _res.push_back(tuple);
@@ -94,7 +94,7 @@ private:
   std::vector<rrdb_metric_tuple_t> _res;
 
   rrdb_metric_tuple_t              _cur_tuple;
-  interval_t                       _cur_interval;
+  my::interval_t                       _cur_interval;
 };
 
 

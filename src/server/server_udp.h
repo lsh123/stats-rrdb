@@ -20,7 +20,6 @@ class config;
 class thread_pool;
 class rrdb;
 class connection_udp;
-class server_status;
 
 class server_udp :
     public boost::enable_shared_from_this<server_udp>
@@ -36,7 +35,7 @@ public:
   void start();
   void stop();
 
-  void update_status(boost::shared_ptr<server_status> status);
+  void update_status(const time_t & now);
 
 protected:
   void receive();

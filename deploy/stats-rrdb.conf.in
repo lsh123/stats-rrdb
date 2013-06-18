@@ -5,6 +5,7 @@ flush_interval=1 min
 
 [server]
 user=@STATS_RRDB_USER@
+status_update_interval=1 sec
 
 [server_tcp]
 address=0.0.0.0

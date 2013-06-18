@@ -19,12 +19,12 @@
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_test.h"
 
-#include "server/server_status.h"
 #include "server/server_udp.h"
 #include "server/server_tcp.h"
 
 server::server() :
-  _exit_signals(_io_service)
+  _exit_signals(_io_service),
+  _status_update_interval(1) // 1 sec
 {
 }
 
@@ -34,8 +34,13 @@ server::~server()
 
 void server::initialize(boost::shared_ptr<config> config)
 {
+
+  _status_update_interval = interval_parse(
+      config->get<std::string>("server.status_update_interval", interval_write(_status_update_interval))
+  );
+
   // create
-    _rrdb.reset(new rrdb(shared_from_this()));
+  _rrdb.reset(new rrdb(shared_from_this()));
   _server_udp.reset(new server_udp(_rrdb));
   _server_tcp.reset(new server_tcp(_rrdb));
 
@@ -193,32 +198,71 @@ void server::run()
   _server_udp->start();
   _server_tcp->start();
 
-  _io_service.run();
+  // start flush thread
+  _status_update_thread.reset(new boost::thread(boost::bind(&server::status_update_thread, this)));
 
   // done
   LOG(log::LEVEL_INFO, "Started the server");
+
+
+  // RUUUUUUNNNNNNN - this will block until we are done
+  _io_service.run();
 }
 
 void server::stop()
 {
   _io_service.stop();
+
+  // stop networking
   _server_udp->stop();
   _server_tcp->stop();
 
+  // stop status update thread
+  if(_status_update_thread) {
+      _status_update_thread->interrupt();
+      _status_update_thread->join();
+      _status_update_thread.reset();
+  }
+
+  // stop rrdb (should be last - we flush data)
   _rrdb->stop();
 }
 
-boost::shared_ptr<const server_status> server::get_status()
+void server::update_status()
 {
-  boost::lock_guard<spinlock> guard(_server_status_lock);
-  if(!_server_status || !_server_status->is_valid()) {
-      boost::shared_ptr<server_status> new_server_status(new server_status());
-      _server_udp->update_status(new_server_status);
-      _server_tcp->update_status(new_server_status);
-      _rrdb->update_status(new_server_status);
-      _server_status = boost::static_pointer_cast<const server_status>(new_server_status);
+  time_t now = time(NULL);
+  _server_udp->update_status(now);
+  _server_tcp->update_status(now);
+  _rrdb->update_status(now);
+}
+
+void server::status_update_thread()
+{
+  // log
+  LOG(log::LEVEL_INFO, "Server status update thread started");
+
+  // try/catch to get any error reported
+  try {
+      while (!boost::this_thread::interruption_requested()) {
+          {
+            boost::this_thread::disable_interruption d;
+            this->update_status();
+          }
+
+          boost::this_thread::sleep(boost::posix_time::seconds(this->_status_update_interval));
+      }
+  } catch (boost::thread_interrupted & e) {
+      LOG(log::LEVEL_DEBUG, "Server status update thread was interrupted");
+  } catch (std::exception & e) {
+      LOG(log::LEVEL_ERROR, "Server status update thread exception: %s", e.what());
+      throw e;
+  } catch (...) {
+      LOG(log::LEVEL_ERROR, "Server status update thread un-handled exception");
+      throw;
   }
-  return _server_status;
+
+  // done
+  LOG(log::LEVEL_INFO, "Server status update thread stopped");
 }
 
 void server::test(const std::string & params)

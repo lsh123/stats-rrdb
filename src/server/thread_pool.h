@@ -35,6 +35,16 @@ public:
       return _used_threads.load(boost::memory_order_relaxed) / (double)_pool_size;
   }
 
+  inline std::size_t get_started_jobs() const
+  {
+      return _started_jobs.load(boost::memory_order_relaxed);
+  }
+
+  inline std::size_t get_finished_jobs() const
+  {
+      return _finished_jobs.load(boost::memory_order_relaxed);
+  }
+
 private:
   void wrap_task_run(boost::shared_ptr<thread_pool_task> task);
 
@@ -44,6 +54,8 @@ private:
   boost::asio::io_service::work  _work;
   boost::thread_group            _threads;
   boost::atomic<std::size_t>     _used_threads;
+  boost::atomic<std::size_t>     _started_jobs;
+  boost::atomic<std::size_t>     _finished_jobs;
 };
 
 #endif /* THREAD_POOL_H_ */

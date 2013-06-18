@@ -17,8 +17,8 @@
 
 BOOST_FUSION_ADAPT_STRUCT(
     retention_policy_elem,
-    (interval_t, _freq)
-    (interval_t, _duration)
+    (my::interval_t, _freq)
+    (my::interval_t, _duration)
 )
 
 template<typename Iterator>

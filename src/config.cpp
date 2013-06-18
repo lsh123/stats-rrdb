@@ -43,10 +43,11 @@ bool config::init(int argc, char ** argv)
       // rrdb
       ("rrdb.path",                    value<std::string>(), "path to folder with RRDB data files (default: /var/lib/rrdb)")
       ("rrdb.default_policy",          value<std::string>(), "default metric policy (default: '1 sec for 1 min, 1 min for 1 year')")
-      ("rrdb.flush_interval",          value<std::string>(), "how often we flus to disk (default: '10 sec')")
+      ("rrdb.flush_interval",          value<std::string>(), "how often do we flush to disk (default: '10 sec')")
 
       // server
       ("server.user",                  value<std::string>(), "the user name to switch the process to (default: not set)")
+      ("server.status_update_interval",value<std::string>(), "how often do we update status variables (default: '1 sec')")
 
       // server_tcp
       ("server_tcp.address",           value<std::string>(), "tcp listener address (default: 0.0.0.0)")

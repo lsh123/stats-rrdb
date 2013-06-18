@@ -12,7 +12,6 @@
 #include <boost/bind.hpp>
 
 
-#include "server/server_status.h"
 #include "server/thread_pool.h"
 
 #include "rrdb/rrdb.h"
@@ -64,10 +63,6 @@ public:
     memory_buffer_t res(_output_buffer);
     try {
         _rrdb->execute_udp_command(_input_buffer, res);
-
-        // eat our own dog food
-        // time_t now = time(NULL);
-        // _rrdb->update_metric("self.udp.requests", now, 1.0);
     } catch(std::exception & e) {
         LOG(log::LEVEL_ERROR, "Exception executing short rrdb command: %s", e.what());
 
@@ -195,9 +190,12 @@ void server_udp::stop()
   LOG(log::LEVEL_INFO, "Stopped UDP server");
 }
 
-void server_udp::update_status(boost::shared_ptr<server_status> status)
+void server_udp::update_status(const time_t & now)
 {
-  status->add_value("server_udp.load_factor", _thread_pool->get_load_factor());
+  // eat our own dog food
+  _rrdb->update_metric("self.udp.load_factor", now, _thread_pool->get_load_factor());
+  _rrdb->update_metric("self.udp.started_requests", now, _thread_pool->get_started_jobs());
+  _rrdb->update_metric("self.udp.finished_requests", now, _thread_pool->get_finished_jobs());
 }
 
 void server_udp::receive()

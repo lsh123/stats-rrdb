@@ -80,7 +80,7 @@ public:
 
   class select_ctx {
   public:
-    virtual void append(const rrdb_metric_tuple_t & tuple, const interval_t & interval) = 0;
+    virtual void append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval) = 0;
 
   public:
     boost::int64_t _ts_begin;
