@@ -230,18 +230,16 @@ void server::stop()
 
 void server::update_status()
 {
-  /*
   time_t now = time(NULL);
   _server_udp->update_status(now);
   _server_tcp->update_status(now);
   _rrdb->update_status(now);
-  */
 }
 
 void server::status_update_thread()
 {
   // log
-  LOG(log::LEVEL_INFO, "Server status update thread started");
+  LOG(log::LEVEL_INFO, "Server status update thread started with %lu sec update interval", this->_status_update_interval);
 
   // try/catch to get any error reported
   try {

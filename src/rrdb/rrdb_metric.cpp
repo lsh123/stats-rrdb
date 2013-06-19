@@ -203,6 +203,12 @@ void rrdb_metric::update(const my::time_t & ts, const my::value_t & value)
   // mark dirty
   _header._status |= Status_Dirty;
 
+  // update last value if new is greater
+  if(_header._last_value_ts <= ts) {
+      _header._last_value_ts = ts;
+      _header._last_value    = value;
+  }
+
   //
   // The update can have 3 possible effects:
   //

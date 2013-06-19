@@ -12,7 +12,9 @@
 thread_pool::thread_pool(my::size_t pool_size) :
   _pool_size(pool_size),
   _work(_io_service),
-  _used_threads(0)
+  _used_threads(0),
+  _started_jobs(0),
+  _finished_jobs(0)
 {
   LOG(log::LEVEL_DEBUG, "Creating thread pool");
 

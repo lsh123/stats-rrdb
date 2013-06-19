@@ -81,10 +81,10 @@ class statement_execute_visitor : public boost::static_visitor<void>
        metric->get_last_value(_value, _value_ts);
 
        _res << name
-            << ','
-            << _value
             <<  ','
             << _value_ts
+            << ','
+            << _value
             << std::endl
        ;
      }

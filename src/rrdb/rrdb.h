@@ -39,10 +39,22 @@ public:
   typedef boost::unordered_map< std::string, boost::shared_ptr<rrdb_metric> > t_metrics_map;
   typedef std::vector< boost::shared_ptr<rrdb_metric> > t_metrics_vector;
 
+  //
+  // Walks through metrics
+  //
   class metrics_walker {
   public:
     virtual void on_metric(const std::string & name, const boost::shared_ptr<rrdb_metric> & metric) = 0;
   }; // class metrics_walker
+
+  //
+  // Walks through the data
+  //
+  class rrdb_metric_data_walker {
+  public:
+    virtual void append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval) = 0;
+    virtual void flush() = 0;
+  }; // class rrdb_metric_data_walker
 
 public:
   rrdb(boost::shared_ptr<server> server);

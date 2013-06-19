@@ -12,7 +12,7 @@ function start_server() {
 	@mkdir($TEST_FOLDER);
 
 	echo "=================== Starting server\n";
-	system("$ROOT_FOLDER/src/stats-rrdb  --config \"$CONFIG_FILE\" --daemon \"$PID_FILE\"");
+	system("valgrind $ROOT_FOLDER/src/stats-rrdb  --config \"$CONFIG_FILE\" --daemon \"$PID_FILE\"");
 	sleep(3);
 	$pid=file_get_contents($PID_FILE);
 	echo "=================== Started server $pid\n";
