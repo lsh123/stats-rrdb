@@ -83,7 +83,7 @@ public:
   void select_from_metric(const std::string & name, const my::time_t & ts1, const my::time_t & ts2, data_walker & walker);
 
   // commands
-  void execute_tcp_command(const std::vector<char> & buffer, memory_buffer_t & res);
+  void execute_tcp_command(const std::string & buffer, memory_buffer_t & res);
   void execute_udp_command(const std::string & buffer, memory_buffer_t & res);
 
 private:

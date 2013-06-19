@@ -31,9 +31,9 @@ class connection_tcp:
 public:
   connection_tcp(boost::asio::io_service& io_service, const boost::shared_ptr<rrdb> & rrdb, const my::size_t & buffer_size) :
     _socket(io_service),
-    _rrdb(rrdb),
-    _input_buffer(buffer_size)
+    _rrdb(rrdb)
   {
+    _input_buffer.resize(buffer_size);
   }
 
   virtual ~connection_tcp()
@@ -45,7 +45,7 @@ public:
     return _socket;
   }
 
-  memory_buffer_data_t & get_input_buffer()
+  std::string & get_input_buffer()
   {
     return _input_buffer;
   }
@@ -109,7 +109,7 @@ public:
 private:
   tcp::socket                   _socket;
   boost::shared_ptr<rrdb>       _rrdb;
-  memory_buffer_data_t          _input_buffer;
+  std::string                   _input_buffer;
   memory_buffer_data_t          _output_buffer;
 }; // class connection_tcp
 
@@ -214,7 +214,10 @@ void server_tcp::handle_accept(
       // start async read
       async_read(
           new_connection->get_socket(),
-          boost::asio::buffer(new_connection->get_input_buffer()),
+          boost::asio::buffer(
+              &(new_connection->get_input_buffer())[0],
+              new_connection->get_input_buffer().size()
+          ),
           boost::bind(
               &server_tcp::handle_read,
               this,

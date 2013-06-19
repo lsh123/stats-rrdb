@@ -13,6 +13,7 @@
 
 #include <boost/shared_ptr.hpp>
 
+#include "memory_buffer.h"
 #include "types.h"
 
 class rrdb;
@@ -21,12 +22,15 @@ class rrdb_test
 {
 public:
   typedef std::vector< std::string > params_t;
+  typedef std::vector< std::vector<std::string> > csv_data_t;
+
 
 public:
   rrdb_test(const boost::shared_ptr<rrdb> & rrdb);
   virtual ~rrdb_test();
 
   void run(const std::string & params_str);
+  void run_select_test(const params_t & params);
   void run_perf_test(const params_t & params);
 
 private:
@@ -34,6 +38,7 @@ private:
   static std::string get_test_metric_name(const my::size_t & n);
   void cleanup(const my::size_t & metrics_num);
 
+  static csv_data_t parse_csv_data(const memory_buffer_data_t & data);
 
 private:
   boost::shared_ptr<rrdb> _rrdb;

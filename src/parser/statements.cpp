@@ -17,11 +17,13 @@
 #include "exception.h"
 #include "log.h"
 
-statement statement_parse_tcp(std::string::const_iterator beg, std::string::const_iterator end)
+
+statement statement_parse_tcp(const std::string & str)
 {
   statement ret;
   statement_grammar<std::string::const_iterator> grammar;
-
+  std::string::const_iterator beg(str.begin());
+  std::string::const_iterator end(str.end());
   phrase_parse(beg, end, grammar, ascii::space, ret);
   if (beg != end) {
       throw exception("Unable to parse the statement '%s'", std::string(beg, end).c_str());
@@ -29,26 +31,6 @@ statement statement_parse_tcp(std::string::const_iterator beg, std::string::cons
 
   return ret;
 }
-
-statement statement_parse_tcp(const std::string & str)
-{
-  return statement_parse_tcp(str.begin(), str.end());
-}
-
-statement statement_parse_tcp(std::vector<char>::const_iterator beg, std::vector<char>::const_iterator end)
-{
-  statement ret;
-  statement_grammar<std::vector<char>::const_iterator> grammar;
-
-  phrase_parse(beg, end, grammar, ascii::space, ret);
-  if (beg != end) {
-      throw exception("Unable to parse the statement");
-  }
-
-  return ret;
-}
-
-
 
 statement statement_parse_udp(const std::string & str)
 {

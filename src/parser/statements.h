@@ -123,9 +123,8 @@ typedef boost::variant<
     statement_show_status
 > statement;
 
+// The above grammar
 statement statement_parse_tcp(const std::string & str);
-statement statement_parse_tcp(std::string::const_iterator beg, std::string::const_iterator end);
-statement statement_parse_tcp(std::vector<char>::const_iterator beg, std::vector<char>::const_iterator end);
 
 // <command>|<param1>|<param2>|....
 statement statement_parse_udp(const std::string & str);

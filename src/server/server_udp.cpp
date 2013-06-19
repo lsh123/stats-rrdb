@@ -211,7 +211,7 @@ void server_udp::receive()
 
   _socket->async_receive_from(
       boost::asio::buffer(
-          (void*)new_connection->get_input_buffer().c_str(),
+          &(new_connection->get_input_buffer())[0],
           new_connection->get_input_buffer().size()
       ),
       new_connection->get_endpoint(),

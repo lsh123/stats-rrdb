@@ -7,6 +7,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/foreach.hpp>
 
 #include "rrdb/rrdb_test.h"
 #include "rrdb/rrdb.h"
@@ -15,6 +16,12 @@
 
 #include "exception.h"
 
+#define TEST_CHECK_EQUAL( a, b ) \
+    if( (a) != (b) ) { \
+        std::cerr << "TEST CHECK EQUAL FAILURE: '" \
+          << (#a) << "' = " << (a) << " and '" << (#b) << "' = " << (b) \
+          << std::endl; \
+    }
 
 class rrdb_test_perf_task :
     public thread_pool_task
@@ -93,7 +100,129 @@ void rrdb_test::run(const std::string & params_str) {
 
   if(params[0] == "perf") {
       this->run_perf_test(params);
+  } else if(params[0] == "select") {
+    this->run_select_test(params);
+} else {
+      throw exception("Invalid test '%s'", params[0].c_str());
   }
+}
+
+rrdb_test::csv_data_t rrdb_test::parse_csv_data(const memory_buffer_data_t & data)
+{
+  // break into lines
+  std::vector<std::string> lines;
+  boost::algorithm::split(lines, data, boost::algorithm::is_any_of("\n"), boost::algorithm::token_compress_off);
+
+  // break fields in the line
+  std::vector<std::string> v;
+  rrdb_test::csv_data_t res;
+  res.reserve(lines.size());
+  BOOST_FOREACH(const std::string & line, lines) {
+    if(line.empty()) continue;
+
+    boost::algorithm::split(v, line, boost::algorithm::is_any_of(","), boost::algorithm::token_compress_off);
+    res.push_back(v);
+    v.clear();
+  };
+
+  return res;
+}
+
+// SELECT test params:  <test_name>
+void rrdb_test::run_select_test(const params_t & params)
+{
+  if(params.size() != 1) {
+      throw exception("Invalid test params: expected <test_name>");
+  }
+
+  // pre-test cleanup
+  std::cout << "Pre-test clean up..." << std::endl;
+  this->cleanup(1);
+
+  // setup
+  std::cout << "Setup..." << std::endl;
+  std::string metric_name = rrdb_test::get_test_metric_name(1);
+  my::time_t start_ts = 1371600000; // Wed, 19 Jun 2013 00:00:00 GMT
+  my::size_t tests_count = 180;
+  _rrdb->create_metric(metric_name, retention_policy_parse("1 sec FOR 10 secs, 10 secs for 30 secs, 30 sec for 1 hour"));
+
+  // insert data
+  std::cout << "Insert data..." << std::endl;
+  for(my::size_t ts = 0; ts < tests_count; ++ts) {
+      _rrdb->update_metric(metric_name, start_ts + ts, 1.0);
+  }
+
+  //
+  // TEST 1: get all data
+  //
+  std::cout << "=== QUERY ALL DATA" << std::endl;
+  {
+    char buf[1024];
+    snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu ; ",
+        metric_name.c_str(),
+        start_ts,
+        start_ts + tests_count + 100
+    );
+
+    memory_buffer_data_t res_data;
+    memory_buffer_t res(res_data);
+    _rrdb->execute_tcp_command(buf, res);
+
+    rrdb_test::csv_data_t parsed_data = rrdb_test::parse_csv_data(res_data);
+
+    // count: 1 header row + 10 rows 1 sec each + (30 / 10) rows 10 sec each + 30 sec rows
+    TEST_CHECK_EQUAL(parsed_data.size(), (1 + 10 / 1 + 30 / 10 + tests_count / 30) );
+
+    // first line is the latest: latest ts + count = 1
+    TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data[1][0]), (my::time_t)(start_ts + tests_count - 1));
+    TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data[1][1]), 1);
+
+    // last line is the oldest: oldest ts + full 30 sec interval data
+    TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data.back()[0]), start_ts);
+    TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data.back()[1]), 30);
+
+    // test 1: done
+    std::cout << "=== Result " << std::endl;
+    std::cout << std::string(res_data.begin(), res_data.end()) << std::endl;
+  }
+
+  //
+  // TEST 2: get 5 secs
+  //
+  std::cout << "=== QUERY LAST 5 SEC" << std::endl;
+  {
+    char buf[1024];
+    snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu ; ",
+        metric_name.c_str(),
+        start_ts + tests_count - 5,
+        start_ts + tests_count
+    );
+
+    memory_buffer_data_t res_data;
+    memory_buffer_t res(res_data);
+    _rrdb->execute_tcp_command(buf, res);
+
+    rrdb_test::csv_data_t parsed_data  = rrdb_test::parse_csv_data(res_data);
+
+    // expect 5 rows + header
+    TEST_CHECK_EQUAL(parsed_data.size(), (1 + 5) );
+
+    // first line is the latest: latest ts + count = 1
+    TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data[1][0]), (my::time_t)(start_ts + tests_count - 1));
+    TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data[1][1]), 1);
+
+    // last line is the oldest: (latest ts - 5 secs) + count = 1
+    TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data.back()[0]), (my::time_t)(start_ts + tests_count - 5));
+    TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data.back()[1]), 1);
+
+    // test 2: done
+    std::cout << "=== Result " << std::endl;
+    std::cout << std::string(res_data.begin(), res_data.end()) << std::endl;
+  }
+
+  // Post-test cleanup
+  std::cout << "Post-test clean up..." << std::endl;
+  this->cleanup(1);
 }
 
 // Perf test params:  <test_name>|<threads>|<tasks>|<metrics>
