@@ -39,6 +39,11 @@ public:
   typedef boost::unordered_map< std::string, boost::shared_ptr<rrdb_metric> > t_metrics_map;
   typedef std::vector< boost::shared_ptr<rrdb_metric> > t_metrics_vector;
 
+  class metrics_walker {
+  public:
+    virtual void on_metric(const std::string & name, const boost::shared_ptr<rrdb_metric> & metric) = 0;
+  }; // class metrics_walker
+
 public:
   rrdb(boost::shared_ptr<server> server);
   virtual ~rrdb();
@@ -56,8 +61,8 @@ public:
   boost::shared_ptr<rrdb_metric> find_metric(const std::string & name);
   boost::shared_ptr<rrdb_metric> create_metric(const std::string & name, const retention_policy & policy, bool throw_if_exists = true);
   void drop_metric(const std::string & name);
-  void get_metrics(const boost::optional<std::string> & like, std::vector<std::string> & res);
-  void get_status_metrics(const boost::optional<std::string> & like, std::vector<std::string> & res);
+  void get_metrics(const boost::optional<std::string> & like, metrics_walker & walker);
+  void get_status_metrics(const boost::optional<std::string> & like, metrics_walker & walker);
 
   // values
   void update_metric(const std::string & name, const my::time_t & ts, const my::value_t & value);

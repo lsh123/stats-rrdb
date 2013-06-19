@@ -57,7 +57,7 @@ try {
 
 	echo "== SHOW METRICS\n";
 	$resp = $stats_rrdb->send_command("show metrics like 'te';");
-	check_result($resp, "test2;test1;");
+	check_result($resp, "test1\ntest2\n");
 
 	for($ii = 0; $ii < 30; $ii++) {
 		echo "== UPDATE METRIC 'test1' $ii -> 1\n";
@@ -131,6 +131,14 @@ try {
 	echo "== DROP METRIC 'test2' ; \n";
 	$resp = $stats_rrdb->send_command("drop metric 'test2';");
 	check_result($resp, "OK");
+	
+	echo "== SHOW STATUS\n";
+	$resp = $stats_rrdb->send_command("SHOW STATUS ;");
+	echo "$resp\n";
+
+	echo "== SHOW STATUS LIKE 'tcp'\n";
+	$resp = $stats_rrdb->send_command("SHOW STATUS LIKE 'tcp' ;");
+	echo "$resp\n";
 
 } catch(Exception $e) {
 	echo "Exception: " . $e->getMessage() . "\n";

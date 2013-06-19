@@ -183,6 +183,13 @@ void rrdb_metric::set_deleted()
   _header._status |= Status_Deleted;
 }
 
+void rrdb_metric::get_last_value(my::value_t & value, my::time_t & value_ts)
+{
+  boost::lock_guard<spinlock> guard(_lock);
+  value    = _header._last_value;
+  value_ts = _header._last_value_ts;
+}
+
 void rrdb_metric::update(const my::time_t & ts, const my::value_t & value)
 {
   boost::lock_guard<spinlock> guard(_lock);

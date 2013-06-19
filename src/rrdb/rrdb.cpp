@@ -29,6 +29,71 @@
 //
 class statement_execute_visitor : public boost::static_visitor<void>
 {
+  //
+  // Walker class for SHOW METRICS statement
+  //
+  class metrics_walker_show_metrics :
+       public rrdb::metrics_walker
+   {
+   public:
+     metrics_walker_show_metrics(memory_buffer_t & res) :
+       _res(res)
+     {
+     }
+
+     virtual ~metrics_walker_show_metrics()
+     {
+     }
+
+   public:
+     //rrdb::metrics_walker
+     void on_metric(const std::string & name, const boost::shared_ptr<rrdb_metric> & metric)
+     {
+       _res << name  << std::endl;
+     }
+   private:
+     mutable memory_buffer_t &  _res;
+   }; // class metrics_walker_show_metrics
+
+  //
+  // Walker class for SHOW STATUS statement
+  //
+  class metrics_walker_show_status :
+       public rrdb::metrics_walker
+   {
+   public:
+    metrics_walker_show_status(memory_buffer_t & res) :
+       _res(res),
+       _value(0),
+       _value_ts(0)
+     {
+     }
+
+     virtual ~metrics_walker_show_status()
+     {
+     }
+
+   public:
+     //rrdb::metrics_walker
+     void on_metric(const std::string & name, const boost::shared_ptr<rrdb_metric> & metric)
+     {
+
+       metric->get_last_value(_value, _value_ts);
+
+       _res << name
+            << ','
+            << _value
+            <<  ','
+            << _value_ts
+            << std::endl
+       ;
+     }
+   private:
+     mutable memory_buffer_t &  _res;
+     my::value_t                _value;
+     my::time_t                 _value_ts;
+   }; // class metrics_walker_show_status
+
 
 public:
   statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb, memory_buffer_t & res) :
@@ -94,34 +159,15 @@ public:
 
   void operator()(const statement_show_metrics & st) const
   {
-    std::vector<std::string> metrics;
-    _rrdb->get_metrics(st._like, metrics);
-    BOOST_FOREACH(const std::string & name, metrics){
-      _res << name  << std::endl;
-    }
+    metrics_walker_show_metrics walker(_res);
+    _rrdb->get_metrics(st._like, walker);
   }
 
   void operator()(const statement_show_status & st) const
   {
-    /*
-    boost::shared_ptr<const server_status> status(_rrdb->get_status(st._like));
-    if(!status) {
-        throw exception("Can not get server status");
-    }
-    server_status::t_values_map values = status->get_values();
-    if(values.empty()) {
-        throw exception("Server status is empty");
-    }
+    metrics_walker_show_status walker(_res);
+    _rrdb->get_status_metrics(st._like, walker);
 
-    // print
-    BOOST_FOREACH(const server_status::t_values_map::value_type & v, values){
-      _res << v.first
-           << ","
-           << v.second
-           << std::endl
-      ;
-    }
-    */
   }
 
 private:
@@ -398,7 +444,7 @@ void rrdb::drop_metric(const std::string & name)
   LOG(log::LEVEL_INFO, "RRDB: dropped metric '%s'", name.c_str());
 }
 
-void rrdb::get_metrics(const boost::optional<std::string> & like, std::vector<std::string> & res)
+void rrdb::get_metrics(const boost::optional<std::string> & like, metrics_walker & walker)
 {
   // force lower case for names
   boost::optional<std::string> like_lc(like);
@@ -413,14 +459,33 @@ void rrdb::get_metrics(const boost::optional<std::string> & like, std::vector<st
       if(like_lc && v.first.find(*like_lc) == std::string::npos) {
           continue;
       }
-      res.push_back(v.first);
+      walker.on_metric(v.first, v.second);
     }
   }
 }
 
-void rrdb::get_status_metrics(const boost::optional<std::string> & like, std::vector<std::string> & res)
+void rrdb::get_status_metrics(const boost::optional<std::string> & like, metrics_walker & walker)
 {
-  // TODO
+  // force lower case for names
+  boost::optional<std::string> like_lc(like);
+  if(like_lc) {
+      boost::algorithm::to_lower(*like_lc);
+  }
+
+  // lock access to _metrics
+  {
+    boost::lock_guard<spinlock> guard(_metrics_lock);
+    BOOST_FOREACH(const t_metrics_map::value_type & v, _metrics) {
+      // should start with "self."
+      if(v.first.find("self.") != 0) {
+          continue;
+      }
+      if(like_lc && v.first.find(*like_lc) == std::string::npos) {
+          continue;
+      }
+      walker.on_metric(v.first, v.second);
+    }
+  }
 }
 
 rrdb::t_metrics_vector rrdb::get_dirty_metrics()
