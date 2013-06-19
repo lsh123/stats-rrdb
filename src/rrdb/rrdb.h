@@ -50,11 +50,11 @@ public:
   //
   // Walks through the data
   //
-  class rrdb_metric_data_walker {
+  class data_walker {
   public:
-    virtual void append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval) = 0;
+    virtual bool append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval) = 0;
     virtual void flush() = 0;
-  }; // class rrdb_metric_data_walker
+  }; // class data_walker
 
 public:
   rrdb(boost::shared_ptr<server> server);
@@ -71,14 +71,16 @@ public:
   // metrics map operations
   boost::shared_ptr<rrdb_metric> get_metric(const std::string & name);
   boost::shared_ptr<rrdb_metric> find_metric(const std::string & name);
+
   boost::shared_ptr<rrdb_metric> create_metric(const std::string & name, const retention_policy & policy, bool throw_if_exists = true);
   void drop_metric(const std::string & name);
+
   void get_metrics(const boost::optional<std::string> & like, metrics_walker & walker);
   void get_status_metrics(const boost::optional<std::string> & like, metrics_walker & walker);
 
   // values
   void update_metric(const std::string & name, const my::time_t & ts, const my::value_t & value);
-  void select_from_metric(const statement_select & query, std::vector<rrdb_metric_tuple_t> & res);
+  void select_from_metric(const std::string & name, const my::time_t & ts1, const my::time_t & ts2, data_walker & walker);
 
   // commands
   void execute_tcp_command(const std::vector<char> & buffer, memory_buffer_t & res);

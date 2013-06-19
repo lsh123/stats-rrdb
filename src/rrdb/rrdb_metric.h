@@ -15,10 +15,13 @@
 #include <boost/shared_array.hpp>
 #include <boost/cstdint.hpp>
 
+#include "rrdb/rrdb.h"
+#include "rrdb/rrdb_metric_tuple.h"
+
 #include "types.h"
 #include "spinlock.h"
 #include "parser/retention_policy.h"
-#include "rrdb/rrdb_metric_tuple.h"
+
 
 #define RRDB_METRIC_EXTENSION    ".rrdb"
 
@@ -75,7 +78,7 @@ public:
   static boost::shared_ptr<rrdb_metric> load_file(const std::string & filename);
 
   void update(const my::time_t & ts, const my::value_t & value);
-  void select(const statement_select & query, std::vector<rrdb_metric_tuple_t> & res);
+  void select(const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker);
 
   void get_last_value(my::value_t & value, my::time_t & value_ts);
 

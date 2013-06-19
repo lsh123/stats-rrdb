@@ -8,29 +8,35 @@
 #ifndef RRDB_TEST_H_
 #define RRDB_TEST_H_
 
+#include <string>
+#include <vector>
 
 #include <boost/shared_ptr.hpp>
 
-#include "server/thread_pool.h"
+#include "types.h"
 
 class rrdb;
 
-class rrdb_test:
-    public thread_pool_task
+class rrdb_test
 {
 public:
-  rrdb_test(boost::shared_ptr<rrdb> rrdb, const std::string & cmd);
-  virtual ~rrdb_test();
-
-  static void run_test(boost::shared_ptr<rrdb> rrdb, const std::string & params);
+  typedef std::vector< std::string > params_t;
 
 public:
-  // thread_pool_task
-  virtual void run();
+  rrdb_test(const boost::shared_ptr<rrdb> & rrdb);
+  virtual ~rrdb_test();
+
+  void run(const std::string & params_str);
+  void run_perf_test(const params_t & params);
+
+private:
+  static params_t parse_params(const std::string & params_str);
+  static std::string get_test_metric_name(const my::size_t & n);
+  void cleanup(const my::size_t & metrics_num);
+
 
 private:
   boost::shared_ptr<rrdb> _rrdb;
-  std::string             _cmd;
 }; // class rrdb_test
 
 #endif /* RRDB_TEST_H_ */

@@ -16,11 +16,12 @@
 #include <boost/shared_array.hpp>
 #include <boost/cstdint.hpp>
 
+#include "rrdb/rrdb.h"
+#include "rrdb/rrdb_metric_tuple.h"
+
 #include "types.h"
 #include "spinlock.h"
 #include "exception.h"
-#include "parser/interval.h"
-#include "rrdb/rrdb_metric_tuple.h"
 
 
 typedef boost::uint32_t rrdb_metric_block_pos_t;
@@ -82,14 +83,6 @@ public:
     }
   } update_ctx_t;
 
-  class select_ctx {
-  public:
-    virtual void append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval) = 0;
-
-  public:
-    my::time_t _ts_begin;
-    my::time_t _ts_end;
-  }; // select_ctx
 
 public:
   rrdb_metric_block(const rrdb_metric_block_pos_t & freq = 0, const rrdb_metric_block_pos_t & count = 0, const my::size_t & offset = 0);
@@ -137,7 +130,7 @@ public:
   }
 
   // SELECT or UPDATE - main operations
-  bool select(select_ctx & ctx) const;
+  bool select(const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker) const;
   void update(const update_ctx_t & in, update_ctx_t & out);
 
   // READ/WRITE FILES

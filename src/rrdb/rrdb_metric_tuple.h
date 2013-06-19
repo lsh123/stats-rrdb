@@ -11,6 +11,7 @@
 #include <boost/cstdint.hpp>
 
 #include "types.h"
+#include "memory_buffer.h"
 
 //
 // Value
@@ -28,5 +29,7 @@ void rrdb_metric_tuple_update(rrdb_metric_tuple_t & tuple, const my::value_t & v
 void rrdb_metric_tuple_update(rrdb_metric_tuple_t & tuple, const rrdb_metric_tuple_t & other);
 void rrdb_metric_tuple_normalize(rrdb_metric_tuple_t & tuple, const my::value_t & factor);
 
+void rrdb_metric_tuple_write_header(memory_buffer_t & res);
+void rrdb_metric_tuple_write(const rrdb_metric_tuple_t & tuple, memory_buffer_t & res);
 
 #endif /* RRDB_METRIC_TUPLE_H_ */

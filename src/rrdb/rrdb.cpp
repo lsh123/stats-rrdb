@@ -60,7 +60,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
   //
   class metrics_walker_show_status :
        public rrdb::metrics_walker
-   {
+  {
    public:
     metrics_walker_show_status(memory_buffer_t & res) :
        _res(res),
@@ -94,7 +94,126 @@ class statement_execute_visitor : public boost::static_visitor<void>
      my::time_t                 _value_ts;
    }; // class metrics_walker_show_status
 
+  //
+  // Walker class for SELECT statement
+  //
+  class data_walker_select :
+      public rrdb::data_walker
+  {
+  public:
+    data_walker_select(const statement_select & select, memory_buffer_t & res) :
+      _select(select),
+      _res(res),
+      _ts(select._ts_end)
+    {
 
+    }
+    virtual ~data_walker_select()
+    {
+
+    }
+
+  public:
+    // rrdb::data_walker
+    bool append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval)
+    {
+      // easy cases
+      if(_ts <= tuple._ts) {
+          // we've inserted data for this interval already
+          return true;
+      }
+      if(tuple._ts < _select._ts_begin) {
+          // this is earlier than start time for select, stop
+          return false;
+      }
+
+      rrdb_metric_tuple_write(tuple, _res);
+      return true;
+    }
+
+    virtual void flush()
+    {
+    }
+
+  private:
+    const statement_select  & _select;
+    mutable memory_buffer_t & _res;
+    my::time_t              _ts;
+  }; // class data_walker
+
+/**
+
+class rrdb_metric_select_ctx : public rrdb_metric_block::select_ctx
+{
+public:
+  rrdb_metric_select_ctx(const statement_select & query) :
+    _query(query),
+    _cur_interval(0)
+  {
+    _ts_begin = query._ts_begin;
+    _ts_end   = query._ts_end;
+
+    this->reset();
+  }
+
+  virtual ~rrdb_metric_select_ctx()
+  {
+
+  }
+
+public:
+  // rrdb_metric_block::select_ctx
+  void append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval)
+  {
+    if(_query._group_by == 0) {
+        _res.push_back(tuple);
+        return;
+    }
+
+    // append
+    if(_cur_tuple._count == 0) {
+        _cur_tuple._ts = tuple._ts;
+    }
+    rrdb_metric_tuple_update(_cur_tuple, tuple);
+    _cur_interval += interval;
+
+    // time to close group by?
+    if(_cur_interval >= _query._group_by) {
+        this->close_group_by();
+        this->reset();
+    }
+  }
+
+  inline void flush(std::vector<rrdb_metric_tuple_t> & res)
+  {
+    this->close_group_by();
+    res.swap(_res);
+  }
+
+private:
+  inline void reset()
+  {
+    memset(&_cur_tuple, 0, sizeof(_cur_tuple));
+    _cur_interval = 0;
+  }
+
+  inline void close_group_by()
+  {
+    if(_cur_interval > 0) {
+        LOG(log::LEVEL_DEBUG3, "select: cur = %lld, gb=%lld", _cur_interval, _query._group_by ? *_query._group_by : 0);
+        rrdb_metric_tuple_normalize(_cur_tuple,  _query._group_by ? (*_query._group_by) / (my::value_t)_cur_interval : 0);
+        _res.push_back(_cur_tuple);
+    }
+  }
+
+private:
+  const statement_select &         _query;
+  std::vector<rrdb_metric_tuple_t> _res;
+
+  rrdb_metric_tuple_t              _cur_tuple;
+  my::interval_t                       _cur_interval;
+};
+ */
 public:
   statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb, memory_buffer_t & res) :
       _rrdb(rrdb),
@@ -120,34 +239,11 @@ public:
 
   void operator()(const statement_select & st) const
   {
-    std::vector<rrdb_metric_tuple_t> tuples;
-    _rrdb->select_from_metric(st, tuples);
+    // write header
+    rrdb_metric_tuple_write_header(_res);
 
-    _res << "ts,count,sum,avg,stddev,min,max" << std::endl;
-    my::value_t avg, stddev;
-    BOOST_FOREACH(const rrdb_metric_tuple_t & tuple, tuples) {
-      if(tuple._count > 0) {
-          avg = tuple._sum / tuple._count;
-          stddev = sqrt(tuple._sum_sqr / tuple._count - avg * avg) ;
-      } else {
-          avg = stddev = 0;
-      }
-      _res << tuple._ts
-           << ','
-           << tuple._count
-           << ','
-           << tuple._sum
-           << ','
-           << avg
-           << ','
-           << stddev
-           << ','
-           << tuple._min
-           << ','
-           << tuple._max
-           << std::endl;
-      ;
-    }
+    data_walker_select walker(st, _res);
+    _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, walker);
   }
 
   void operator()(const statement_show_policy & st) const
@@ -516,15 +612,15 @@ void rrdb::update_metric(const std::string & name, const my::time_t & ts, const 
   metric->update(ts, value);
 }
 
-void rrdb::select_from_metric(const statement_select & query, std::vector<rrdb_metric_tuple_t> & res)
+void rrdb::select_from_metric(const std::string & name, const my::time_t & ts1, const my::time_t & ts2, data_walker & walker)
 {
-  boost::shared_ptr<rrdb_metric> metric = this->find_metric(query._name);
+  boost::shared_ptr<rrdb_metric> metric = this->find_metric(name);
   if(!metric) {
       // TODO: create metric automatically when needed
-      throw exception("The metric '%s' does not exist", query._name.c_str());
+      throw exception("The metric '%s' does not exist", name.c_str());
   }
 
-  metric->select(query, res);
+  metric->select(ts1, ts2, walker);
 }
 
 void rrdb::execute_tcp_command(const std::vector<char> & buffer, memory_buffer_t & res)

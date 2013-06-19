@@ -267,5 +267,6 @@ void server::status_update_thread()
 
 void server::test(const std::string & params)
 {
-  rrdb_test::run_test(_rrdb, params);
+  boost::shared_ptr<rrdb_test> test(new rrdb_test(_rrdb));
+  test->run(params);
 }

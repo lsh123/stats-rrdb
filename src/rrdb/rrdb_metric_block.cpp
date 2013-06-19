@@ -139,31 +139,28 @@ void rrdb_metric_block::update(const update_ctx_t & in, update_ctx_t & out)
   }
 }
 
-bool rrdb_metric_block::select(rrdb_metric_block::select_ctx & ctx) const
+bool rrdb_metric_block::select(const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker) const
 {
   CHECK_AND_THROW(_tuples.get());
   CHECK_AND_THROW(_header._pos < _header._count);
 
-  // LOG(log::LEVEL_DEBUG, "Select from %lld to %lld (we have %lld to %lld)", ctx._ts_begin, ctx._ts_end, this->get_earliest_ts(), this->get_latest_ts());
-
-  if(ctx._ts_end < this->get_earliest_ts()) {
-      // try earlier blocks
+  // quick checks if this block overlaps with the [ts1, ts2] interval
+  if(ts2 < this->get_earliest_ts()) {
+      // select end time is earlier - try earlier blocks
       return true;
   }
-  if(this->get_latest_ts() < ctx._ts_begin) {
-      // no point, stop
+  if(this->get_latest_ts() < ts1) {
+      // select start time is greater than our end time - no point, stop
       return false;
   }
 
+  // great this block overlaps with ts1/ts2 - walk through all
+  // the tuples until we hit the end or
   rrdb_metric_block_pos_t pos(_header._pos);
   do {
-      const rrdb_metric_tuple_t & tuple = _tuples[pos];
-      if(tuple._ts < ctx._ts_begin) {
+      // check if walker is interested (i.e. if current tuple ts > ts1
+      if(!walker.append(_tuples[pos], _header._freq)) {
           return false;
-      }
-      if(tuple._ts < ctx._ts_end) {
-          ctx._ts_end = tuple._ts;
-          ctx.append(tuple, _header._freq);
       }
 
       // move to prev one

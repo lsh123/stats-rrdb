@@ -12,7 +12,7 @@ function start_server() {
 	@mkdir($TEST_FOLDER);
 
 	echo "=================== Starting server\n";
-	system("valgrind $ROOT_FOLDER/src/stats-rrdb  --config \"$CONFIG_FILE\" --daemon \"$PID_FILE\"");
+	system("$ROOT_FOLDER/src/stats-rrdb  --config \"$CONFIG_FILE\" --daemon \"$PID_FILE\"");
 	sleep(3);
 	$pid=file_get_contents($PID_FILE);
 	echo "=================== Started server $pid\n";
@@ -67,8 +67,14 @@ try {
 	}	
 
 	echo "== SELECT * FROM METRIC 'test1'\n";
-	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104580 AND 1371104990 GROUP BY 5 sec;");
+	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104586 AND 1371104596");
 	echo "$resp\n";
+	
+	echo "== SELECT * FROM METRIC 'test1'  GROUP BY 5 sec;\n";
+	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104586 AND 1371104596 GROUP BY 5 sec;");
+	echo "$resp\n";
+	
+	exit(1);
 
 	echo "== SELECT * FROM METRIC 'test2'\n";
 	$resp = $stats_rrdb->send_command("SELECT * FROM 'test2' BETWEEN 1371104580 AND 1371104990 GROUP BY 5 sec;");

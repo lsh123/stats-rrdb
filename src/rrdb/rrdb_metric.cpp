@@ -26,77 +26,6 @@
 // make it configurable?
 #define RRDB_METRIC_SUBFOLDERS_NUM      512
 
-class rrdb_metric_select_ctx : public rrdb_metric_block::select_ctx
-{
-public:
-  rrdb_metric_select_ctx(const statement_select & query) :
-    _query(query),
-    _cur_interval(0)
-  {
-    _ts_begin = query._ts_begin;
-    _ts_end   = query._ts_end;
-
-    this->reset();
-  }
-
-  virtual ~rrdb_metric_select_ctx()
-  {
-
-  }
-
-public:
-  // rrdb_metric_block::select_ctx
-  void append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval)
-  {
-    if(_query._group_by == 0) {
-        _res.push_back(tuple);
-        return;
-    }
-
-    // append
-    if(_cur_tuple._count == 0) {
-        _cur_tuple._ts = tuple._ts;
-    }
-    rrdb_metric_tuple_update(_cur_tuple, tuple);
-    _cur_interval += interval;
-
-    // time to close group by?
-    if(_cur_interval >= _query._group_by) {
-        this->close_group_by();
-        this->reset();
-    }
-  }
-
-  inline void flush(std::vector<rrdb_metric_tuple_t> & res)
-  {
-    this->close_group_by();
-    res.swap(_res);
-  }
-
-private:
-  inline void reset()
-  {
-    memset(&_cur_tuple, 0, sizeof(_cur_tuple));
-    _cur_interval = 0;
-  }
-
-  inline void close_group_by()
-  {
-    if(_cur_interval > 0) {
-        LOG(log::LEVEL_DEBUG3, "select: cur = %lld, gb=%lld", _cur_interval, _query._group_by ? *_query._group_by : 0);
-        rrdb_metric_tuple_normalize(_cur_tuple,  _query._group_by ? (*_query._group_by) / (my::value_t)_cur_interval : 0);
-        _res.push_back(_cur_tuple);
-    }
-  }
-
-private:
-  const statement_select &         _query;
-  std::vector<rrdb_metric_tuple_t> _res;
-
-  rrdb_metric_tuple_t              _cur_tuple;
-  my::interval_t                       _cur_interval;
-};
-
 
 rrdb_metric::rrdb_metric()
 {
@@ -247,21 +176,19 @@ void rrdb_metric::update(const my::time_t & ts, const my::value_t & value)
   }
 }
 
-void rrdb_metric::select(const statement_select & query, std::vector<rrdb_metric_tuple_t> & res)
+void rrdb_metric::select(const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker)
 {
   boost::lock_guard<spinlock> guard(_lock);
   if(_header._blocks_size <= 0) {
       return;
   }
 
-  rrdb_metric_select_ctx ctx(query);
   BOOST_FOREACH(const rrdb_metric_block & block, _blocks) {
-    if(!block.select(ctx)) {
+    if(!block.select(ts1, ts2, walker)) {
         break;
     }
   }
-
-  ctx.flush(res);
+  walker.flush();
 }
 
 
