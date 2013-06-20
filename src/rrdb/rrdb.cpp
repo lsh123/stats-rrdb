@@ -95,125 +95,171 @@ class statement_execute_visitor : public boost::static_visitor<void>
    }; // class metrics_walker_show_status
 
   //
-  // Walker class for SELECT statement
+  // Walker class for SELECT statement w/o group by
   //
-  class data_walker_select :
+  class data_walker_select_no_group_by :
       public rrdb::data_walker
   {
   public:
-    data_walker_select(const statement_select & select, memory_buffer_t & res) :
+    data_walker_select_no_group_by(const statement_select & select, memory_buffer_t & res) :
       _select(select),
       _res(res),
-      _ts(select._ts_end)
+      _last_ts(select._ts_end + 1)
+    {
+    }
+
+    virtual ~data_walker_select_no_group_by()
     {
 
     }
-    virtual ~data_walker_select()
-    {
 
-    }
 
   public:
     // rrdb::data_walker
-    bool append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval)
+    void append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval)
     {
-      // easy cases
-      if(_ts <= tuple._ts) {
-          // we've inserted data for this interval already
-          return true;
+      // we are guaranteed that tuple is in the select's [ts1, ts2) interval
+      // but do we want this tuple? we might have lower resolution data in subsequent
+      // blocks so we just use our last_ts to figure it out
+      if(_select._ts_begin <= tuple._ts && tuple._ts < _last_ts && tuple._count > 0) {
+        rrdb_metric_tuple_write(tuple, _res);
+        _last_ts = tuple._ts;
       }
-      if(tuple._ts < _select._ts_begin) {
-          // this is earlier than start time for select, stop
-          return false;
-      }
-
-      rrdb_metric_tuple_write(tuple, _res);
-      return true;
     }
 
     virtual void flush()
     {
+      // do nothing - we write immediately
     }
 
   private:
     const statement_select  & _select;
     mutable memory_buffer_t & _res;
-    my::time_t              _ts;
-  }; // class data_walker
+    my::time_t                _last_ts;
+  }; // class data_walker_select_no_group_by
 
-/**
+  //
+  // Walker class for SELECT statement
+  //
+  class data_walker_select :
+        public rrdb::data_walker
+    {
+    public:
+      data_walker_select(const statement_select & select, memory_buffer_t & res) :
+        _select(select),
+        _res(res),
+        _group_by(*select._group_by),
+        _ts(0),
+        _ts_beg(0),
+        _ts_end(0)
+      {
+        this->reset_cur_tuple(select._ts_end);
+      }
 
-class rrdb_metric_select_ctx : public rrdb_metric_block::select_ctx
-{
-public:
-  rrdb_metric_select_ctx(const statement_select & query) :
-    _query(query),
-    _cur_interval(0)
-  {
-    _ts_begin = query._ts_begin;
-    _ts_end   = query._ts_end;
+      virtual ~data_walker_select()
+      {
+      }
 
-    this->reset();
-  }
+    public:
+      // rrdb::data_walker
+      void append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval)
+      {
+        /*
+        std::cout
+          << "Tuple: "  << tuple._ts
+          << " to: "    << tuple._ts + interval
+          << " beg: "   << _ts_beg
+          << " end: "   << _ts_end
+          << " ts: "    << _ts
+          << std::endl;
+       */
 
-  virtual ~rrdb_metric_select_ctx()
-  {
+        // while there is no overlap yet (i.e. [tuple) < [_ts_beg, _ts_end) )
+        // flush tuple and move to the next one
+        my::time_t tuple_end = tuple._ts + interval;
+        while(tuple_end <= _ts_beg) {
+            this->flush();
+            this->reset_cur_tuple(_ts_beg);
+        }
 
-  }
+        // check if tuple is newer than "group by" interval (for example from lower resolution
+        // blocks stuffed in later). otherwise we will get duplicate data
+        my::time_t overlap;
+        while(tuple._ts < _ts && _select._ts_begin <= _ts_beg) {
+            // there is an overlap since tuple.b < _ts <= _ts_end && _ts_beg < tuple.e
+            if(tuple_end <= _ts) {
+                overlap = tuple_end - _ts_beg;
+            } else {
+                overlap = _ts - tuple._ts;
+            }
 
-public:
-  // rrdb_metric_block::select_ctx
-  void append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval)
-  {
-    if(_query._group_by == 0) {
-        _res.push_back(tuple);
-        return;
-    }
+            /*
+            std::cerr
+              << "Overlap: " << overlap
+              << " interval: " << interval
+              << " beg: "   << _ts_beg
+              << " end: "   << _ts_end
+              << " ts: "    << _ts
+              << std::endl;
+           */
 
-    // append
-    if(_cur_tuple._count == 0) {
-        _cur_tuple._ts = tuple._ts;
-    }
-    rrdb_metric_tuple_update(_cur_tuple, tuple);
-    _cur_interval += interval;
+            // check if tuple is "inside" the the current "group by" interval
+            if(overlap >= interval) {
+                rrdb_metric_tuple_update(_cur_tuple, tuple);
+            } else {
+                // calculate the contribution of the tuple based
+                // simple proportion
+                // TODO: hack for now
+                rrdb_metric_tuple_t t;
+                memcpy(&t, &tuple, sizeof(t));
+                rrdb_metric_tuple_normalize(t, overlap / (double)interval);
+                rrdb_metric_tuple_update(_cur_tuple, t);
+            }
 
-    // time to close group by?
-    if(_cur_interval >= _query._group_by) {
-        this->close_group_by();
-        this->reset();
-    }
-  }
+            // are we done with this tuple?
+            if(_ts_beg <= tuple._ts) {
+                _ts = tuple._ts;
+                break;
+            }
 
-  inline void flush(std::vector<rrdb_metric_tuple_t> & res)
-  {
-    this->close_group_by();
-    res.swap(_res);
-  }
+            // more "group by" intervals that fit this tuple
+            this->flush();
+            this->reset_cur_tuple(_ts_beg);
+        }
+      }
 
-private:
-  inline void reset()
-  {
-    memset(&_cur_tuple, 0, sizeof(_cur_tuple));
-    _cur_interval = 0;
-  }
+      virtual void flush()
+      {
+        if(_cur_tuple._count > 0) {
+            rrdb_metric_tuple_write(_cur_tuple, _res);
+        }
+      }
 
-  inline void close_group_by()
-  {
-    if(_cur_interval > 0) {
-        LOG(log::LEVEL_DEBUG3, "select: cur = %lld, gb=%lld", _cur_interval, _query._group_by ? *_query._group_by : 0);
-        rrdb_metric_tuple_normalize(_cur_tuple,  _query._group_by ? (*_query._group_by) / (my::value_t)_cur_interval : 0);
-        _res.push_back(_cur_tuple);
-    }
-  }
+    private:
+      void reset_cur_tuple(const my::time_t & new_ts_end)
+      {
+         // shift the interval, initially _ts is set to the _ts_end
+         _ts     = new_ts_end;
+         _ts_end = new_ts_end;
+         _ts_beg = new_ts_end - _group_by;
 
-private:
-  const statement_select &         _query;
-  std::vector<rrdb_metric_tuple_t> _res;
+          // reset the tuple, tuple starts at _beg of the interval
+          memset(&_cur_tuple, 0, sizeof(_cur_tuple));
+          _cur_tuple._ts = _ts_beg;
+      }
 
-  rrdb_metric_tuple_t              _cur_tuple;
-  my::interval_t                       _cur_interval;
-};
- */
+    private:
+      const statement_select  & _select;
+      mutable memory_buffer_t & _res;
+      const my::interval_t      _group_by;
+
+      rrdb_metric_tuple_t       _cur_tuple;
+      my::time_t                _ts;
+      my::time_t                _ts_beg;
+      my::time_t                _ts_end;
+    }; // class data_walker
+
+
 public:
   statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb, memory_buffer_t & res) :
       _rrdb(rrdb),
@@ -242,8 +288,15 @@ public:
     // write header
     rrdb_metric_tuple_write_header(_res);
 
-    data_walker_select walker(st, _res);
-    _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, walker);
+    if(st._group_by && (*st._group_by)) {
+        // hard case
+        data_walker_select walker(st, _res);
+        _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, walker);
+    } else {
+        // simple case
+        data_walker_select_no_group_by walker(st, _res);
+        _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, walker);
+    }
   }
 
   void operator()(const statement_show_policy & st) const

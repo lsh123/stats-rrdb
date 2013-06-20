@@ -52,7 +52,7 @@ public:
   //
   class data_walker {
   public:
-    virtual bool append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval) = 0;
+    virtual void append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval) = 0;
     virtual void flush() = 0;
   }; // class data_walker
 

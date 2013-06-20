@@ -183,11 +183,22 @@ void rrdb_metric::select(const my::time_t & ts1, const my::time_t & ts2, rrdb::d
       return;
   }
 
+  // note that logic for checking timestamps in rrdb_metric_block::select()
+  // is very similar
   BOOST_FOREACH(const rrdb_metric_block & block, _blocks) {
-    if(!block.select(ts1, ts2, walker)) {
+    int res = my::interval_overlap(block.get_earliest_ts(), block.get_latest_ts(), ts1, ts2);
+    if(res < 0) {
+        // [block) < [ts1, ts2): blocks are ordered from newest to oldest, so we
+        // are done - all the next blocks will be earlier than this one
         break;
     }
+    if(res ==  0) {
+        // res == 0 => block and interval intersect!
+        block.select(ts1, ts2, walker);
+    }
   }
+
+  // done - finish up
   walker.flush();
 }
 

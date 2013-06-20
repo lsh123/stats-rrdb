@@ -130,7 +130,7 @@ public:
   }
 
   // SELECT or UPDATE - main operations
-  bool select(const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker) const;
+  void select(const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker) const;
   void update(const update_ctx_t & in, update_ctx_t & out);
 
   // READ/WRITE FILES

@@ -17,6 +17,21 @@ namespace my {
 //
 typedef boost::int64_t  time_t;
 
+// checks overlaps for two intervals and returns:
+//      -1 if [ts1_b, ts1_e) < [ts2_b, ts2_e) (i.e. ts1 is earlier than ts2)
+//       1 if [ts2_b, ts2_e) < [ts1_b, ts1_e) (i.e. ts1 is later than ts2)
+//       0 if the two overlap
+inline int interval_overlap(const time_t & ts1_b, const time_t & ts1_e, const time_t & ts2_b, const time_t & ts2_e)
+{
+  if(ts1_e <= ts2_b) {
+      return -1;
+  } else if(ts2_e <= ts1_b) {
+      return 1;
+  }
+  return 0;
+}
+
+
 //
 // Interval: number of seconds between two timestamps
 //

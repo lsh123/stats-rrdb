@@ -139,36 +139,31 @@ void rrdb_metric_block::update(const update_ctx_t & in, update_ctx_t & out)
   }
 }
 
-bool rrdb_metric_block::select(const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker) const
+void rrdb_metric_block::select(const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker) const
 {
   CHECK_AND_THROW(_tuples.get());
   CHECK_AND_THROW(_header._pos < _header._count);
 
-  // quick checks if this block overlaps with the [ts1, ts2] interval
-  if(ts2 < this->get_earliest_ts()) {
-      // select end time is earlier - try earlier blocks
-      return true;
-  }
-  if(this->get_latest_ts() < ts1) {
-      // select start time is greater than our end time - no point, stop
-      return false;
-  }
-
-  // great this block overlaps with ts1/ts2 - walk through all
-  // the tuples until we hit the end or
+  // walk through all the tuples until we hit the end or the time stops
+  // note that logic for checking timestamps in rrdb_metric::select()
+  // is very similar
   rrdb_metric_block_pos_t pos(_header._pos);
   do {
-      // check if walker is interested (i.e. if current tuple ts > ts1
-      if(!walker.append(_tuples[pos], _header._freq)) {
-          return false;
+      const rrdb_metric_tuple_t & tuple(_tuples[pos]);
+      int res = my::interval_overlap(tuple._ts, tuple._ts + _header._freq, ts1, ts2);
+      if(res < 0) {
+          // [tuple) < [ts1, ts2): tuples are ordered from newest to oldest, so we
+          // are done - all the next tuples will be earlier than this one
+          break;
+      }
+      if(res ==  0) {
+          // res == 0 => tuple and interval intersect!
+          walker.append(tuple, _header._freq);
       }
 
       // move to prev one
       pos = this->get_prev_pos(pos);
   } while(pos != _header._pos);
-
-  // try next block
-  return true;
 }
 
 void rrdb_metric_block::write_block(std::fstream & ofs)
