@@ -489,9 +489,10 @@ void rrdb::load_metrics()
       }
 
       // load metric
-      boost::shared_ptr<rrdb_metric> metric(rrdb_metric::load_file(file_path.string()));
-      std::string name(metric->get_name());
+      boost::shared_ptr<rrdb_metric> metric(new rrdb_metric());
+      metric->load_file(file_path.string());
 
+      std::string name(metric->get_name());
       // try to insert into the map
       {
         boost::lock_guard<spinlock> guard(_metrics_lock);
@@ -542,8 +543,8 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
   retention_policy_validate(policy);
 
   // create new and try to insert into map, lock access to _metrics
-  boost::shared_ptr<rrdb_metric> res(new rrdb_metric(name_lc, policy));
-  res->set_dirty();
+  boost::shared_ptr<rrdb_metric> res(new rrdb_metric());
+  res->set_name_and_policy(name_lc, policy);
   {
     // make sure there is always only one metric for the name
     boost::lock_guard<spinlock> guard(_metrics_lock);

@@ -23,6 +23,7 @@
 #include "spinlock.h"
 #include "exception.h"
 
+class rrdb_metric;
 
 typedef boost::uint32_t rrdb_metric_block_pos_t;
 
@@ -85,7 +86,12 @@ public:
 
 
 public:
-  rrdb_metric_block(const rrdb_metric_block_pos_t & freq = 0, const rrdb_metric_block_pos_t & count = 0, const my::size_t & offset = 0);
+  rrdb_metric_block(
+      boost::shared_ptr<rrdb_metric> rrdb_metric,
+      const rrdb_metric_block_pos_t & freq = 0,
+      const rrdb_metric_block_pos_t & count = 0,
+      const my::size_t & offset = 0
+  );
   virtual ~rrdb_metric_block();
 
   // DATA STUFF
@@ -108,11 +114,6 @@ public:
   }
   inline rrdb_metric_block_pos_t get_count() const {
     return _header._count;
-  }
-
-  // tuple
-  rrdb_metric_tuple_t & get_cur_tuple() {
-    return _tuples[_header._pos];
   }
 
   // TIMESTAMPS STUFF
@@ -138,7 +139,12 @@ public:
   void read_block(std::fstream & ifs);
 
 private:
-  rrdb_metric_tuple_t * find_tuple(const update_ctx_t & in, update_ctx_t & out);
+  boost::shared_array<rrdb_metric_tuple_t> get_tuples() const;
+  rrdb_metric_tuple_t * find_tuple(
+      const boost::shared_array<rrdb_metric_tuple_t> & the_tuples,
+      const update_ctx_t & in,
+      update_ctx_t & out
+  );
 
   inline my::time_t normalize_ts(const my::time_t & ts) const {
     return ts - (ts % _header._freq);
@@ -153,8 +159,9 @@ private:
   }
 
 private:
+  boost::weak_ptr<rrdb_metric>             _rrdb_metric;
   rrdb_metric_block_header_t               _header;
-  boost::shared_array<rrdb_metric_tuple_t> _tuples;
+  boost::shared_array<rrdb_metric_tuple_t> _tuples_data;
 }; // rrdb_metric_block
 
 #endif /* RRDB_METRIC_BLOCK_H_ */

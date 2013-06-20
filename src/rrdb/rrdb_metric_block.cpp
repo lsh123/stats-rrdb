@@ -12,7 +12,13 @@
 
 #define RRDB_METRIC_BLOCK_MAGIC    0xBB99
 
-rrdb_metric_block::rrdb_metric_block(const rrdb_metric_block_pos_t & freq, const rrdb_metric_block_pos_t & count, const my::size_t & offset)
+rrdb_metric_block::rrdb_metric_block(
+    boost::shared_ptr<rrdb_metric> rrdb_metric,
+    const rrdb_metric_block_pos_t & freq,
+    const rrdb_metric_block_pos_t & count,
+    const my::size_t & offset
+) :
+  _rrdb_metric(rrdb_metric)
 {
   memset(&_header, 0, sizeof(_header));
   _header._magic     = RRDB_METRIC_BLOCK_MAGIC;
@@ -23,8 +29,8 @@ rrdb_metric_block::rrdb_metric_block(const rrdb_metric_block_pos_t & freq, const
   _header._data_size = _header._count * sizeof(rrdb_metric_tuple_t);
 
   if(_header._count > 0) {
-      _tuples.reset(new rrdb_metric_tuple_t[_header._count]);
-      memset(_tuples.get(), 0, _header._data_size);
+      _tuples_data.reset(new rrdb_metric_tuple_t[_header._count]);
+      memset(_tuples_data.get(), 0, _header._data_size);
   }
 }
 
@@ -32,8 +38,17 @@ rrdb_metric_block::~rrdb_metric_block()
 {
 }
 
-rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, update_ctx_t & out) {
-  CHECK_AND_THROW(_tuples.get());
+
+boost::shared_array<rrdb_metric_tuple_t> rrdb_metric_block::get_tuples() const
+{
+  return _tuples_data;
+}
+
+rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(
+    const boost::shared_array<rrdb_metric_tuple_t> & the_tuples,
+    const update_ctx_t & in,
+    update_ctx_t & out
+) {
   CHECK_AND_THROW(_header._pos < _header._count);
   CHECK_AND_THROW(_header._freq > 0);
 
@@ -41,11 +56,11 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
   if(this->get_latest_possible_ts() <= ts) {
       // complete shift forward, notify about rollup
       out._state = UpdateState_Tuple;
-      out._tuple = _tuples[_header._pos];
+      out._tuple = the_tuples[_header._pos];
 
       // start from 0 and assume this ts is the latest
-      memset(_tuples.get(), 0, _header._data_size);
-      rrdb_metric_tuple_t & tuple = _tuples[0];
+      memset(the_tuples.get(), 0, _header._data_size);
+      rrdb_metric_tuple_t & tuple = the_tuples[0];
       _header._pos      = 0;
       _header._pos_ts   = tuple._ts = this->normalize_ts(ts);
 
@@ -53,7 +68,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
       return &tuple;
   } else if(this->get_cur_ts() <= ts) {
       // we are somewhere ahead but not too much
-      rrdb_metric_tuple_t * tuple = &_tuples[_header._pos];
+      rrdb_metric_tuple_t * tuple = &the_tuples[_header._pos];
       my::time_t next_tuple_ts = tuple->_ts + _header._freq;
       if(ts < next_tuple_ts) {
           // our current tuple will do
@@ -69,7 +84,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
       do {
           // move the pointer
           _header._pos = this->get_next_pos(_header._pos);
-          tuple = &_tuples[_header._pos];
+          tuple = &the_tuples[_header._pos];
 
           // reset values
           memset(tuple, 0, sizeof(*tuple));
@@ -93,7 +108,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
           tuple_ts -= _header._freq;
 
           // overwrite tuple ts just in case (it might not be initialized!)
-          rrdb_metric_tuple_t * tuple = &_tuples[pos];
+          rrdb_metric_tuple_t * tuple = &the_tuples[pos];
           tuple->_ts = tuple_ts;
           if(ts >= tuple->_ts) {
               CHECK_AND_THROW(ts < tuple->_ts + _header._freq);
@@ -115,12 +130,15 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(const update_ctx_t & in, upd
 
 void rrdb_metric_block::update(const update_ctx_t & in, update_ctx_t & out)
 {
-  rrdb_metric_tuple_t * tuple = this->find_tuple(in, out);
+  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples());
+  CHECK_AND_THROW(the_tuples.get());
+  CHECK_AND_THROW(this->get_cur_ts() == the_tuples[_header._pos]._ts);
+
+  rrdb_metric_tuple_t * tuple = this->find_tuple(the_tuples, in, out);
   if(!tuple) {
       LOG(log::LEVEL_DEBUG, "Can not find tuple ts: %ld (current block time: %ld, duration: %ld)", in.get_ts(), this->get_cur_ts(), this->get_duration());
       return;
   }
-  CHECK_AND_THROW(this->get_cur_ts() == this->get_cur_tuple()._ts);
   CHECK_AND_THROW(tuple->_ts <= in.get_ts());
   CHECK_AND_THROW(in.get_ts() < tuple->_ts + _header._freq);
 
@@ -141,15 +159,17 @@ void rrdb_metric_block::update(const update_ctx_t & in, update_ctx_t & out)
 
 void rrdb_metric_block::select(const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker) const
 {
-  CHECK_AND_THROW(_tuples.get());
   CHECK_AND_THROW(_header._pos < _header._count);
+
+  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples());
+  CHECK_AND_THROW(the_tuples.get());
 
   // walk through all the tuples until we hit the end or the time stops
   // note that logic for checking timestamps in rrdb_metric::select()
   // is very similar
   rrdb_metric_block_pos_t pos(_header._pos);
   do {
-      const rrdb_metric_tuple_t & tuple(_tuples[pos]);
+      const rrdb_metric_tuple_t & tuple(the_tuples[pos]);
       int res = my::interval_overlap(tuple._ts, tuple._ts + _header._freq, ts1, ts2);
       if(res < 0) {
           // [tuple) < [ts1, ts2): tuples are ordered from newest to oldest, so we
@@ -168,18 +188,20 @@ void rrdb_metric_block::select(const my::time_t & ts1, const my::time_t & ts2, r
 
 void rrdb_metric_block::write_block(std::fstream & ofs)
 {
-  CHECK_AND_THROW(_tuples.get());
+  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples());
+  CHECK_AND_THROW(the_tuples.get());
 
   // write header
   ofs.write((const char*)&_header, sizeof(_header));
 
   // write data
-  ofs.write((const char*)_tuples.get(), _header._data_size);
+  ofs.write((const char*)the_tuples.get(), _header._data_size);
 }
 
 void rrdb_metric_block::read_block(std::fstream & ifs)
 {
-  CHECK_AND_THROW(!_tuples.get());
+  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples());
+  CHECK_AND_THROW(!the_tuples.get());
 
   // rememeber where are we
   uint64_t offset = ifs.tellg();
@@ -209,10 +231,10 @@ void rrdb_metric_block::read_block(std::fstream & ifs)
   }
 
   // read data
-  _tuples.reset(new rrdb_metric_tuple_t[_header._count]);
-  ifs.read((char*)_tuples.get(), _header._data_size);
+  the_tuples.reset(new rrdb_metric_tuple_t[_header._count]);
+  ifs.read((char*)the_tuples.get(), _header._data_size);
 
-  if(_tuples[_header._pos]._ts != _header._pos_ts) {
-      throw exception("Unexpected rrdb metric block pos %u pos_ts: %ld (expected from tuple: %ld)",  _header._pos, _header._pos_ts, _tuples[_header._pos]._ts);
+  if(the_tuples[_header._pos]._ts != _header._pos_ts) {
+      throw exception("Unexpected rrdb metric block pos %u pos_ts: %ld (expected from tuple: %ld)",  _header._pos, _header._pos_ts, the_tuples[_header._pos]._ts);
   }
 }

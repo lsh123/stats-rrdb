@@ -14,6 +14,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/cstdint.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric_tuple.h"
@@ -51,7 +52,8 @@ typedef struct rrdb_metric_header_t_ {
 //
 //
 //
-class rrdb_metric
+class rrdb_metric :
+    public boost::enable_shared_from_this<rrdb_metric>
 {
   enum status {
     Status_Deleted      = 0x01,
@@ -61,11 +63,11 @@ class rrdb_metric
 
 public:
   rrdb_metric();
-  rrdb_metric(const std::string & name, const retention_policy & policy);
   virtual ~rrdb_metric();
 
   std::string get_name();
   retention_policy get_policy();
+  void set_name_and_policy(const std::string & name, const retention_policy & policy);
 
   bool is_dirty();
   void set_dirty();
@@ -73,9 +75,9 @@ public:
   bool is_deleted();
   void set_deleted();
 
+  void load_file(const std::string & filename);
   void save_file(const std::string & folder);
   void delete_file(const std::string & folder);
-  static boost::shared_ptr<rrdb_metric> load_file(const std::string & filename);
 
   void update(const my::time_t & ts, const my::value_t & value);
   void select(const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker);

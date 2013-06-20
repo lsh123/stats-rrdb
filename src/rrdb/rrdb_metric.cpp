@@ -35,30 +35,6 @@ rrdb_metric::rrdb_metric()
   _header._version      = RRDB_METRIC_VERSION;
 }
 
-rrdb_metric::rrdb_metric(const std::string & name, const retention_policy & policy)
-{
-  // setup empty header
-  memset(&_header, 0, sizeof(_header));
-  _header._magic      = RRDB_METRIC_MAGIC;
-  _header._version    = RRDB_METRIC_VERSION;
-
-  // copy name
-  _header._name_len   = name.length();
-  _header._name_size  = rrdb_metric::get_padded_name_len(_header._name_len);
-  _name.reset(new char[_header._name_size]);
-  memset(_name.get(), 0, _header._name_size);
-  std::copy(name.begin(), name.end(), _name.get());
-
-  // copy policy
-  _header._blocks_size  = policy.size();
-  _blocks.reserve(_header._blocks_size);
-  my::size_t offset = sizeof(_header) + _header._name_size;
-  BOOST_FOREACH(const retention_policy_elem & elem, policy) {
-    _blocks.push_back(rrdb_metric_block(elem._freq, elem._duration / elem._freq, offset));
-    offset += _blocks.back().get_size();
-  }
-}
-
 rrdb_metric::~rrdb_metric()
 {
 }
@@ -86,6 +62,32 @@ retention_policy rrdb_metric::get_policy()
     res.push_back(elem);
   }
   return res;
+}
+
+
+void rrdb_metric::set_name_and_policy(const std::string & name, const retention_policy & policy)
+{
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+
+    // copy name
+    _header._name_len   = name.length();
+    _header._name_size  = rrdb_metric::get_padded_name_len(_header._name_len);
+    _name.reset(new char[_header._name_size]);
+    memset(_name.get(), 0, _header._name_size);
+    std::copy(name.begin(), name.end(), _name.get());
+
+    // copy policy
+    _header._blocks_size  = policy.size();
+    _blocks.clear();
+    _blocks.reserve(_header._blocks_size);
+    my::size_t offset = sizeof(_header) + _header._name_size;
+    BOOST_FOREACH(const retention_policy_elem & elem, policy) {
+      _blocks.push_back(rrdb_metric_block(shared_from_this(), elem._freq, elem._duration / elem._freq, offset));
+      offset += _blocks.back().get_size();
+    }
+  }
+  this->set_dirty();
 }
 
 bool rrdb_metric::is_dirty()
@@ -266,7 +268,7 @@ void rrdb_metric::save_file(const std::string & folder)
   }
 }
 
-boost::shared_ptr<rrdb_metric> rrdb_metric::load_file(const std::string & filename)
+void rrdb_metric::load_file(const std::string & filename)
 {
   // start
   LOG(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", filename.c_str());
@@ -275,17 +277,16 @@ boost::shared_ptr<rrdb_metric> rrdb_metric::load_file(const std::string & filena
   std::fstream ifs(filename.c_str(), std::ios_base::binary | std::ios_base::in);
   ifs.exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
 
-  boost::shared_ptr<rrdb_metric> res(new rrdb_metric());
-  res->read_header(ifs);
-  res->_blocks.resize(res->_header._blocks_size);
-  BOOST_FOREACH(rrdb_metric_block & block, res->_blocks) {
-    block.read_block(ifs);
+  this->read_header(ifs);
+  this->_blocks.reserve(this->_header._blocks_size);
+  for(my::size_t ii = 0; ii < this->_header._blocks_size; ++ii) {
+      this->_blocks.push_back(rrdb_metric_block(shared_from_this()));
+      this->_blocks.back().read_block(ifs);
   }
   ifs.close();
 
   // done
   LOG(log::LEVEL_DEBUG, "RRDB metric loaded file '%s'", filename.c_str());
-  return res;
 }
 
 void rrdb_metric::delete_file(const std::string & folder)
