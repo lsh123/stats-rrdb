@@ -83,7 +83,7 @@ void rrdb_metric::set_name_and_policy(const std::string & name, const retention_
     _blocks.reserve(_header._blocks_size);
     my::size_t offset = sizeof(_header) + _header._name_size;
     BOOST_FOREACH(const retention_policy_elem & elem, policy) {
-      _blocks.push_back(rrdb_metric_block(shared_from_this(), elem._freq, elem._duration / elem._freq, offset));
+      _blocks.push_back(rrdb_metric_block(elem._freq, elem._duration / elem._freq, offset));
       offset += _blocks.back().get_size();
     }
   }
@@ -121,8 +121,10 @@ void rrdb_metric::get_last_value(my::value_t & value, my::time_t & value_ts)
   value_ts = _header._last_value_ts;
 }
 
-void rrdb_metric::update(const my::time_t & ts, const my::value_t & value)
+void rrdb_metric::update(const rrdb * const rrdb, const my::time_t & ts, const my::value_t & value)
 {
+  CHECK_AND_THROW(rrdb);
+
   boost::lock_guard<spinlock> guard(_lock);
   if(_header._blocks_size <= 0) {
       return;
@@ -160,7 +162,7 @@ void rrdb_metric::update(const my::time_t & ts, const my::value_t & value)
       if(ii == 1) {
           LOG(log::LEVEL_DEBUG3, "Updating block with 'one' at ts %lld with ctx state %d", one.get_ts(), one._state);
 
-          block.update(one, two);
+          block.update(rrdb, this, one, two);
           if(two._state == rrdb_metric_block::UpdateState_Stop) {
               break;
           }
@@ -168,7 +170,7 @@ void rrdb_metric::update(const my::time_t & ts, const my::value_t & value)
       } else {
           LOG(log::LEVEL_DEBUG3, "Updating block with 'two' at ts %lld with ctx state %d", two.get_ts(), two._state);
 
-          block.update(two, one);
+          block.update(rrdb, this, two, one);
           if(one._state == rrdb_metric_block::UpdateState_Stop) {
               break;
           }
@@ -178,8 +180,10 @@ void rrdb_metric::update(const my::time_t & ts, const my::value_t & value)
   }
 }
 
-void rrdb_metric::select(const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker)
+void rrdb_metric::select(const rrdb * const rrdb, const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker)
 {
+  CHECK_AND_THROW(rrdb);
+
   boost::lock_guard<spinlock> guard(_lock);
   if(_header._blocks_size <= 0) {
       return;
@@ -196,7 +200,7 @@ void rrdb_metric::select(const my::time_t & ts1, const my::time_t & ts2, rrdb::d
     }
     if(res ==  0) {
         // res == 0 => block and interval intersect!
-        block.select(ts1, ts2, walker);
+        block.select(rrdb, this, ts1, ts2, walker);
     }
   }
 
@@ -227,8 +231,10 @@ my::size_t rrdb_metric::get_padded_name_len(const my::size_t & name_len)
   return name_len + (8 - (name_len % 8));
 }
 
-void rrdb_metric::save_file(const std::string & folder)
+void rrdb_metric::save_file(const rrdb * const rrdb, const std::string & folder)
 {
+  CHECK_AND_THROW(rrdb);
+
   // check if deleted meantime
   if(this->is_deleted()) {
       return;
@@ -248,7 +254,7 @@ void rrdb_metric::save_file(const std::string & folder)
     boost::lock_guard<spinlock> guard(_lock);
     this->write_header(ofs);
     BOOST_FOREACH(rrdb_metric_block & block, _blocks) {
-      block.write_block(ofs);
+      block.write_block(rrdb, this, ofs);
     }
   }
 
@@ -264,12 +270,14 @@ void rrdb_metric::save_file(const std::string & folder)
 
   // check if deleted meantime
   if(this->is_deleted()) {
-      this->delete_file(folder);
+      this->delete_file(rrdb, folder);
   }
 }
 
-void rrdb_metric::load_file(const std::string & filename)
+void rrdb_metric::load_file(const rrdb * const rrdb, const std::string & filename)
 {
+  CHECK_AND_THROW(rrdb);
+
   // start
   LOG(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", filename.c_str());
 
@@ -280,8 +288,8 @@ void rrdb_metric::load_file(const std::string & filename)
   this->read_header(ifs);
   this->_blocks.reserve(this->_header._blocks_size);
   for(my::size_t ii = 0; ii < this->_header._blocks_size; ++ii) {
-      this->_blocks.push_back(rrdb_metric_block(shared_from_this()));
-      this->_blocks.back().read_block(ifs);
+      this->_blocks.push_back(rrdb_metric_block());
+      this->_blocks.back().read_block(rrdb, this, ifs);
   }
   ifs.close();
 
@@ -289,8 +297,10 @@ void rrdb_metric::load_file(const std::string & filename)
   LOG(log::LEVEL_DEBUG, "RRDB metric loaded file '%s'", filename.c_str());
 }
 
-void rrdb_metric::delete_file(const std::string & folder)
+void rrdb_metric::delete_file(const rrdb * const rrdb, const std::string & folder)
 {
+  CHECK_AND_THROW(rrdb);
+
   // mark as deleted in case the flush thread picks it up in the meantime
   this->set_deleted();
 

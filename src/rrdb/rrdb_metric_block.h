@@ -23,6 +23,8 @@
 #include "spinlock.h"
 #include "exception.h"
 
+
+class rrdb;
 class rrdb_metric;
 
 typedef boost::uint32_t rrdb_metric_block_pos_t;
@@ -87,7 +89,6 @@ public:
 
 public:
   rrdb_metric_block(
-      boost::shared_ptr<rrdb_metric> rrdb_metric,
       const rrdb_metric_block_pos_t & freq = 0,
       const rrdb_metric_block_pos_t & count = 0,
       const my::size_t & offset = 0
@@ -131,18 +132,40 @@ public:
   }
 
   // SELECT or UPDATE - main operations
-  void select(const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker) const;
-  void update(const update_ctx_t & in, update_ctx_t & out);
+  void select(
+      const rrdb * const rrdb,
+      const rrdb_metric * const rrdb_metric,
+      const my::time_t & ts1,
+      const my::time_t & ts2,
+      rrdb::data_walker & walker
+  ) const;
+  void update(
+      const rrdb * const rrdb,
+      const rrdb_metric * const rrdb_metric,
+      const update_ctx_t & in,
+      update_ctx_t & out
+  );
 
   // READ/WRITE FILES
-  void write_block(std::fstream & ofs);
-  void read_block(std::fstream & ifs);
+  void write_block(
+      const rrdb * const rrdb,
+      const rrdb_metric * const rrdb_metric,
+      std::fstream & ofs
+  );
+  void read_block(
+      const rrdb * const rrdb,
+      const rrdb_metric * const rrdb_metric,
+      std::fstream & ifs
+  );
 
 private:
-  boost::shared_array<rrdb_metric_tuple_t> get_tuples() const;
+  boost::shared_array<rrdb_metric_tuple_t> get_tuples(
+      const rrdb * const rrdb,
+      const rrdb_metric * const rrdb_metric
+  ) const;
 
   rrdb_metric_tuple_t * find_tuple(
-      const boost::shared_array<rrdb_metric_tuple_t> & the_tuples,
+      rrdb_metric_tuple_t * the_tuples,
       const update_ctx_t & in,
       update_ctx_t & out
   );
@@ -162,7 +185,6 @@ private:
   }
 
 private:
-  boost::weak_ptr<rrdb_metric>             _rrdb_metric;
   rrdb_metric_block_header_t               _header;
   boost::shared_array<rrdb_metric_tuple_t> _tuples_data;
 }; // rrdb_metric_block

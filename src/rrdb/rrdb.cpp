@@ -464,7 +464,7 @@ void rrdb::flush_to_disk()
   t_metrics_vector dirty_metrics = this->get_dirty_metrics();
   BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, dirty_metrics) {
     try {
-        metric->save_file(_path);
+        metric->save_file(this, _path);
     } catch(std::exception & e) {
       LOG(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
     } catch(...) {
@@ -505,7 +505,7 @@ void rrdb::load_metrics()
 
       // load metric
       boost::shared_ptr<rrdb_metric> metric(new rrdb_metric());
-      metric->load_file(file_path.string());
+      metric->load_file(this, file_path.string());
 
       std::string name(metric->get_name());
       // try to insert into the map
@@ -597,7 +597,7 @@ void rrdb::drop_metric(const std::string & name)
   }
 
   // delete file - outside the spin lock
-  res->delete_file(_path);
+  res->delete_file(this, _path);
 
   // lock access to _metrics
   {
@@ -678,7 +678,7 @@ void rrdb::update_metric(const std::string & name, const my::time_t & ts, const 
       metric = this->create_metric(name, _default_policy, false);
   }
 
-  metric->update(ts, value);
+  metric->update(this, ts, value);
 }
 
 void rrdb::select_from_metric(const std::string & name, const my::time_t & ts1, const my::time_t & ts2, data_walker & walker)
@@ -689,7 +689,7 @@ void rrdb::select_from_metric(const std::string & name, const my::time_t & ts1, 
       throw exception("The metric '%s' does not exist", name.c_str());
   }
 
-  metric->select(ts1, ts2, walker);
+  metric->select(this, ts1, ts2, walker);
 }
 
 void rrdb::execute_tcp_command(const std::string & buffer, memory_buffer_t & res)

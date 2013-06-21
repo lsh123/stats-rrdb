@@ -14,7 +14,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/cstdint.hpp>
-#include <boost/enable_shared_from_this.hpp>
 
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric_tuple.h"
@@ -52,8 +51,7 @@ typedef struct rrdb_metric_header_t_ {
 //
 //
 //
-class rrdb_metric :
-    public boost::enable_shared_from_this<rrdb_metric>
+class rrdb_metric
 {
   enum status {
     Status_Deleted      = 0x01,
@@ -75,12 +73,12 @@ public:
   bool is_deleted();
   void set_deleted();
 
-  void load_file(const std::string & filename);
-  void save_file(const std::string & folder);
-  void delete_file(const std::string & folder);
+  void load_file(const rrdb * const rrdb, const std::string & filename);
+  void save_file(const rrdb * const rrdb, const std::string & folder);
+  void delete_file(const rrdb * const rrdb, const std::string & folder);
 
-  void update(const my::time_t & ts, const my::value_t & value);
-  void select(const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker);
+  void update(const rrdb * const rrdb, const my::time_t & ts, const my::value_t & value);
+  void select(const rrdb * const rrdb, const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker);
 
   void get_last_value(my::value_t & value, my::time_t & value_ts);
 

@@ -13,12 +13,10 @@
 #define RRDB_METRIC_BLOCK_MAGIC    0xBB99
 
 rrdb_metric_block::rrdb_metric_block(
-    boost::shared_ptr<rrdb_metric> rrdb_metric,
     const rrdb_metric_block_pos_t & freq,
     const rrdb_metric_block_pos_t & count,
     const my::size_t & offset
-) :
-  _rrdb_metric(rrdb_metric)
+)
 {
   memset(&_header, 0, sizeof(_header));
   _header._magic     = RRDB_METRIC_BLOCK_MAGIC;
@@ -39,16 +37,23 @@ rrdb_metric_block::~rrdb_metric_block()
 }
 
 
-boost::shared_array<rrdb_metric_tuple_t> rrdb_metric_block::get_tuples() const
+boost::shared_array<rrdb_metric_tuple_t> rrdb_metric_block::get_tuples(
+    const rrdb * const rrdb,
+    const rrdb_metric * const rrdb_metric
+) const
 {
+  CHECK_AND_THROW(rrdb);
+  CHECK_AND_THROW(rrdb_metric);
+
   return _tuples_data;
 }
 
 rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(
-    const boost::shared_array<rrdb_metric_tuple_t> & the_tuples,
+    rrdb_metric_tuple_t * the_tuples,
     const update_ctx_t & in,
     update_ctx_t & out
 ) {
+  CHECK_AND_THROW(the_tuples);
   CHECK_AND_THROW(_header._pos < _header._count);
   CHECK_AND_THROW(_header._freq > 0);
 
@@ -59,7 +64,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(
       out._tuple = the_tuples[_header._pos];
 
       // start from 0 and assume this ts is the latest
-      memset(the_tuples.get(), 0, _header._data_size);
+      memset(the_tuples, 0, _header._data_size);
       rrdb_metric_tuple_t & tuple = the_tuples[0];
       _header._pos      = 0;
       _header._pos_ts   = tuple._ts = this->normalize_ts(ts);
@@ -128,13 +133,18 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(
   }
 }
 
-void rrdb_metric_block::update(const update_ctx_t & in, update_ctx_t & out)
+void rrdb_metric_block::update(
+    const rrdb * const rrdb,
+    const rrdb_metric * const rrdb_metric,
+    const update_ctx_t & in,
+    update_ctx_t & out
+)
 {
-  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples());
+  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples(rrdb, rrdb_metric));
   CHECK_AND_THROW(the_tuples.get());
   CHECK_AND_THROW(this->get_cur_ts() == the_tuples[_header._pos]._ts);
 
-  rrdb_metric_tuple_t * tuple = this->find_tuple(the_tuples, in, out);
+  rrdb_metric_tuple_t * tuple = this->find_tuple(the_tuples.get(), in, out);
   if(!tuple) {
       LOG(log::LEVEL_DEBUG, "Can not find tuple ts: %ld (current block time: %ld, duration: %ld)", in.get_ts(), this->get_cur_ts(), this->get_duration());
       return;
@@ -157,11 +167,17 @@ void rrdb_metric_block::update(const update_ctx_t & in, update_ctx_t & out)
   }
 }
 
-void rrdb_metric_block::select(const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker) const
+void rrdb_metric_block::select(
+    const rrdb * const rrdb,
+    const rrdb_metric * const rrdb_metric,
+    const my::time_t & ts1,
+    const my::time_t & ts2,
+    rrdb::data_walker & walker
+) const
 {
   CHECK_AND_THROW(_header._pos < _header._count);
 
-  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples());
+  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples(rrdb, rrdb_metric));
   CHECK_AND_THROW(the_tuples.get());
 
   // walk through all the tuples until we hit the end or the time stops
@@ -186,9 +202,13 @@ void rrdb_metric_block::select(const my::time_t & ts1, const my::time_t & ts2, r
   } while(pos != _header._pos);
 }
 
-void rrdb_metric_block::write_block(std::fstream & ofs)
+void rrdb_metric_block::write_block(
+    const rrdb * const rrdb,
+    const rrdb_metric * const rrdb_metric,
+    std::fstream & ofs
+)
 {
-  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples());
+  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples(rrdb, rrdb_metric));
   CHECK_AND_THROW(the_tuples.get());
 
   // write header
@@ -198,7 +218,11 @@ void rrdb_metric_block::write_block(std::fstream & ofs)
   ofs.write((const char*)the_tuples.get(), _header._data_size);
 }
 
-void rrdb_metric_block::read_block(std::fstream & ifs)
+void rrdb_metric_block::read_block(
+    const rrdb * const rrdb,
+    const rrdb_metric * const rrdb_metric,
+    std::fstream & ifs
+)
 {
   // rememeber where are we
   uint64_t offset = ifs.tellg();
@@ -233,10 +257,8 @@ void rrdb_metric_block::read_block(std::fstream & ifs)
 
 boost::shared_array<rrdb_metric_tuple_t> rrdb_metric_block::read_block_data(std::fstream & ifs)
 {
-  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples());
-
   // read data
-  the_tuples.reset(new rrdb_metric_tuple_t[_header._count]);
+  boost::shared_array<rrdb_metric_tuple_t> the_tuples(new rrdb_metric_tuple_t[_header._count]);
   ifs.read((char*)the_tuples.get(), _header._data_size);
 
   // check data
