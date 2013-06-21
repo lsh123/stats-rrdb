@@ -219,34 +219,36 @@ void rrdb_metric::save_file(const rrdb * const rrdb)
       return;
   }
 
-  // open file
-  std::string filename = this->get_filename();
-  std::string filename_tmp = filename + ".tmp";
-  LOG(log::LEVEL_DEBUG, "RRDB metric '%s' saving file '%s'", this->get_name().c_str(), filename_tmp.c_str());
-
-  boost::shared_ptr<std::fstream> ofs(rrdb->get_file_cache()->open_file(filename_tmp, true));
-
-  // write data (under lock!
+  // operate on the file under lock: one at a time!
   {
     boost::lock_guard<spinlock> guard(_lock);
+    LOG(log::LEVEL_DEBUG, "RRDB metric saving file '%s'", _filename.c_str());
+
+    // open file
+    std::string filename_tmp = _filename + ".tmp";
+    boost::shared_ptr<std::fstream> ofs(rrdb->get_file_cache()->open_file(filename_tmp, true));
+
+    // write header
     this->write_header(*ofs);
+
+    // write data
     BOOST_FOREACH(rrdb_metric_block & block, _blocks) {
       block.write_block(rrdb, this, *ofs);
     }
 
+    // flush and  close
+    ofs->flush();
+    ofs->close();
+
+    // move file
+    rrdb->get_file_cache()->move_file(filename_tmp, _filename);
+
     // not dirty!
     my::bitmask_clear<boost::uint16_t>(_header._status, Status_Dirty);
+
+    // done
+    LOG(log::LEVEL_DEBUG2, "RRDB metric saved file '%s'", _filename.c_str());
   }
-
-  // flush and  close
-  ofs->flush();
-  ofs->close();
-
-  // move file
-  rrdb->get_file_cache()->move_file(filename_tmp, filename);
-
-  // done
-  LOG(log::LEVEL_DEBUG2, "RRDB metric '%s' saved file '%s'", this->get_name().c_str(), filename.c_str());
 
   // check if deleted meantime
   if(this->is_deleted()) {
@@ -258,26 +260,29 @@ void rrdb_metric::load_file(const rrdb * const rrdb)
 {
   CHECK_AND_THROW(rrdb);
 
-  // open file
-  std::string filename = this->get_filename();
-  LOG(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", filename.c_str());
-
-  boost::shared_ptr<std::fstream> ifs(rrdb->get_file_cache()->open_file(filename));
-
-  // read data under lock
+  // operate on the file under lock: one at a time!
   {
     boost::lock_guard<spinlock> guard(_lock);
+    LOG(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", _filename.c_str());
+
+    boost::shared_ptr<std::fstream> ifs(rrdb->get_file_cache()->open_file(_filename));
+
+    // read header
     this->read_header(*ifs);
+
+    // read blocks
     this->_blocks.reserve(this->_header._blocks_size);
     for(my::size_t ii = 0; ii < this->_header._blocks_size; ++ii) {
         this->_blocks.push_back(rrdb_metric_block());
         this->_blocks.back().read_block(rrdb, this, *ifs);
     }
-  }
-  ifs->close();
 
-  // done
-  LOG(log::LEVEL_DEBUG2, "RRDB metric '%s'  loaded from file '%s'", this->get_name().c_str(), filename.c_str());
+    // close
+    ifs->close();
+
+    // done
+    LOG(log::LEVEL_DEBUG2, "RRDB metric loaded from file '%s'", _filename.c_str());
+  }
 }
 
 void rrdb_metric::delete_file(const rrdb * const rrdb)
@@ -287,16 +292,17 @@ void rrdb_metric::delete_file(const rrdb * const rrdb)
   // mark as deleted in case the flush thread picks it up in the meantime
   {
     boost::lock_guard<spinlock> guard(_lock);
+    LOG(log::LEVEL_DEBUG, "RRDB metric deleting file '%s", _filename.c_str());
+
+    // mark as deleted
     my::bitmask_set<boost::uint16_t>(_header._status, Status_Deleted);
+
+    // delete
+    rrdb->get_file_cache()->delete_file(_filename);
+
+    // done
+    LOG(log::LEVEL_DEBUG2, "RRDB metric deleted file '%s'", _filename.c_str());
   }
-
-  // start
-  LOG(log::LEVEL_DEBUG, "RRDB metric '%s' deleting file '%s", this->get_name().c_str(), this->get_filename().c_str());
-
-  rrdb->get_file_cache()->delete_file(this->get_filename());
-
-  // done
-  LOG(log::LEVEL_DEBUG2, "RRDB metric '%s' deleted file '%s'", this->get_name().c_str(), this->get_filename().c_str());
 }
 
 void rrdb_metric::write_header(std::fstream & ofs)

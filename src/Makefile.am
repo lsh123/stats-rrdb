@@ -10,6 +10,7 @@ EXTRA_DIST = \
 	log.h \
 	memory_buffer.h \
 	spinlock.h \
+	lru_cache.h \
 	types.h \
 	parser/grammar.h \
 	parser/interval.h \

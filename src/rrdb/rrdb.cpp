@@ -16,6 +16,7 @@
 #include "rrdb/rrdb_metric.h"
 #include "rrdb/rrdb_file_cache.h"
 
+#include "parser/interval.h"
 #include "parser/statements.h"
 
 #include "server/server.h"
@@ -415,13 +416,16 @@ void rrdb::stop()
   // flush one more time
   this->flush_to_disk();
 
+  //
+  _file_cache->clear_cache();
+
   LOG(log::LEVEL_INFO, "Stopped RRDB server");
 }
 
 
 void rrdb::update_status(const time_t & now)
 {
-  // TODO
+  this->update_metric("self.file_cache.size", now, _file_cache->get_cache_size());
 }
 
 void rrdb::flush_to_disk_thread()

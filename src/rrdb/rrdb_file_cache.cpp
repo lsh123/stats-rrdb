@@ -12,17 +12,101 @@
 #include "rrdb/rrdb_file_cache.h"
 #include "rrdb/rrdb_metric.h"
 
+#include "lru_cache.h"
 #include "config.h"
 #include "log.h"
 #include "exception.h"
-
+#include "spinlock.h"
 
 // make it configurable?
 #define RRDB_METRIC_SUBFOLDERS_NUM      512
 #define RRDB_METRIC_EXTENSION    ".rrdb"
 
+class rrdb_open_files_cache
+{
+  typedef lru_cache<std::string, rrdb_file_cache::fstream_ptr, my::size_t> t_lru_cache;
+
+public:
+  rrdb_open_files_cache(const my::size_t & max_size) :
+    _max_size(max_size)
+  {
+  }
+
+  inline const my::size_t & get_max_size() const
+  {
+    return _max_size;
+  }
+
+  inline void set_max_size(const my::size_t & max_size)
+  {
+    if(_max_size < max_size) {
+        _max_size = max_size;
+        this->purge();
+    } else {
+        _max_size = max_size;
+    }
+  }
+
+  inline my::size_t get_size() const
+  {
+    return _cache.size();
+  }
+
+  inline void clear()
+  {
+    _cache.clear();
+  }
+
+  rrdb_file_cache::fstream_ptr get_fstream(
+      const std::string & base_folder,
+      const std::string & filename,
+      const my::time_t & t,
+      std::ios_base::openmode mode
+  )
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+
+    // try to find
+    t_lru_cache::t_iterator it = _cache.find(filename);
+    if(it != _cache.end()) {
+        // return _cache.use(it, t);
+    }
+
+    // purge cache if needed
+    if(_cache.size() >= _max_size) {
+        this->purge();
+    }
+
+    // create new one
+    std::string full_path = base_folder + filename;
+    LOG(log::LEVEL_DEBUG3, "Opening file '%s', full path '%s'", filename.c_str(), full_path.c_str());
+
+    boost::shared_ptr<std::fstream> fs(new std::fstream(full_path.c_str(), mode));
+    fs->exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
+
+    // put it in the cache
+    _cache.insert(filename, fs, t);
+
+    // done
+    return fs;
+  }
+
+private:
+  void purge()
+  {
+    // TODO
+  }
+
+private:
+  t_lru_cache _cache;
+  spinlock    _lock;
+  my::size_t  _max_size;
+}; // rrdb_open_files_cache
+
+
 rrdb_file_cache::rrdb_file_cache():
-  _path("/var/lib/rrdb/")
+  _path("/var/lib/rrdb/"),
+  _open_files_cache(new rrdb_open_files_cache(1024))
 {
 
 }
@@ -34,6 +118,13 @@ rrdb_file_cache::~rrdb_file_cache()
 
 void rrdb_file_cache::initialize(boost::shared_ptr<config> config)
 {
+  // set cache
+  _open_files_cache->set_max_size(config->get<my::size_t>(
+      "rrdb.max_open_files",
+      _open_files_cache->get_max_size()
+    )
+   );
+
   // get path and ensure it ends with '/'
   _path = config->get<std::string>("rrdb.path", _path);
   if((*_path.rbegin()) != '/') {
@@ -94,19 +185,24 @@ void rrdb_file_cache::load_metrics(const rrdb * const rrdb, rrdb::t_metrics_map 
   }
 }
 
-boost::shared_ptr<std::fstream> rrdb_file_cache::open_file(const std::string & filename, bool new_file)
+my::size_t rrdb_file_cache::get_cache_size() const
 {
-  std::string full_path = _path + filename;
-  LOG(log::LEVEL_DEBUG3, "Opening file '%s', full path '%s'", filename.c_str(), full_path.c_str());
+  return _open_files_cache->get_size();
+}
 
+void rrdb_file_cache::clear_cache()
+{
+  _open_files_cache->clear();
+}
+
+rrdb_file_cache::fstream_ptr rrdb_file_cache::open_file(const std::string & filename, bool new_file)
+{
+  // if it's a new file, just
   std::ios_base::openmode mode = std::ios_base::binary | std::ios_base::out | std::ios_base::in;
   if(new_file) {
       mode |= std::ios_base::trunc;
   }
-  boost::shared_ptr<std::fstream> fs(new std::fstream(full_path.c_str(), mode));
-  fs->exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
-
-  return fs;
+  return _open_files_cache->get_fstream(_path, filename, time(NULL), mode);
 }
 
 void rrdb_file_cache::move_file(const std::string & from, const std::string & to)

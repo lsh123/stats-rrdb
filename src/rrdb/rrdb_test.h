@@ -30,6 +30,8 @@ public:
   virtual ~rrdb_test();
 
   void run(const std::string & params_str);
+
+  void run_lru_cache_test(const params_t & params);
   void run_select_test(const params_t & params);
   void run_perf_test(const params_t & params);
 
