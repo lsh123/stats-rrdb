@@ -467,7 +467,7 @@ void rrdb::flush_to_disk()
   t_metrics_vector dirty_metrics = this->get_dirty_metrics();
   BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, dirty_metrics) {
     try {
-        metric->save_file(this, _path);
+        metric->save_file(this);
     } catch(std::exception & e) {
       LOG(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
     } catch(...) {
@@ -580,6 +580,9 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
     _metrics[name_lc] = res;
   }
 
+  // write to disk
+  res->save_file(this);
+
   // log
   LOG(log::LEVEL_INFO, "RRDB: created metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
 
@@ -602,7 +605,7 @@ void rrdb::drop_metric(const std::string & name)
   }
 
   // delete file - outside the spin lock
-  res->delete_file(this, _path);
+  res->delete_file(this);
 
   // lock access to _metrics
   {

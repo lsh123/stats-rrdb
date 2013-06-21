@@ -57,6 +57,22 @@ typedef boost::uint64_t size_t;
 //
 typedef double value_t;
 
+
+//
+// Bitmask Ops
+//
+template<typename T>
+inline void bitmask_set(T & v, const T & mask) { v |= mask; }
+
+template<typename T>
+inline void bitmask_clear(T & v, const T & mask) { v &= ~mask; }
+
+template<typename T>
+inline bool bitmask_check(const T & v, const T & mask) { return (v & mask); }
+
+template<typename T>
+inline bool bitmask_check_all(const T & v, const T & mask) { return (v & mask) == mask; }
+
 } // namespace my
 
 #endif /* TYPES_H_ */

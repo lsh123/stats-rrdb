@@ -68,14 +68,11 @@ public:
   void set_name_and_policy(const std::string & name, const retention_policy & policy);
 
   bool is_dirty();
-  void set_dirty();
-
   bool is_deleted();
-  void set_deleted();
 
   void load_file(const rrdb * const rrdb);
-  void save_file(const rrdb * const rrdb, const std::string & folder);
-  void delete_file(const rrdb * const rrdb, const std::string & folder);
+  void save_file(const rrdb * const rrdb);
+  void delete_file(const rrdb * const rrdb);
 
   void update(const rrdb * const rrdb, const my::time_t & ts, const my::value_t & value);
   void select(const rrdb * const rrdb, const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker);

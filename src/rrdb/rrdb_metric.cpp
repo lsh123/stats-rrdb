@@ -91,31 +91,18 @@ void rrdb_metric::set_name_and_policy(const std::string & name, const retention_
     // set filename
     _filename = rrdb_metric::get_filename(name);
   }
-  this->set_dirty();
 }
 
 bool rrdb_metric::is_dirty()
 {
   boost::lock_guard<spinlock> guard(_lock);
-  return (_header._status & Status_Dirty);
-}
-
-void rrdb_metric::set_dirty()
-{
-  boost::lock_guard<spinlock> guard(_lock);
-  _header._status |= Status_Dirty;
+  return my::bitmask_check<boost::uint16_t>(_header._status, Status_Dirty);
 }
 
 bool rrdb_metric::is_deleted()
 {
   boost::lock_guard<spinlock> guard(_lock);
-  return (_header._status & Status_Deleted);
-}
-
-void rrdb_metric::set_deleted()
-{
-  boost::lock_guard<spinlock> guard(_lock);
-  _header._status |= Status_Deleted;
+  return my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted);
 }
 
 void rrdb_metric::get_last_value(my::value_t & value, my::time_t & value_ts)
@@ -138,7 +125,7 @@ void rrdb_metric::update(const rrdb * const rrdb, const my::time_t & ts, const m
   LOG(log::LEVEL_DEBUG2, "Update '%s' with %f at timestamp %ld", _name.get(), value, ts);
 
   // mark dirty
-  _header._status |= Status_Dirty;
+  my::bitmask_set<boost::uint16_t>(_header._status, Status_Dirty);
 
   // update last value if new is greater
   if(_header._last_value_ts <= ts) {
@@ -230,13 +217,6 @@ std::string rrdb_metric::get_filename(const std::string & name)
   return buf + name + RRDB_METRIC_EXTENSION;
 }
 
-std::string rrdb_metric::get_full_path(const rrdb * const rrdb)
-{
-  CHECK_AND_THROW(rrdb);
-
-  boost::lock_guard<spinlock> guard(_lock);
-  return rrdb->get_path() + "/" + _filename;
-}
 
 void rrdb_metric::initialize_subfolders(const std::string & path)
 {
@@ -249,8 +229,15 @@ void rrdb_metric::initialize_subfolders(const std::string & path)
   }
 }
 
+std::string rrdb_metric::get_full_path(const rrdb * const rrdb)
+{
+  CHECK_AND_THROW(rrdb);
 
-void rrdb_metric::save_file(const rrdb * const rrdb, const std::string & folder)
+  boost::lock_guard<spinlock> guard(_lock);
+  return rrdb->get_path() + "/" + _filename;
+}
+
+void rrdb_metric::save_file(const rrdb * const rrdb)
 {
   CHECK_AND_THROW(rrdb);
 
@@ -275,6 +262,9 @@ void rrdb_metric::save_file(const rrdb * const rrdb, const std::string & folder)
     BOOST_FOREACH(rrdb_metric_block & block, _blocks) {
       block.write_block(rrdb, this, ofs);
     }
+
+    // not dirty!
+    my::bitmask_clear<boost::uint16_t>(_header._status, Status_Dirty);
   }
 
   // flush and  close
@@ -289,7 +279,7 @@ void rrdb_metric::save_file(const rrdb * const rrdb, const std::string & folder)
 
   // check if deleted meantime
   if(this->is_deleted()) {
-      this->delete_file(rrdb, folder);
+      this->delete_file(rrdb);
   }
 }
 
@@ -305,11 +295,15 @@ void rrdb_metric::load_file(const rrdb * const rrdb)
   std::fstream ifs(full_path.c_str(), std::ios_base::binary | std::ios_base::in);
   ifs.exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
 
-  this->read_header(ifs);
-  this->_blocks.reserve(this->_header._blocks_size);
-  for(my::size_t ii = 0; ii < this->_header._blocks_size; ++ii) {
-      this->_blocks.push_back(rrdb_metric_block());
-      this->_blocks.back().read_block(rrdb, this, ifs);
+  // read data under lock
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+    this->read_header(ifs);
+    this->_blocks.reserve(this->_header._blocks_size);
+    for(my::size_t ii = 0; ii < this->_header._blocks_size; ++ii) {
+        this->_blocks.push_back(rrdb_metric_block());
+        this->_blocks.back().read_block(rrdb, this, ifs);
+    }
   }
   ifs.close();
 
@@ -317,12 +311,15 @@ void rrdb_metric::load_file(const rrdb * const rrdb)
   LOG(log::LEVEL_DEBUG, "RRDB metric loaded file '%s'", _filename.c_str());
 }
 
-void rrdb_metric::delete_file(const rrdb * const rrdb, const std::string & folder)
+void rrdb_metric::delete_file(const rrdb * const rrdb)
 {
   CHECK_AND_THROW(rrdb);
 
   // mark as deleted in case the flush thread picks it up in the meantime
-  this->set_deleted();
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+    my::bitmask_set<boost::uint16_t>(_header._status, Status_Deleted);
+  }
 
   // start
   LOG(log::LEVEL_DEBUG, "RRDB metric '%s' deleting file", this->get_name().c_str());
@@ -350,6 +347,9 @@ void rrdb_metric::write_header(std::fstream & ofs)
 
 void rrdb_metric::read_header(std::fstream & ifs)
 {
+  // should be locked
+  CHECK_AND_THROW(_lock.is_locked());
+
   // read header
   ifs.read((char*)&_header, sizeof(_header));
   if(_header._magic != RRDB_METRIC_MAGIC) {
