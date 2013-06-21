@@ -57,7 +57,7 @@ typedef struct rrdb_metric_block_header_t_ {
 class rrdb_metric_block
 {
   enum status {
-    Status_Wrapped = 0x0001
+    Status_Dirty        = 0x01
   };
 
 public:

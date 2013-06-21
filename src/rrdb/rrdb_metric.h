@@ -52,8 +52,8 @@ typedef struct rrdb_metric_header_t_ {
 class rrdb_metric
 {
   enum status {
-    Status_Deleted      = 0x01,
-    Status_Dirty        = 0x02
+    Status_Dirty        = 0x01,
+    Status_Deleted      = 0x02,
   };
 
 
@@ -61,31 +61,39 @@ public:
   rrdb_metric(const std::string & filename = std::string());
   virtual ~rrdb_metric();
 
-  std::string get_name();
-  retention_policy get_policy();
+  std::string get_name() const ;
+  retention_policy get_policy() const;
   void set_name_and_policy(const std::string & filename, const std::string & name, const retention_policy & policy);
 
-  bool is_dirty();
-  bool is_deleted();
+  inline bool is_dirty() const
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+    return my::bitmask_check<boost::uint16_t>(_header._status, Status_Dirty);
+  }
+  inline bool is_deleted() const
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+    return my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted);
+  }
 
   void load_file(const rrdb * const rrdb);
-  void save_file(const rrdb * const rrdb);
+  void save_file(const rrdb * const rrdb) const;
   void delete_file(const rrdb * const rrdb);
 
   void update(const rrdb * const rrdb, const my::time_t & ts, const my::value_t & value);
-  void select(const rrdb * const rrdb, const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker);
+  void select(const rrdb * const rrdb, const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker) const;
 
-  void get_last_value(my::value_t & value, my::time_t & value_ts);
+  void get_last_value(my::value_t & value, my::time_t & value_ts) const;
 
 private:
-  std::string get_filename();
+  std::string get_filename() const;
   static my::size_t get_padded_name_len(const my::size_t & name_len);
 
-  void write_header(std::fstream & ofs);
+  void write_header(std::fstream & ofs) const;
   void read_header(std::fstream & ifs);
 
 private:
-  spinlock                       _lock;
+  mutable spinlock               _lock;
   rrdb_metric_header_t           _header;
   boost::shared_array<char>      _name;
   std::vector<rrdb_metric_block> _blocks;

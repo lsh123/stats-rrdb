@@ -39,14 +39,14 @@ rrdb_metric::~rrdb_metric()
 }
 
 // use copy here to avoid problems with MT
-std::string rrdb_metric::get_name()
+std::string rrdb_metric::get_name() const
 {
   boost::lock_guard<spinlock> guard(_lock);
   return std::string(_name.get(), _header._name_len);
 }
 
 // use copy here to avoid problems with MT
-retention_policy rrdb_metric::get_policy()
+retention_policy rrdb_metric::get_policy() const
 {
   boost::lock_guard<spinlock> guard(_lock);
   CHECK_AND_THROW(_blocks.size() == _header._blocks_size);
@@ -91,19 +91,7 @@ void rrdb_metric::set_name_and_policy(const std::string & filename, const std::s
   }
 }
 
-bool rrdb_metric::is_dirty()
-{
-  boost::lock_guard<spinlock> guard(_lock);
-  return my::bitmask_check<boost::uint16_t>(_header._status, Status_Dirty);
-}
-
-bool rrdb_metric::is_deleted()
-{
-  boost::lock_guard<spinlock> guard(_lock);
-  return my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted);
-}
-
-void rrdb_metric::get_last_value(my::value_t & value, my::time_t & value_ts)
+void rrdb_metric::get_last_value(my::value_t & value, my::time_t & value_ts) const
 {
   boost::lock_guard<spinlock> guard(_lock);
   value    = _header._last_value;
@@ -169,7 +157,7 @@ void rrdb_metric::update(const rrdb * const rrdb, const my::time_t & ts, const m
   }
 }
 
-void rrdb_metric::select(const rrdb * const rrdb, const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker)
+void rrdb_metric::select(const rrdb * const rrdb, const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker) const
 {
   CHECK_AND_THROW(rrdb);
 
@@ -204,13 +192,13 @@ my::size_t rrdb_metric::get_padded_name_len(const my::size_t & name_len)
 }
 
 
-std::string rrdb_metric::get_filename()
+std::string rrdb_metric::get_filename() const
 {
   boost::lock_guard<spinlock> guard(_lock);
   return _filename;
 }
 
-void rrdb_metric::save_file(const rrdb * const rrdb)
+void rrdb_metric::save_file(const rrdb * const rrdb) const
 {
   CHECK_AND_THROW(rrdb);
 
@@ -305,7 +293,7 @@ void rrdb_metric::delete_file(const rrdb * const rrdb)
   }
 }
 
-void rrdb_metric::write_header(std::fstream & ofs)
+void rrdb_metric::write_header(std::fstream & ofs) const
 {
   // should be locked
   CHECK_AND_THROW(_lock.is_locked());

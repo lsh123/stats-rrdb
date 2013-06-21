@@ -90,8 +90,7 @@ public:
   )
   {
     boost::lock_guard<spinlock> guard(_lock);
-
-    LOG(log::LEVEL_INFO, "Looking for file '%s'", filename.c_str());
+    LOG(log::LEVEL_DEBUG3, "Looking for file '%s'", filename.c_str());
 
     // try to find
     t_lru_cache::t_iterator it = _cache.find(filename);
