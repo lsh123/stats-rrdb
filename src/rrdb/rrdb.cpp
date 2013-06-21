@@ -371,6 +371,9 @@ void rrdb::initialize(boost::shared_ptr<config> config)
 
   LOG(log::LEVEL_DEBUG, "Loading RRDB data files");
 
+  // create subfolders
+  rrdb_metric::initialize_subfolders(_path);
+
   // load metrics from disk
   this->load_metrics();
 
@@ -489,8 +492,11 @@ void rrdb::load_metrics()
   // ensure folders exist
   boost::filesystem::create_directories(_path);
 
-  for(boost::filesystem::recursive_directory_iterator end, cur(_path + "/"); cur != end; ++cur) {
-      LOG(log::LEVEL_DEBUG3, "Checking file %s", (*cur).path().string().c_str());
+  std::string path = _path + "/";
+  my::size_t path_len = path.length();
+  for(boost::filesystem::recursive_directory_iterator end, cur(path); cur != end; ++cur) {
+      std::string full_path = (*cur).path().string();
+      LOG(log::LEVEL_DEBUG3, "Checking file %s", path.c_str());
 
       // we are looking for files
       if((*cur).status().type() != boost::filesystem::regular_file) {
@@ -498,14 +504,13 @@ void rrdb::load_metrics()
       }
 
       // with specified extension
-      boost::filesystem::path file_path((*cur).path());
-      if(file_path.extension() != RRDB_METRIC_EXTENSION) {
+      if((*cur).path().extension() != RRDB_METRIC_EXTENSION) {
           continue;
       }
 
       // load metric
-      boost::shared_ptr<rrdb_metric> metric(new rrdb_metric());
-      metric->load_file(this, file_path.string());
+      boost::shared_ptr<rrdb_metric> metric(new rrdb_metric(full_path.substr(path_len - 1)));
+      metric->load_file(this);
 
       std::string name(metric->get_name());
       // try to insert into the map

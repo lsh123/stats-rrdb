@@ -27,7 +27,8 @@
 #define RRDB_METRIC_SUBFOLDERS_NUM      512
 
 
-rrdb_metric::rrdb_metric()
+rrdb_metric::rrdb_metric(const std::string & filename) :
+  _filename(filename)
 {
   // setup empty header
   memset(&_header, 0, sizeof(_header));
@@ -86,6 +87,9 @@ void rrdb_metric::set_name_and_policy(const std::string & name, const retention_
       _blocks.push_back(rrdb_metric_block(elem._freq, elem._duration / elem._freq, offset));
       offset += _blocks.back().get_size();
     }
+
+    // set filename
+    _filename = rrdb_metric::get_filename(name);
   }
   this->set_dirty();
 }
@@ -208,28 +212,43 @@ void rrdb_metric::select(const rrdb * const rrdb, const my::time_t & ts1, const 
   walker.flush();
 }
 
-
-std::string rrdb_metric::get_full_path(const std::string & folder, const std::string & name)
-{
-  // calculate subfolder
-  my::size_t name_hash = boost::hash<std::string>()(name) % RRDB_METRIC_SUBFOLDERS_NUM;
-  char buf[64];
-  snprintf(buf, sizeof(buf), "%lu", SIZE_T_CAST name_hash);
-  std::string subfolder = folder + "/" + buf;
-
-  // ensure folders exist
-  boost::filesystem::create_directories(subfolder);
-
-  // the name should match the "a-zA-Z0-9._-" pattern so we can safely
-  // use it as filename
-  return subfolder + "/" + name + RRDB_METRIC_EXTENSION;
-}
-
 // align by 64 bits = 8 bytes
 my::size_t rrdb_metric::get_padded_name_len(const my::size_t & name_len)
 {
   return name_len + (8 - (name_len % 8));
 }
+
+std::string rrdb_metric::get_filename(const std::string & name)
+{
+  // calculate subfolder
+  my::size_t name_hash = boost::hash<std::string>()(name) % RRDB_METRIC_SUBFOLDERS_NUM;
+  char buf[64];
+  snprintf(buf, sizeof(buf), "%lu/", SIZE_T_CAST name_hash);
+
+  // the name should match the "a-zA-Z0-9._-" pattern so we can safely
+  // use it as filename
+  return buf + name + RRDB_METRIC_EXTENSION;
+}
+
+std::string rrdb_metric::get_full_path(const rrdb * const rrdb)
+{
+  CHECK_AND_THROW(rrdb);
+
+  boost::lock_guard<spinlock> guard(_lock);
+  return rrdb->get_path() + "/" + _filename;
+}
+
+void rrdb_metric::initialize_subfolders(const std::string & path)
+{
+  // ensure folders exist
+  char buf[64];
+  for(my::size_t ii = 0; ii < RRDB_METRIC_SUBFOLDERS_NUM; ++ii) {
+      snprintf(buf, sizeof(buf), "/%lu", SIZE_T_CAST ii);
+
+      boost::filesystem::create_directories(path + buf);
+  }
+}
+
 
 void rrdb_metric::save_file(const rrdb * const rrdb, const std::string & folder)
 {
@@ -244,7 +263,7 @@ void rrdb_metric::save_file(const rrdb * const rrdb, const std::string & folder)
   LOG(log::LEVEL_DEBUG, "RRDB metric '%s' saving file", this->get_name().c_str());
 
   // open file
-  std::string full_path = rrdb_metric::get_full_path(folder, this->get_name());
+  std::string full_path = this->get_full_path(rrdb);
   std::string full_path_tmp = full_path + ".tmp";
   std::fstream ofs(full_path_tmp.c_str(), std::ios_base::binary | std::ios_base::out);
   ofs.exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
@@ -274,15 +293,16 @@ void rrdb_metric::save_file(const rrdb * const rrdb, const std::string & folder)
   }
 }
 
-void rrdb_metric::load_file(const rrdb * const rrdb, const std::string & filename)
+void rrdb_metric::load_file(const rrdb * const rrdb)
 {
   CHECK_AND_THROW(rrdb);
 
   // start
-  LOG(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", filename.c_str());
+  LOG(log::LEVEL_INFO, "RRDB metric loading file '%s'", _filename.c_str());
 
   // open file
-  std::fstream ifs(filename.c_str(), std::ios_base::binary | std::ios_base::in);
+  std::string full_path = this->get_full_path(rrdb);
+  std::fstream ifs(full_path.c_str(), std::ios_base::binary | std::ios_base::in);
   ifs.exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
 
   this->read_header(ifs);
@@ -294,7 +314,7 @@ void rrdb_metric::load_file(const rrdb * const rrdb, const std::string & filenam
   ifs.close();
 
   // done
-  LOG(log::LEVEL_DEBUG, "RRDB metric loaded file '%s'", filename.c_str());
+  LOG(log::LEVEL_DEBUG, "RRDB metric loaded file '%s'", _filename.c_str());
 }
 
 void rrdb_metric::delete_file(const rrdb * const rrdb, const std::string & folder)
@@ -307,7 +327,7 @@ void rrdb_metric::delete_file(const rrdb * const rrdb, const std::string & folde
   // start
   LOG(log::LEVEL_DEBUG, "RRDB metric '%s' deleting file", this->get_name().c_str());
 
-  std::string full_path = rrdb_metric::get_full_path(folder, this->get_name());
+  std::string full_path = this->get_full_path(rrdb);
   boost::filesystem::remove(full_path);
 
   // done

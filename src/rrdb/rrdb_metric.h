@@ -60,7 +60,7 @@ class rrdb_metric
 
 
 public:
-  rrdb_metric();
+  rrdb_metric(const std::string & filename = std::string());
   virtual ~rrdb_metric();
 
   std::string get_name();
@@ -73,7 +73,7 @@ public:
   bool is_deleted();
   void set_deleted();
 
-  void load_file(const rrdb * const rrdb, const std::string & filename);
+  void load_file(const rrdb * const rrdb);
   void save_file(const rrdb * const rrdb, const std::string & folder);
   void delete_file(const rrdb * const rrdb, const std::string & folder);
 
@@ -82,8 +82,11 @@ public:
 
   void get_last_value(my::value_t & value, my::time_t & value_ts);
 
+  static std::string get_filename(const std::string & name);
+  static void initialize_subfolders(const std::string & path);
+
 private:
-  static std::string get_full_path(const std::string & folder, const std::string & name);
+  std::string get_full_path(const rrdb * const rrdb);
   static my::size_t get_padded_name_len(const my::size_t & name_len);
 
   void write_header(std::fstream & ofs);
@@ -94,6 +97,8 @@ private:
   rrdb_metric_header_t           _header;
   boost::shared_array<char>      _name;
   std::vector<rrdb_metric_block> _blocks;
+
+  std::string                    _filename;
 }; // class rrdb_metric
 
 #endif /* RRDB_METRIC_H_ */

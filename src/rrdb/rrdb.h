@@ -86,6 +86,11 @@ public:
   void execute_tcp_command(const std::string & buffer, memory_buffer_t & res);
   void execute_udp_command(const std::string & buffer, memory_buffer_t & res);
 
+  // helpers
+  inline const std::string & get_path() const {
+    return _path;
+  }
+
 private:
   void load_metrics();
   boost::shared_ptr<rrdb_metric> find_metric_lc(const std::string & name_lc);
