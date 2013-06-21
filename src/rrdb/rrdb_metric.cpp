@@ -13,9 +13,10 @@
 
 #include "parser/statements.h"
 
+#include "rrdb/rrdb.h"
+#include "rrdb/rrdb_file_cache.h"
 #include "rrdb/rrdb_metric.h"
 #include "rrdb/rrdb_metric_block.h"
-#include "rrdb/rrdb.h"
 
 #include "log.h"
 #include "exception.h"
@@ -23,8 +24,6 @@
 #define RRDB_METRIC_MAGIC               0xDB99
 #define RRDB_METRIC_VERSION             0x01
 
-// make it configurable?
-#define RRDB_METRIC_SUBFOLDERS_NUM      512
 
 
 rrdb_metric::rrdb_metric(const std::string & filename) :
@@ -66,7 +65,7 @@ retention_policy rrdb_metric::get_policy()
 }
 
 
-void rrdb_metric::set_name_and_policy(const std::string & name, const retention_policy & policy)
+void rrdb_metric::set_name_and_policy(const std::string & filename, const std::string & name, const retention_policy & policy)
 {
   {
     boost::lock_guard<spinlock> guard(_lock);
@@ -89,7 +88,7 @@ void rrdb_metric::set_name_and_policy(const std::string & name, const retention_
     }
 
     // set filename
-    _filename = rrdb_metric::get_filename(name);
+    _filename = filename;
   }
 }
 
@@ -205,36 +204,13 @@ my::size_t rrdb_metric::get_padded_name_len(const my::size_t & name_len)
   return name_len + (8 - (name_len % 8));
 }
 
-std::string rrdb_metric::get_filename(const std::string & name)
-{
-  // calculate subfolder
-  my::size_t name_hash = boost::hash<std::string>()(name) % RRDB_METRIC_SUBFOLDERS_NUM;
-  char buf[64];
-  snprintf(buf, sizeof(buf), "%lu/", SIZE_T_CAST name_hash);
-
-  // the name should match the "a-zA-Z0-9._-" pattern so we can safely
-  // use it as filename
-  return buf + name + RRDB_METRIC_EXTENSION;
-}
-
-
-void rrdb_metric::initialize_subfolders(const std::string & path)
-{
-  // ensure folders exist
-  char buf[64];
-  for(my::size_t ii = 0; ii < RRDB_METRIC_SUBFOLDERS_NUM; ++ii) {
-      snprintf(buf, sizeof(buf), "/%lu", SIZE_T_CAST ii);
-
-      boost::filesystem::create_directories(path + buf);
-  }
-}
 
 std::string rrdb_metric::get_full_path(const rrdb * const rrdb)
 {
   CHECK_AND_THROW(rrdb);
 
   boost::lock_guard<spinlock> guard(_lock);
-  return rrdb->get_path() + "/" + _filename;
+  return rrdb->get_file_cache()->get_full_path(_filename);
 }
 
 void rrdb_metric::save_file(const rrdb * const rrdb)

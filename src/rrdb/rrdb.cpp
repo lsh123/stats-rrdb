@@ -10,10 +10,11 @@
 #include <boost/thread/locks.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
-#include <boost/filesystem.hpp>
+
 
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric.h"
+#include "rrdb/rrdb_file_cache.h"
 
 #include "parser/statements.h"
 
@@ -345,10 +346,9 @@ private:
 //
 rrdb::rrdb(boost::shared_ptr<server> server) :
   _server(server),
-  _path("/var/lib/rrdb"),
   _flush_interval(interval_parse("1 min")),
-  _default_policy(retention_policy_parse("1 min FOR 1 day"))
-
+  _default_policy(retention_policy_parse("1 min FOR 1 day")),
+  _file_cache(new rrdb_file_cache())
 {
 }
 
@@ -359,8 +359,6 @@ rrdb::~rrdb()
 
 void rrdb::initialize(boost::shared_ptr<config> config)
 {
-  _path           = config->get<std::string>("rrdb.path", _path);
-
   _flush_interval = interval_parse(
       config->get<std::string>("rrdb.flush_interval", interval_write(_flush_interval))
   );
@@ -370,12 +368,13 @@ void rrdb::initialize(boost::shared_ptr<config> config)
 
 
   LOG(log::LEVEL_DEBUG, "Loading RRDB data files");
+  _file_cache->initialize(config);
 
-  // create subfolders
-  rrdb_metric::initialize_subfolders(_path);
-
-  // load metrics from disk
-  this->load_metrics();
+  // load metrics from disk - we do it under lock though it doesn't matter
+  {
+    boost::lock_guard<spinlock> guard(_metrics_lock);
+    _file_cache->load_metrics(this, _metrics);
+  }
 
   LOG(log::LEVEL_INFO, "Loaded RRDB data files");
 }
@@ -487,44 +486,6 @@ boost::shared_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)
   return this->find_metric_lc(name_lc);
 }
 
-void rrdb::load_metrics()
-{
-  // ensure folders exist
-  boost::filesystem::create_directories(_path);
-
-  std::string path = _path + "/";
-  my::size_t path_len = path.length();
-  for(boost::filesystem::recursive_directory_iterator end, cur(path); cur != end; ++cur) {
-      std::string full_path = (*cur).path().string();
-      LOG(log::LEVEL_DEBUG3, "Checking file %s", path.c_str());
-
-      // we are looking for files
-      if((*cur).status().type() != boost::filesystem::regular_file) {
-          continue;
-      }
-
-      // with specified extension
-      if((*cur).path().extension() != RRDB_METRIC_EXTENSION) {
-          continue;
-      }
-
-      // load metric
-      boost::shared_ptr<rrdb_metric> metric(new rrdb_metric(full_path.substr(path_len - 1)));
-      metric->load_file(this);
-
-      std::string name(metric->get_name());
-      // try to insert into the map
-      {
-        boost::lock_guard<spinlock> guard(_metrics_lock);
-        t_metrics_map::const_iterator it = _metrics.find(name);
-        if(it == _metrics.end()) {
-            // insert loaded metric into map and return
-            _metrics[name] = metric;
-        }
-      }
-  }
-}
-
 boost::shared_ptr<rrdb_metric> rrdb::find_metric_lc(const std::string & name_lc)
 {
   // search in the map: lock access to _metrics
@@ -564,7 +525,7 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
 
   // create new and try to insert into map, lock access to _metrics
   boost::shared_ptr<rrdb_metric> res(new rrdb_metric());
-  res->set_name_and_policy(name_lc, policy);
+  res->set_name_and_policy(_file_cache->get_filename(name_lc), name_lc, policy);
   {
     // make sure there is always only one metric for the name
     boost::lock_guard<spinlock> guard(_metrics_lock);

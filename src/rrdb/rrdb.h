@@ -27,8 +27,10 @@
 #include "rrdb/rrdb_metric_tuple.h"
 
 // forward
-class config;
 class rrdb_metric;
+class rrdb_file_cache;
+
+class config;
 class statement_select;
 class server;
 
@@ -87,12 +89,12 @@ public:
   void execute_udp_command(const std::string & buffer, memory_buffer_t & res);
 
   // helpers
-  inline const std::string & get_path() const {
-    return _path;
+  const boost::shared_ptr<rrdb_file_cache> & get_file_cache() const
+  {
+    return _file_cache;
   }
 
 private:
-  void load_metrics();
   boost::shared_ptr<rrdb_metric> find_metric_lc(const std::string & name_lc);
 
   void flush_to_disk_thread();
@@ -103,9 +105,10 @@ private:
   boost::weak_ptr<server> _server;
 
   // config
-  std::string             _path;
-  my::interval_t              _flush_interval;
+  my::interval_t          _flush_interval;
   retention_policy        _default_policy;
+
+  boost::shared_ptr<rrdb_file_cache> _file_cache;
 
   t_metrics_map           _metrics;
   spinlock                _metrics_lock;

@@ -19,6 +19,7 @@ EXTRA_DIST = \
 	parser/statements.h \
 	parser/statements_grammar.h \
 	rrdb/rrdb.h \
+	rrdb/rrdb_file_cache.h \
 	rrdb/rrdb_metric.h \
 	rrdb/rrdb_metric_block.h \
 	rrdb/rrdb_metric_tuple.h \
@@ -39,6 +40,7 @@ stats_rrdb_SOURCES= \
 	parser/statements.cpp \
 	stats_rrdb.cpp \
 	rrdb/rrdb.cpp \
+	rrdb/rrdb_file_cache.cpp \
 	rrdb/rrdb_metric.cpp \
 	rrdb/rrdb_metric_block.cpp \
 	rrdb/rrdb_metric_tuple.cpp \

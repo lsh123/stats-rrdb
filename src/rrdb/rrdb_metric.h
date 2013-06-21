@@ -23,8 +23,6 @@
 #include "parser/retention_policy.h"
 
 
-#define RRDB_METRIC_EXTENSION    ".rrdb"
-
 // forward
 class rrdb;
 class rrdb_metric_block;
@@ -65,7 +63,7 @@ public:
 
   std::string get_name();
   retention_policy get_policy();
-  void set_name_and_policy(const std::string & name, const retention_policy & policy);
+  void set_name_and_policy(const std::string & filename, const std::string & name, const retention_policy & policy);
 
   bool is_dirty();
   bool is_deleted();
@@ -78,9 +76,6 @@ public:
   void select(const rrdb * const rrdb, const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker);
 
   void get_last_value(my::value_t & value, my::time_t & value_ts);
-
-  static std::string get_filename(const std::string & name);
-  static void initialize_subfolders(const std::string & path);
 
 private:
   std::string get_full_path(const rrdb * const rrdb);
