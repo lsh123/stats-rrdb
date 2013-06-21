@@ -225,8 +225,9 @@ void rrdb_metric::save_file(const rrdb * const rrdb)
     LOG(log::LEVEL_DEBUG, "RRDB metric saving file '%s'", _filename.c_str());
 
     // open file
-    std::string filename_tmp = _filename + ".tmp";
-    boost::shared_ptr<std::fstream> ofs(rrdb->get_file_cache()->open_file(filename_tmp, true));
+    // std::string filename_tmp = _filename + ".tmp";
+    boost::shared_ptr<std::fstream> ofs(rrdb->get_file_cache()->open_file(_filename, true));
+    ofs->seekg(0, ofs->beg);
 
     // write header
     this->write_header(*ofs);
@@ -236,12 +237,12 @@ void rrdb_metric::save_file(const rrdb * const rrdb)
       block.write_block(rrdb, this, *ofs);
     }
 
-    // flush and  close
+    // flush, don't close
     ofs->flush();
-    ofs->close();
+    ofs->sync();
 
     // move file
-    rrdb->get_file_cache()->move_file(filename_tmp, _filename);
+    // rrdb->get_file_cache()->move_file(filename_tmp, _filename);
 
     // not dirty!
     my::bitmask_clear<boost::uint16_t>(_header._status, Status_Dirty);
@@ -266,6 +267,8 @@ void rrdb_metric::load_file(const rrdb * const rrdb)
     LOG(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", _filename.c_str());
 
     boost::shared_ptr<std::fstream> ifs(rrdb->get_file_cache()->open_file(_filename));
+    ifs->seekg(0, ifs->beg);
+    ifs->sync();
 
     // read header
     this->read_header(*ifs);
@@ -276,9 +279,6 @@ void rrdb_metric::load_file(const rrdb * const rrdb)
         this->_blocks.push_back(rrdb_metric_block());
         this->_blocks.back().read_block(rrdb, this, *ifs);
     }
-
-    // close
-    ifs->close();
 
     // done
     LOG(log::LEVEL_DEBUG2, "RRDB metric loaded from file '%s'", _filename.c_str());

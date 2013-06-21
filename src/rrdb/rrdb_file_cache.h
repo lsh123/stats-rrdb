@@ -35,6 +35,8 @@ public:
 
   void clear_cache();
   my::size_t get_cache_size() const;
+  my::size_t get_cache_hits() const;
+  my::size_t get_cache_misses() const;
 
   fstream_ptr open_file(const std::string & filename, bool new_file = false);
   void move_file(const std::string & from, const std::string & to);

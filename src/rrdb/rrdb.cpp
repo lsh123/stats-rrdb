@@ -426,6 +426,8 @@ void rrdb::stop()
 void rrdb::update_status(const time_t & now)
 {
   this->update_metric("self.file_cache.size", now, _file_cache->get_cache_size());
+  this->update_metric("self.file_cache.hits", now, _file_cache->get_cache_hits());
+  this->update_metric("self.file_cache.misses", now, _file_cache->get_cache_misses());
 }
 
 void rrdb::flush_to_disk_thread()

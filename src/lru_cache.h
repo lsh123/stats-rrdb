@@ -65,32 +65,50 @@ public:
   typedef typename time_index_t::iterator t_lru_iterator;
 
 public:
+  lru_cache() :
+    _size(0)
+  {
+  }
+
   //
   // Key based functions
   //
   void insert(const K & k, const V &v, const T & t)
   {
-    key_index_t & index_by_key = _container.get<K>();
-    index_by_key.insert(value_type(k, v, t));
+    key_index_t & key_index = _container.get<K>();
+    std::pair<t_iterator, bool> res = key_index.insert(value_type(k, v, t));
+    if(res.second) {
+        ++_size;
+    }
   }
 
   t_iterator find(const K & k) const
   {
-    const key_index_t & index_by_key = _container.get<K>();
-    return index_by_key.find(k);
+    const key_index_t & key_index = _container.get<K>();
+    return key_index.find(k);
   }
 
   V use(t_iterator & it, const T & t)
   {
-    key_index_t & index_by_key = _container.get<K>();
-    index_by_key.modify(it, change_time_type(t));
+    key_index_t & key_index = _container.get<K>();
+    key_index.modify(it, change_time_type(t));
     return (*it)._v;
   }
 
   t_iterator end() const
   {
-    const key_index_t & index_by_key = _container.get<K>();
-    return index_by_key.end();
+    const key_index_t & key_index = _container.get<K>();
+    return key_index.end();
+  }
+
+  void erase(const K & k)
+  {
+    key_index_t & key_index = _container.get<K>();
+    t_iterator it = key_index.find(k);
+    if(it != key_index.end()) {
+        key_index.erase(it);
+        --_size;
+    }
   }
 
   //
@@ -98,18 +116,22 @@ public:
   //
   t_lru_iterator lru_begin()
   {
-    time_index_t & time_index_t = _container.get<T>();
-    return time_index_t.begin();
+    time_index_t & time_index = _container.get<T>();
+    return time_index.begin();
   }
   t_lru_iterator lru_end()
   {
-    time_index_t & time_index_t = _container.get<T>();
-    return time_index_t.end();
+    time_index_t & time_index = _container.get<T>();
+    return time_index.end();
   }
   t_lru_iterator lru_erase(t_lru_iterator it)
   {
-    time_index_t & time_index_t = _container.get<T>();
-    return time_index_t.erase(it);
+    time_index_t & time_index = _container.get<T>();
+    if(it != time_index.end()) {
+        it = time_index.erase(it);
+        --_size;
+    }
+    return it;
   }
 
   //
@@ -118,16 +140,18 @@ public:
   void clear()
   {
     _container.clear();
+    _size = 0;
   }
 
   size_type size() const
   {
-    return _container.size();
+    return _size;
   }
 
 
 private:
   t_container _container;
+  size_type   _size;
 }; // class lru_cache
 
 
