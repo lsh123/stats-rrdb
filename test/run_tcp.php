@@ -47,6 +47,11 @@ try {
 	// create
 	$stats_rrdb = new StatsRRDB(StatsRRDB::Mode_Tcp);
 
+	echo "== DROP METRIC 'test1' ; \n";
+	$resp = $stats_rrdb->send_command("drop metric 'test1';");
+	echo "== DROP METRIC 'test2' ; \n";
+	$resp = $stats_rrdb->send_command("drop metric 'test2';");
+		
 	echo "== CREATE METRIC 'test1' ; \n";
 	$resp = $stats_rrdb->send_command("create metric 'test1' keep 5 secs for 10 sec, 10 secs for 20 secs, 20 secs for 10 min;"); 
 	check_result($resp, "OK");
@@ -73,11 +78,20 @@ try {
 	echo "== SELECT * FROM METRIC 'test1'  GROUP BY 5 sec;\n";
 	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104586 AND 1371104596 GROUP BY 5 sec;");
 	echo "$resp\n";
-	
-	echo "== SELECT * FROM METRIC 'test2'\n";
-	$resp = $stats_rrdb->send_command("SELECT * FROM 'test2' BETWEEN 1371104580 AND 1371104990 GROUP BY 5 sec;");
-	check_result($resp, "ts,count,sum,avg,stddev,min,max\n");
-	
+
+	echo "== SELECT * FROM METRIC 'test1'  GROUP BY 5 sec;\n";
+	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104586 AND 1371104596 GROUP BY 5 sec;");
+	echo "$resp\n";
+		
+	echo "== SELECT * FROM METRIC 'test1' GROUP BY 1 year\n";
+	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104580 AND 1371104990 GROUP BY 1 day; ");
+	check_result($resp, "ts,count,sum,avg,stddev,min,max\n1371104580,30,30,1,0,1,1\n");
+
+	/////////////////
+	//
+	// Restart
+	//
+	/////////////////
 	restart_server();
 
 	echo "== SHOW METRICS\n";
@@ -115,6 +129,9 @@ try {
 	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104500 AND 1371104990 GROUP BY 15 sec;");
 	echo "$resp\n";
 
+	echo "== SELECT * FROM METRIC 'test1' GROUP BY 1 year\n";
+	$resp = $stats_rrdb->send_command("SELECT * FROM 'test1' BETWEEN 1371104580 AND 1371104990 GROUP BY 1 day; ");
+	check_result($resp, "ts,count,sum,avg,stddev,min,max\n1371104580,60,60,1,0,1,1\n");	
 
     echo "== SHOW METRIC POLICY\n";
     $resp = $stats_rrdb->send_command("show metric policy 'test2';");

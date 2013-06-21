@@ -140,11 +140,14 @@ public:
 
 private:
   boost::shared_array<rrdb_metric_tuple_t> get_tuples() const;
+
   rrdb_metric_tuple_t * find_tuple(
       const boost::shared_array<rrdb_metric_tuple_t> & the_tuples,
       const update_ctx_t & in,
       update_ctx_t & out
   );
+
+  boost::shared_array<rrdb_metric_tuple_t> read_block_data(std::fstream & ifs);
 
   inline my::time_t normalize_ts(const my::time_t & ts) const {
     return ts - (ts % _header._freq);

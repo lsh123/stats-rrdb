@@ -153,7 +153,20 @@ class statement_execute_visitor : public boost::static_visitor<void>
         _ts_beg(0),
         _ts_end(0)
       {
-        this->reset_cur_tuple(select._ts_end);
+        CHECK_AND_THROW(_group_by > 0);
+        CHECK_AND_THROW(select._ts_begin < select._ts_end);
+
+        // we want to put the "end" of the first interval at
+        //
+        //      select._ts_begin + N*_group_by >= select._ts_end
+        //
+        // for the smallest possible N
+        my::time_t x = (select._ts_end - select._ts_begin) % _group_by;
+        if(x > 0) {
+            this->reset_cur_tuple(select._ts_end + _group_by - x);
+        } else {
+            this->reset_cur_tuple(select._ts_end);
+        }
       }
 
       virtual ~data_walker_select()
@@ -288,14 +301,16 @@ public:
     // write header
     rrdb_metric_tuple_write_header(_res);
 
-    if(st._group_by && (*st._group_by)) {
-        // hard case
-        data_walker_select walker(st, _res);
-        _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, walker);
-    } else {
-        // simple case
-        data_walker_select_no_group_by walker(st, _res);
-        _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, walker);
+    if(st._ts_begin < st._ts_end) {
+      if(st._group_by && (*st._group_by)) {
+          // hard case
+          data_walker_select walker(st, _res);
+          _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, walker);
+      } else {
+          // simple case
+          data_walker_select_no_group_by walker(st, _res);
+          _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, walker);
+      }
     }
   }
 

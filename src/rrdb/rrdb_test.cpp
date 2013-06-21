@@ -279,10 +279,41 @@ void rrdb_test::run_select_test(const params_t & params)
     // first line is the latest: latest ts + count = 1
     TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data[2][1]), 30);
 
-    // last line is the oldest: oldest ts + full 30 sec interval data
+    // last line is the oldest: start ts + full 30 sec interval data
+    TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data.back()[0]), start_ts);
     TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data.back()[1]), 30);
 
     // test 1: done
+    std::cout << "=== Result for " << buf << std::endl;
+    std::cout << std::string(res_data.begin(), res_data.end()) << std::endl;
+  }
+
+  //
+  // TEST 5: get all data group by 1 year
+  //
+  std::cout << "=== QUERY ALL DATA GROUP BY 1 year" << std::endl;
+  {
+    char buf[1024];
+    snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu group by 1 year; ",
+        metric_name.c_str(),
+        start_ts,
+        start_ts + tests_count + 10000
+    );
+
+    memory_buffer_data_t res_data;
+    memory_buffer_t res(res_data);
+    _rrdb->execute_tcp_command(buf, res);
+
+    rrdb_test::csv_data_t parsed_data = rrdb_test::parse_csv_data(res_data);
+
+    // count: 1 header row + 1 data row
+    TEST_CHECK_EQUAL(parsed_data.size(), 2);
+
+    // first and only line: start ts + count = 1
+    TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data[1][0]), start_ts);
+    TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data[1][1]), tests_count);
+
+    // test 4: done
     std::cout << "=== Result for " << buf << std::endl;
     std::cout << std::string(res_data.begin(), res_data.end()) << std::endl;
   }

@@ -200,9 +200,6 @@ void rrdb_metric_block::write_block(std::fstream & ofs)
 
 void rrdb_metric_block::read_block(std::fstream & ifs)
 {
-  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples());
-  CHECK_AND_THROW(!the_tuples.get());
-
   // rememeber where are we
   uint64_t offset = ifs.tellg();
 
@@ -231,10 +228,22 @@ void rrdb_metric_block::read_block(std::fstream & ifs)
   }
 
   // read data
+  _tuples_data = this->read_block_data(ifs);
+}
+
+boost::shared_array<rrdb_metric_tuple_t> rrdb_metric_block::read_block_data(std::fstream & ifs)
+{
+  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples());
+
+  // read data
   the_tuples.reset(new rrdb_metric_tuple_t[_header._count]);
   ifs.read((char*)the_tuples.get(), _header._data_size);
 
+  // check data
   if(the_tuples[_header._pos]._ts != _header._pos_ts) {
       throw exception("Unexpected rrdb metric block pos %u pos_ts: %ld (expected from tuple: %ld)",  _header._pos, _header._pos_ts, the_tuples[_header._pos]._ts);
   }
+
+  // done
+  return the_tuples;
 }
