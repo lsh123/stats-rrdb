@@ -29,7 +29,7 @@
 // forward
 class rrdb_metric;
 class rrdb_file_cache;
-class rrdb_metric_block_cache;
+class rrdb_metric_tuples_cache;
 
 class config;
 class statement_select;
@@ -94,7 +94,7 @@ public:
   {
     return _files_cache;
   }
-  const boost::shared_ptr<rrdb_metric_block_cache> & get_blocks_cache() const
+  const boost::shared_ptr<rrdb_metric_tuples_cache> & get_blocks_cache() const
   {
     return _blocks_cache;
   }
@@ -117,7 +117,7 @@ private:
   spinlock                _metrics_lock;
 
   boost::shared_ptr<rrdb_file_cache>         _files_cache;
-  boost::shared_ptr<rrdb_metric_block_cache> _blocks_cache;
+  boost::shared_ptr<rrdb_metric_tuples_cache> _blocks_cache;
   boost::shared_ptr< boost::thread >         _flush_to_disk_thread; // TODO: make it a pool?
 }; // class rrdb
 

@@ -15,7 +15,7 @@
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric.h"
 #include "rrdb/rrdb_file_cache.h"
-#include "rrdb/rrdb_metric_block_cache.h"
+#include "rrdb/rrdb_metric_tuples_cache.h"
 
 #include "parser/interval.h"
 #include "parser/statements.h"
@@ -351,7 +351,7 @@ rrdb::rrdb(boost::shared_ptr<server> server) :
   _flush_interval(interval_parse("1 min")),
   _default_policy(retention_policy_parse("1 min FOR 1 day")),
   _files_cache(new rrdb_file_cache()),
-  _blocks_cache(new rrdb_metric_block_cache())
+  _blocks_cache(new rrdb_metric_tuples_cache())
 {
 }
 

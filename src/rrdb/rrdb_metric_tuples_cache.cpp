@@ -1,5 +1,5 @@
 /*
- * rrdb_metric_block_cache.cpp
+ * rrdb_metric_tuples_cache.cpp
  *
  *  Created on: Jun 21, 2013
  *      Author: aleksey
@@ -9,14 +9,14 @@
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric.h"
 #include "rrdb/rrdb_metric_block.h"
-#include "rrdb/rrdb_metric_block_cache.h"
+#include "rrdb/rrdb_metric_tuples_cache.h"
 
 #include "lru_cache.h"
 #include "config.h"
 #include "log.h"
 #include "exception.h"
 
-class rrdb_metric_block_cache_impl
+class rrdb_metric_tuples_cache_impl
 {
   typedef lru_cache<
       boost::shared_ptr<rrdb_metric_block>,
@@ -25,7 +25,7 @@ class rrdb_metric_block_cache_impl
   > t_lru_cache;
 
 public:
-  rrdb_metric_block_cache_impl(const my::size_t & max_size) :
+  rrdb_metric_tuples_cache_impl(const my::size_t & max_size) :
     _max_size(max_size),
     _cache_hits(0),
     _cache_misses(0)
@@ -126,22 +126,22 @@ private:
   my::size_t  _max_size;
   my::size_t  _cache_hits;
   my::size_t  _cache_misses;
-}; // rrdb_metric_block_cache_impl
+}; // rrdb_metric_tuples_cache_impl
 
-rrdb_metric_block_cache::rrdb_metric_block_cache():
-    _blocks_cache_impl(new rrdb_metric_block_cache_impl(1024))
+rrdb_metric_tuples_cache::rrdb_metric_tuples_cache():
+    _blocks_cache_impl(new rrdb_metric_tuples_cache_impl(1024))
 {
   // TODO Auto-generated constructor stub
 
 }
 
-rrdb_metric_block_cache::~rrdb_metric_block_cache()
+rrdb_metric_tuples_cache::~rrdb_metric_tuples_cache()
 {
   // TODO Auto-generated destructor stub
 }
 
 
-void rrdb_metric_block_cache::initialize(boost::shared_ptr<config> config)
+void rrdb_metric_tuples_cache::initialize(boost::shared_ptr<config> config)
 {
   boost::lock_guard<spinlock> guard(_lock);
   // set cache
@@ -152,25 +152,25 @@ void rrdb_metric_block_cache::initialize(boost::shared_ptr<config> config)
    );
 }
 
-void rrdb_metric_block_cache::clear_cache()
+void rrdb_metric_tuples_cache::clear_cache()
 {
   boost::lock_guard<spinlock> guard(_lock);
   _blocks_cache_impl->clear();
 }
 
-my::size_t rrdb_metric_block_cache::get_cache_size() const
+my::size_t rrdb_metric_tuples_cache::get_cache_size() const
 {
   boost::lock_guard<spinlock> guard(_lock);
   return _blocks_cache_impl->get_size();
 }
 
-my::size_t rrdb_metric_block_cache::get_cache_hits() const
+my::size_t rrdb_metric_tuples_cache::get_cache_hits() const
 {
   boost::lock_guard<spinlock> guard(_lock);
   return _blocks_cache_impl->get_cache_hits();
 }
 
-my::size_t rrdb_metric_block_cache::get_cache_misses() const
+my::size_t rrdb_metric_tuples_cache::get_cache_misses() const
 {
   boost::lock_guard<spinlock> guard(_lock);
   return _blocks_cache_impl->get_cache_misses();

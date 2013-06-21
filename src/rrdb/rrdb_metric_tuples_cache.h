@@ -1,12 +1,12 @@
 /*
- * rrdb_metric_block_cache.h
+ * rrdb_metric_tuples_cache.h
  *
  *  Created on: Jun 21, 2013
  *      Author: aleksey
  */
 
-#ifndef RRDB_METRIC_BLOCK_CACHE_H_
-#define RRDB_METRIC_BLOCK_CACHE_H_
+#ifndef RRDB_METRIC_TUPLES_CACHE_H_
+#define RRDB_METRIC_TUPLES_CACHE_H_
 
 #include <boost/shared_ptr.hpp>
 
@@ -16,14 +16,14 @@
 #include "spinlock.h"
 
 class config;
-class rrdb_metric_block_cache_impl;
+class rrdb_metric_tuples_cache_impl;
 
 
-class rrdb_metric_block_cache
+class rrdb_metric_tuples_cache
 {
 public:
-  rrdb_metric_block_cache();
-  virtual ~rrdb_metric_block_cache();
+  rrdb_metric_tuples_cache();
+  virtual ~rrdb_metric_tuples_cache();
 
   void initialize(boost::shared_ptr<config> config);
   void clear_cache();
@@ -34,7 +34,7 @@ public:
 
 private:
   mutable spinlock _lock;
-  boost::shared_ptr<rrdb_metric_block_cache_impl> _blocks_cache_impl;
-}; // rrdb_metric_block_cache
+  boost::shared_ptr<rrdb_metric_tuples_cache_impl> _blocks_cache_impl;
+}; // rrdb_metric_tuples_cache
 
-#endif /* RRDB_METRIC_BLOCK_CACHE_H_ */
+#endif /* RRDB_METRIC_TUPLES_CACHE_H_ */
