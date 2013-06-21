@@ -8,7 +8,6 @@
 
 #include <boost/thread/locks.hpp>
 #include <boost/functional/hash.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 
 #include "parser/statements.h"
@@ -205,12 +204,10 @@ my::size_t rrdb_metric::get_padded_name_len(const my::size_t & name_len)
 }
 
 
-std::string rrdb_metric::get_full_path(const rrdb * const rrdb)
+std::string rrdb_metric::get_filename()
 {
-  CHECK_AND_THROW(rrdb);
-
   boost::lock_guard<spinlock> guard(_lock);
-  return rrdb->get_file_cache()->get_full_path(_filename);
+  return _filename;
 }
 
 void rrdb_metric::save_file(const rrdb * const rrdb)
@@ -222,21 +219,19 @@ void rrdb_metric::save_file(const rrdb * const rrdb)
       return;
   }
 
-  // start
-  LOG(log::LEVEL_DEBUG, "RRDB metric '%s' saving file", this->get_name().c_str());
-
   // open file
-  std::string full_path = this->get_full_path(rrdb);
-  std::string full_path_tmp = full_path + ".tmp";
-  std::fstream ofs(full_path_tmp.c_str(), std::ios_base::binary | std::ios_base::out);
-  ofs.exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
+  std::string filename = this->get_filename();
+  std::string filename_tmp = filename + ".tmp";
+  LOG(log::LEVEL_DEBUG, "RRDB metric '%s' saving file '%s'", this->get_name().c_str(), filename_tmp.c_str());
+
+  boost::shared_ptr<std::fstream> ofs(rrdb->get_file_cache()->open_file(filename_tmp, true));
 
   // write data (under lock!
   {
     boost::lock_guard<spinlock> guard(_lock);
-    this->write_header(ofs);
+    this->write_header(*ofs);
     BOOST_FOREACH(rrdb_metric_block & block, _blocks) {
-      block.write_block(rrdb, this, ofs);
+      block.write_block(rrdb, this, *ofs);
     }
 
     // not dirty!
@@ -244,14 +239,14 @@ void rrdb_metric::save_file(const rrdb * const rrdb)
   }
 
   // flush and  close
-  ofs.flush();
-  ofs.close();
+  ofs->flush();
+  ofs->close();
 
   // move file
-  boost::filesystem::rename(full_path_tmp, full_path);
+  rrdb->get_file_cache()->move_file(filename_tmp, filename);
 
   // done
-  LOG(log::LEVEL_DEBUG, "RRDB metric '%s' saved file '%s'", this->get_name().c_str(), full_path.c_str());
+  LOG(log::LEVEL_DEBUG2, "RRDB metric '%s' saved file '%s'", this->get_name().c_str(), filename.c_str());
 
   // check if deleted meantime
   if(this->is_deleted()) {
@@ -263,28 +258,26 @@ void rrdb_metric::load_file(const rrdb * const rrdb)
 {
   CHECK_AND_THROW(rrdb);
 
-  // start
-  LOG(log::LEVEL_INFO, "RRDB metric loading file '%s'", _filename.c_str());
-
   // open file
-  std::string full_path = this->get_full_path(rrdb);
-  std::fstream ifs(full_path.c_str(), std::ios_base::binary | std::ios_base::in);
-  ifs.exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
+  std::string filename = this->get_filename();
+  LOG(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", filename.c_str());
+
+  boost::shared_ptr<std::fstream> ifs(rrdb->get_file_cache()->open_file(filename));
 
   // read data under lock
   {
     boost::lock_guard<spinlock> guard(_lock);
-    this->read_header(ifs);
+    this->read_header(*ifs);
     this->_blocks.reserve(this->_header._blocks_size);
     for(my::size_t ii = 0; ii < this->_header._blocks_size; ++ii) {
         this->_blocks.push_back(rrdb_metric_block());
-        this->_blocks.back().read_block(rrdb, this, ifs);
+        this->_blocks.back().read_block(rrdb, this, *ifs);
     }
   }
-  ifs.close();
+  ifs->close();
 
   // done
-  LOG(log::LEVEL_DEBUG, "RRDB metric loaded file '%s'", _filename.c_str());
+  LOG(log::LEVEL_DEBUG2, "RRDB metric '%s'  loaded from file '%s'", this->get_name().c_str(), filename.c_str());
 }
 
 void rrdb_metric::delete_file(const rrdb * const rrdb)
@@ -298,13 +291,12 @@ void rrdb_metric::delete_file(const rrdb * const rrdb)
   }
 
   // start
-  LOG(log::LEVEL_DEBUG, "RRDB metric '%s' deleting file", this->get_name().c_str());
+  LOG(log::LEVEL_DEBUG, "RRDB metric '%s' deleting file '%s", this->get_name().c_str(), this->get_filename().c_str());
 
-  std::string full_path = this->get_full_path(rrdb);
-  boost::filesystem::remove(full_path);
+  rrdb->get_file_cache()->delete_file(this->get_filename());
 
   // done
-  LOG(log::LEVEL_DEBUG, "RRDB metric '%s' deleted file '%s'", this->get_name().c_str(), full_path.c_str());
+  LOG(log::LEVEL_DEBUG2, "RRDB metric '%s' deleted file '%s'", this->get_name().c_str(), this->get_filename().c_str());
 }
 
 void rrdb_metric::write_header(std::fstream & ofs)

@@ -78,7 +78,7 @@ public:
   void get_last_value(my::value_t & value, my::time_t & value_ts);
 
 private:
-  std::string get_full_path(const rrdb * const rrdb);
+  std::string get_filename();
   static my::size_t get_padded_name_len(const my::size_t & name_len);
 
   void write_header(std::fstream & ofs);
