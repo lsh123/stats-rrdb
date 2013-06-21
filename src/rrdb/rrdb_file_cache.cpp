@@ -22,12 +22,12 @@
 #define RRDB_METRIC_SUBFOLDERS_NUM      512
 #define RRDB_METRIC_EXTENSION    ".rrdb"
 
-class rrdb_open_files_cache
+class rrdb_file_cache_impl
 {
-  typedef lru_cache<std::string, rrdb_file_cache::fstream_ptr, my::size_t> t_lru_cache;
+  typedef lru_cache<std::string, rrdb_file_cache::fstream_ptr, my::time_t> t_lru_cache;
 
 public:
-  rrdb_open_files_cache(const my::size_t & max_size) :
+  rrdb_file_cache_impl(const my::size_t & max_size) :
     _max_size(max_size),
     _cache_hits(0),
     _cache_misses(0)
@@ -36,13 +36,12 @@ public:
 
   inline const my::size_t & get_max_size() const
   {
-    boost::lock_guard<spinlock> guard(_lock);
+
     return _max_size;
   }
 
   inline void set_max_size(const my::size_t & max_size)
   {
-    boost::lock_guard<spinlock> guard(_lock);
     if(_max_size < max_size) {
         _max_size = max_size;
         this->purge();
@@ -53,31 +52,26 @@ public:
 
   inline my::size_t get_size() const
   {
-    boost::lock_guard<spinlock> guard(_lock);
     return _cache.size();
   }
 
   inline my::size_t get_cache_hits() const
   {
-    boost::lock_guard<spinlock> guard(_lock);
     return _cache_hits;
   }
 
   inline my::size_t get_cache_misses() const
   {
-    boost::lock_guard<spinlock> guard(_lock);
     return _cache_misses;
   }
 
   inline void erase(const std::string & filename)
   {
-    boost::lock_guard<spinlock> guard(_lock);
     _cache.erase(filename);
   }
 
   inline void clear()
   {
-    boost::lock_guard<spinlock> guard(_lock);
     _cache.clear();
     _cache_hits = _cache_misses = 0;
   }
@@ -89,7 +83,6 @@ public:
       std::ios_base::openmode mode
   )
   {
-    boost::lock_guard<spinlock> guard(_lock);
     LOG(log::LEVEL_DEBUG3, "Looking for file '%s'", filename.c_str());
 
     // try to find
@@ -122,9 +115,6 @@ public:
 private:
   void purge()
   {
-    // should be locked
-    CHECK_AND_THROW(_lock.is_locked());
-
     t_lru_cache::t_lru_iterator it(_cache.lru_begin());
     t_lru_cache::t_lru_iterator it_end(_cache.lru_end());
     while(it != it_end && _cache.size() >= _max_size) {
@@ -133,18 +123,17 @@ private:
   }
 
 private:
-  mutable spinlock    _lock;
-  t_lru_cache         _cache;
+  t_lru_cache _cache;
 
   my::size_t  _max_size;
   my::size_t  _cache_hits;
   my::size_t  _cache_misses;
-}; // rrdb_open_files_cache
+}; // rrdb_file_cache_impl
 
 
 rrdb_file_cache::rrdb_file_cache():
   _path("/var/lib/rrdb/"),
-  _open_files_cache(new rrdb_open_files_cache(1024))
+  _files_cache_impl(new rrdb_file_cache_impl(1024))
 {
 
 }
@@ -156,25 +145,33 @@ rrdb_file_cache::~rrdb_file_cache()
 
 void rrdb_file_cache::initialize(boost::shared_ptr<config> config)
 {
-  // set cache
-  _open_files_cache->set_max_size(config->get<my::size_t>(
-      "rrdb.open_files_cache_size",
-      _open_files_cache->get_max_size()
-    )
-   );
+  std::string path;
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+    // set cache
+    _files_cache_impl->set_max_size(config->get<my::size_t>(
+        "rrdb.open_files_cache_size",
+        _files_cache_impl->get_max_size()
+      )
+     );
 
-  // get path and ensure it ends with '/'
-  _path = config->get<std::string>("rrdb.path", _path);
-  if((*_path.rbegin()) != '/') {
-      _path += "/";
+    // get path and ensure it ends with '/'
+    _path = config->get<std::string>("rrdb.path", _path);
+    if((*_path.rbegin()) != '/') {
+        _path += "/";
+    }
+    LOG(log::LEVEL_INFO, "Using base folder '%s'", _path.c_str());
+
+    // remember path so we can create subfolders outside of the lock
+    // (doesn't really matter during init phase...)
+    path = _path;
   }
-  LOG(log::LEVEL_INFO, "Using base folder '%s'", _path.c_str());
 
   // create subfolders
   char buf[64];
   for(my::size_t ii = 0; ii < RRDB_METRIC_SUBFOLDERS_NUM; ++ii) {
       snprintf(buf, sizeof(buf), "%lu", SIZE_T_CAST ii);
-      boost::filesystem::create_directories(_path + buf);
+      boost::filesystem::create_directories(path + buf);
   }
 }
 
@@ -223,25 +220,35 @@ void rrdb_file_cache::load_metrics(const rrdb * const rrdb, rrdb::t_metrics_map 
   }
 }
 
+
+void rrdb_file_cache::clear_cache()
+{
+  boost::lock_guard<spinlock> guard(_lock);
+  _files_cache_impl->clear();
+}
+
 my::size_t rrdb_file_cache::get_cache_size() const
 {
-  return _open_files_cache->get_size();
+  boost::lock_guard<spinlock> guard(_lock);
+  return _files_cache_impl->get_size();
 }
 
 my::size_t rrdb_file_cache::get_cache_hits() const
 {
-  return _open_files_cache->get_cache_hits();
+  boost::lock_guard<spinlock> guard(_lock);
+  return _files_cache_impl->get_cache_hits();
 }
 
 my::size_t rrdb_file_cache::get_cache_misses() const
 {
-  return _open_files_cache->get_cache_misses();
+  boost::lock_guard<spinlock> guard(_lock);
+  return _files_cache_impl->get_cache_misses();
 }
 
-
-void rrdb_file_cache::clear_cache()
+std::string rrdb_file_cache::get_full_path(const std::string & filename) const
 {
-  _open_files_cache->clear();
+  boost::lock_guard<spinlock> guard(_lock);
+  return _path + filename;
 }
 
 rrdb_file_cache::fstream_ptr rrdb_file_cache::open_file(const std::string & filename, bool new_file)
@@ -251,21 +258,26 @@ rrdb_file_cache::fstream_ptr rrdb_file_cache::open_file(const std::string & file
   if(new_file) {
       mode |= std::ios_base::trunc;
   }
-  return _open_files_cache->get_fstream(_path, filename, time(NULL), mode);
+
+  boost::lock_guard<spinlock> guard(_lock);
+  return _files_cache_impl->get_fstream(_path, filename, time(NULL), mode);
 }
 
 void rrdb_file_cache::move_file(const std::string & from, const std::string & to)
 {
-  std::string from_full_path = _path + from;
-  std::string to_full_path = _path + to;
+  std::string from_full_path = this->get_full_path(from);
+  std::string to_full_path = this->get_full_path(to);
   LOG(log::LEVEL_DEBUG3, "Moving file '%s', full path '%s' to file '%s', full path '%s'",
       from.c_str(), from_full_path.c_str(),
       to.c_str(), to_full_path.c_str()
     );
 
   // don't forget to cleanup any open file handles
-  _open_files_cache->erase(from);
-  _open_files_cache->erase(to);
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+    _files_cache_impl->erase(from);
+    _files_cache_impl->erase(to);
+  }
 
   // move file
   boost::filesystem::rename(from_full_path, to_full_path);
@@ -273,11 +285,14 @@ void rrdb_file_cache::move_file(const std::string & from, const std::string & to
 
 void rrdb_file_cache::delete_file(const std::string & filename)
 {
-  std::string full_path = _path + filename;
+  std::string full_path = this->get_full_path(filename);
   LOG(log::LEVEL_DEBUG3, "Deleting file '%s', full path '%s'", filename.c_str(), full_path.c_str());
 
   // don't forget to cleanup any open file handles
-  _open_files_cache->erase(filename);
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+    _files_cache_impl->erase(filename);
+  }
 
   // delete
   boost::filesystem::remove(full_path);

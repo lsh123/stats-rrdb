@@ -16,10 +16,11 @@
 #include "rrdb/rrdb.h"
 
 #include "types.h"
+#include "spinlock.h"
 
 class rrdb;
 class config;
-class rrdb_open_files_cache;
+class rrdb_file_cache_impl;
 
 class rrdb_file_cache
 {
@@ -31,9 +32,8 @@ public:
   virtual ~rrdb_file_cache();
 
   void initialize(boost::shared_ptr<config> config);
-  void load_metrics(const rrdb * const rrdb, rrdb::t_metrics_map & metrics);
-
   void clear_cache();
+
   my::size_t get_cache_size() const;
   my::size_t get_cache_hits() const;
   my::size_t get_cache_misses() const;
@@ -43,10 +43,15 @@ public:
   void delete_file(const std::string & filename);
 
   std::string get_filename(const std::string & metric_name) const;
+  void load_metrics(const rrdb * const rrdb, rrdb::t_metrics_map & metrics);
 
 private:
-  std::string                              _path;
-  boost::shared_ptr<rrdb_open_files_cache> _open_files_cache;
-};
+  std::string get_full_path(const std::string & filename) const;
+
+private:
+  mutable spinlock                        _lock;
+  std::string                             _path;
+  boost::shared_ptr<rrdb_file_cache_impl> _files_cache_impl;
+}; // rrdb_file_cache
 
 #endif /* RRDB_FILE_CACHE_H_ */

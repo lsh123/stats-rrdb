@@ -53,7 +53,7 @@ class rrdb_metric
 {
   enum status {
     Status_Dirty        = 0x01,
-    Status_Deleted      = 0x02,
+    Status_Deleted      = 0x02
   };
 
 
@@ -70,15 +70,12 @@ public:
     boost::lock_guard<spinlock> guard(_lock);
     return my::bitmask_check<boost::uint16_t>(_header._status, Status_Dirty);
   }
-  inline bool is_deleted() const
-  {
-    boost::lock_guard<spinlock> guard(_lock);
-    return my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted);
-  }
 
   void load_file(const rrdb * const rrdb);
-  void save_file(const rrdb * const rrdb) const;
+  void save_file(const rrdb * const rrdb);
+  void save_dirty_blocks(const rrdb * const rrdb);
   void delete_file(const rrdb * const rrdb);
+
 
   void update(const rrdb * const rrdb, const my::time_t & ts, const my::value_t & value);
   void select(const rrdb * const rrdb, const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker) const;

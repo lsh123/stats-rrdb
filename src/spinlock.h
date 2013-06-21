@@ -9,6 +9,7 @@
 #define SPINLOCK_H_
 
 #include <boost/atomic.hpp>
+#include <boost/thread/locks.hpp>
 
 class spinlock
 {

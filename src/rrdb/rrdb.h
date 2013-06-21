@@ -29,6 +29,7 @@
 // forward
 class rrdb_metric;
 class rrdb_file_cache;
+class rrdb_metric_block_cache;
 
 class config;
 class statement_select;
@@ -89,9 +90,13 @@ public:
   void execute_udp_command(const std::string & buffer, memory_buffer_t & res);
 
   // helpers
-  const boost::shared_ptr<rrdb_file_cache> & get_file_cache() const
+  const boost::shared_ptr<rrdb_file_cache> & get_files_cache() const
   {
-    return _file_cache;
+    return _files_cache;
+  }
+  const boost::shared_ptr<rrdb_metric_block_cache> & get_blocks_cache() const
+  {
+    return _blocks_cache;
   }
 
 private:
@@ -108,13 +113,12 @@ private:
   my::interval_t          _flush_interval;
   retention_policy        _default_policy;
 
-  boost::shared_ptr<rrdb_file_cache> _file_cache;
-
   t_metrics_map           _metrics;
   spinlock                _metrics_lock;
 
-  // TODO: make it a pool?
-  boost::shared_ptr< boost::thread > _flush_to_disk_thread;
+  boost::shared_ptr<rrdb_file_cache>         _files_cache;
+  boost::shared_ptr<rrdb_metric_block_cache> _blocks_cache;
+  boost::shared_ptr< boost::thread >         _flush_to_disk_thread; // TODO: make it a pool?
 }; // class rrdb
 
 #endif /* RRDB_H_ */

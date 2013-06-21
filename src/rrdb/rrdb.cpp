@@ -15,6 +15,7 @@
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric.h"
 #include "rrdb/rrdb_file_cache.h"
+#include "rrdb/rrdb_metric_block_cache.h"
 
 #include "parser/interval.h"
 #include "parser/statements.h"
@@ -349,7 +350,8 @@ rrdb::rrdb(boost::shared_ptr<server> server) :
   _server(server),
   _flush_interval(interval_parse("1 min")),
   _default_policy(retention_policy_parse("1 min FOR 1 day")),
-  _file_cache(new rrdb_file_cache())
+  _files_cache(new rrdb_file_cache()),
+  _blocks_cache(new rrdb_metric_block_cache())
 {
 }
 
@@ -369,12 +371,13 @@ void rrdb::initialize(boost::shared_ptr<config> config)
 
 
   LOG(log::LEVEL_DEBUG, "Loading RRDB data files");
-  _file_cache->initialize(config);
+  _files_cache->initialize(config);
+  _blocks_cache->initialize(config);
 
   // load metrics from disk - we do it under lock though it doesn't matter
   {
     boost::lock_guard<spinlock> guard(_metrics_lock);
-    _file_cache->load_metrics(this, _metrics);
+    _files_cache->load_metrics(this, _metrics);
   }
 
   LOG(log::LEVEL_INFO, "Loaded RRDB data files");
@@ -417,7 +420,8 @@ void rrdb::stop()
   this->flush_to_disk();
 
   //
-  _file_cache->clear_cache();
+  _files_cache->clear_cache();
+  _blocks_cache->clear_cache();
 
   LOG(log::LEVEL_INFO, "Stopped RRDB server");
 }
@@ -425,9 +429,13 @@ void rrdb::stop()
 
 void rrdb::update_status(const time_t & now)
 {
-  this->update_metric("self.file_cache.size", now, _file_cache->get_cache_size());
-  this->update_metric("self.file_cache.hits", now, _file_cache->get_cache_hits());
-  this->update_metric("self.file_cache.misses", now, _file_cache->get_cache_misses());
+  this->update_metric("self.file_cache.size", now,   _files_cache->get_cache_size());
+  this->update_metric("self.file_cache.hits", now,   _files_cache->get_cache_hits());
+  this->update_metric("self.file_cache.misses", now, _files_cache->get_cache_misses());
+
+  this->update_metric("self.blocks_cache.size", now,   _blocks_cache->get_cache_size());
+  this->update_metric("self.blocks_cache.hits", now,   _blocks_cache->get_cache_hits());
+  this->update_metric("self.blocks_cache.misses", now, _blocks_cache->get_cache_misses());
 }
 
 void rrdb::flush_to_disk_thread()
@@ -472,7 +480,8 @@ void rrdb::flush_to_disk()
   t_metrics_vector dirty_metrics = this->get_dirty_metrics();
   BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, dirty_metrics) {
     try {
-        metric->save_file(this);
+        // we expect metric file already exists
+        metric->save_dirty_blocks(this);
     } catch(std::exception & e) {
       LOG(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
     } catch(...) {
@@ -531,7 +540,7 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
 
   // create new and try to insert into map, lock access to _metrics
   boost::shared_ptr<rrdb_metric> res(new rrdb_metric());
-  res->set_name_and_policy(_file_cache->get_filename(name_lc), name_lc, policy);
+  res->set_name_and_policy(_files_cache->get_filename(name_lc), name_lc, policy);
   {
     // make sure there is always only one metric for the name
     boost::lock_guard<spinlock> guard(_metrics_lock);

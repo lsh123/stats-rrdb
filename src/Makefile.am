@@ -23,6 +23,7 @@ EXTRA_DIST = \
 	rrdb/rrdb_file_cache.h \
 	rrdb/rrdb_metric.h \
 	rrdb/rrdb_metric_block.h \
+	rrdb/rrdb_metric_block_cache.h \
 	rrdb/rrdb_metric_tuple.h \
 	rrdb/rrdb_test.h \
 	server/server.h \
@@ -44,6 +45,7 @@ stats_rrdb_SOURCES= \
 	rrdb/rrdb_file_cache.cpp \
 	rrdb/rrdb_metric.cpp \
 	rrdb/rrdb_metric_block.cpp \
+	rrdb/rrdb_metric_block_cache.cpp \
 	rrdb/rrdb_metric_tuple.cpp \
 	rrdb/rrdb_test.cpp \
 	server/server.cpp \

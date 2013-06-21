@@ -7,6 +7,7 @@
 
 #include "rrdb/rrdb_metric_block.h"
 
+#include "types.h"
 #include "log.h"
 #include "exception.h"
 
@@ -165,6 +166,9 @@ void rrdb_metric_block::update(
   default:
     throw exception("Unexpected update ctx state %d", in._state);
   }
+
+  // mark dirty
+  my::bitmask_set<boost::uint16_t>(_header._status, Status_Dirty);
 }
 
 void rrdb_metric_block::select(
@@ -211,11 +215,20 @@ void rrdb_metric_block::write_block(
   boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples(rrdb, rrdb_metric));
   CHECK_AND_THROW(the_tuples.get());
 
-  // write header
-  ofs.write((const char*)&_header, sizeof(_header));
+  try {
+    // not dirty (clear before writing header)
+    my::bitmask_clear<boost::uint16_t>(_header._status, Status_Dirty);
 
-  // write data
-  ofs.write((const char*)the_tuples.get(), _header._data_size);
+    // write header
+    ofs.write((const char*)&_header, sizeof(_header));
+
+    // write data
+    ofs.write((const char*)the_tuples.get(), _header._data_size);
+  } catch(...) {
+      // well, still dirty
+      my::bitmask_set<boost::uint16_t>(_header._status, Status_Dirty);
+      throw;
+  }
 }
 
 void rrdb_metric_block::read_block(

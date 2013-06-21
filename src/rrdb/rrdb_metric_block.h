@@ -95,6 +95,12 @@ public:
   );
   virtual ~rrdb_metric_block();
 
+  // STATUS STUFF
+  inline bool is_dirty() const
+  {
+    return my::bitmask_check<boost::uint16_t>(_header._status, Status_Dirty);
+  }
+
   // DATA STUFF
   inline my::size_t get_offset() const {
     return _header._offset;
