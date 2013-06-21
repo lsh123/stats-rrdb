@@ -36,6 +36,7 @@ rrdb_metric::rrdb_metric(const std::string & filename) :
 
 rrdb_metric::~rrdb_metric()
 {
+  // TODO: drop blocks from cache?
 }
 
 // use copy here to avoid problems with MT
@@ -53,10 +54,10 @@ retention_policy rrdb_metric::get_policy() const
 
   retention_policy res;
   res.reserve(_header._blocks_size);
-  BOOST_FOREACH(const rrdb_metric_block & block, _blocks) {
+  BOOST_FOREACH(const boost::shared_ptr<rrdb_metric_block> & block, _blocks) {
     retention_policy_elem elem;
-    elem._freq     = block.get_freq();
-    elem._duration = block.get_freq() * block.get_count();
+    elem._freq     = block->get_freq();
+    elem._duration = block->get_freq() * block->get_count();
 
     res.push_back(elem);
   }
@@ -82,8 +83,11 @@ void rrdb_metric::set_name_and_policy(const std::string & filename, const std::s
     _blocks.reserve(_header._blocks_size);
     my::size_t offset = sizeof(_header) + _header._name_size;
     BOOST_FOREACH(const retention_policy_elem & elem, policy) {
-      _blocks.push_back(rrdb_metric_block(elem._freq, elem._duration / elem._freq, offset));
-      offset += _blocks.back().get_size();
+      boost::shared_ptr<rrdb_metric_block> block(
+          new rrdb_metric_block(elem._freq, elem._duration / elem._freq, offset)
+      );
+      _blocks.push_back(block);
+      offset += block->get_size();
     }
 
     // set filename
@@ -134,12 +138,12 @@ void rrdb_metric::update(const rrdb * const rrdb, const my::time_t & ts, const m
   one._ts    = ts;
   one._value = value;
   my::size_t ii(1); // start from block 1
-  BOOST_FOREACH(rrdb_metric_block & block, _blocks) {
+  BOOST_FOREACH(boost::shared_ptr<rrdb_metric_block> & block, _blocks) {
       // swap one and two to avoid copying data
       if(ii == 1) {
           LOG(log::LEVEL_DEBUG3, "Updating block with 'one' at ts %lld with ctx state %d", one.get_ts(), one._state);
 
-          block.update(rrdb, this, one, two);
+          block->update(rrdb, this, one, two);
           if(two._state == rrdb_metric_block::UpdateState_Stop) {
               break;
           }
@@ -147,7 +151,7 @@ void rrdb_metric::update(const rrdb * const rrdb, const my::time_t & ts, const m
       } else {
           LOG(log::LEVEL_DEBUG3, "Updating block with 'two' at ts %lld with ctx state %d", two.get_ts(), two._state);
 
-          block.update(rrdb, this, two, one);
+          block->update(rrdb, this, two, one);
           if(one._state == rrdb_metric_block::UpdateState_Stop) {
               break;
           }
@@ -168,8 +172,8 @@ void rrdb_metric::select(const rrdb * const rrdb, const my::time_t & ts1, const 
 
   // note that logic for checking timestamps in rrdb_metric_block::select()
   // is very similar
-  BOOST_FOREACH(const rrdb_metric_block & block, _blocks) {
-    int res = my::interval_overlap(block.get_earliest_ts(), block.get_latest_ts(), ts1, ts2);
+  BOOST_FOREACH(const boost::shared_ptr<rrdb_metric_block> & block, _blocks) {
+    int res = my::interval_overlap(block->get_earliest_ts(), block->get_latest_ts(), ts1, ts2);
     if(res < 0) {
         // [block) < [ts1, ts2): blocks are ordered from newest to oldest, so we
         // are done - all the next blocks will be earlier than this one
@@ -177,7 +181,7 @@ void rrdb_metric::select(const rrdb * const rrdb, const my::time_t & ts1, const 
     }
     if(res ==  0) {
         // res == 0 => block and interval intersect!
-        block.select(rrdb, this, ts1, ts2, walker);
+        block->select(rrdb, this, ts1, ts2, walker);
     }
   }
 
@@ -217,8 +221,10 @@ void rrdb_metric::load_file(const rrdb * const rrdb)
     // read blocks
     this->_blocks.reserve(this->_header._blocks_size);
     for(my::size_t ii = 0; ii < this->_header._blocks_size; ++ii) {
-        this->_blocks.push_back(rrdb_metric_block());
-        this->_blocks.back().read_block(rrdb, this, *ifs);
+        boost::shared_ptr<rrdb_metric_block> block(new rrdb_metric_block());
+        block->read_block(rrdb, this, *ifs);
+
+        this->_blocks.push_back(block);
     }
 
     // done
@@ -252,8 +258,8 @@ void rrdb_metric::save_file(const rrdb * const rrdb)
       this->write_header(*ofs);
 
       // write data
-      BOOST_FOREACH(rrdb_metric_block & block, _blocks) {
-        block.write_block(rrdb, this, *ofs);
+      BOOST_FOREACH(boost::shared_ptr<rrdb_metric_block> & block, _blocks) {
+        block->write_block(rrdb, this, *ofs);
       }
 
       // flush, don't close
@@ -299,10 +305,10 @@ void rrdb_metric::save_dirty_blocks(const rrdb * const rrdb)
       this->write_header(*ofs);
 
       // write data
-      BOOST_FOREACH(rrdb_metric_block & block, _blocks) {
-        if(block.is_dirty()) {
-            ofs->seekg(block.get_offset(), ofs->beg);
-            block.write_block(rrdb, this, *ofs);
+      BOOST_FOREACH(boost::shared_ptr<rrdb_metric_block> & block, _blocks) {
+        if(block->is_dirty()) {
+            ofs->seekg(block->get_offset(), ofs->beg);
+            block->write_block(rrdb, this, *ofs);
         }
       }
 
@@ -331,6 +337,8 @@ void rrdb_metric::delete_file(const rrdb * const rrdb)
 
     // mark as deleted
     my::bitmask_set<boost::uint16_t>(_header._status, Status_Deleted);
+
+    // TODO: drop blocks from cache
 
     // delete
     rrdb->get_files_cache()->delete_file(_filename);

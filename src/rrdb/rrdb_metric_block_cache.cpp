@@ -6,18 +6,23 @@
  */
 #include <boost/foreach.hpp>
 
-#include "rrdb_metric_block_cache.h"
+#include "rrdb/rrdb.h"
+#include "rrdb/rrdb_metric.h"
+#include "rrdb/rrdb_metric_block.h"
+#include "rrdb/rrdb_metric_block_cache.h"
 
 #include "lru_cache.h"
 #include "config.h"
 #include "log.h"
 #include "exception.h"
 
-
-
 class rrdb_metric_block_cache_impl
 {
-  typedef lru_cache<std::string, int, my::size_t> t_lru_cache;
+  typedef lru_cache<
+      boost::shared_ptr<rrdb_metric_block>,
+      rrdb_metric_tuples_t,
+      my::size_t
+  > t_lru_cache;
 
 public:
   rrdb_metric_block_cache_impl(const my::size_t & max_size) :
@@ -58,9 +63,10 @@ public:
     return _cache_misses;
   }
 
-  inline void erase(const std::string & filename)
+  inline void erase(const boost::shared_ptr<rrdb_metric_block> & block)
   {
-    _cache.erase(filename);
+    CHECK_AND_THROW(block);
+    _cache.erase(block);
   }
 
   inline void clear()
@@ -69,15 +75,16 @@ public:
     _cache_hits = _cache_misses = 0;
   }
 
-  int load_block(
-      const std::string & filename,
+  rrdb_metric_tuples_t find_or_load_block(
+      const boost::shared_ptr<rrdb_metric_block> & block,
       const my::time_t & t
   )
   {
-    LOG(log::LEVEL_DEBUG3, "Looking for block '%s'", filename.c_str());
+    CHECK_AND_THROW(block.get());
+    LOG(log::LEVEL_DEBUG3, "Looking for block '%p'", block.get());
 
     // try to find
-    t_lru_cache::t_iterator it = _cache.find(filename);
+    t_lru_cache::t_iterator it = _cache.find(block);
     if(it != _cache.end()) {
         ++_cache_hits;
         return _cache.use(it, t);
@@ -89,14 +96,16 @@ public:
     }
 
     // load new one
-    int block = 1000;
+    rrdb_metric_tuples_t tuples;
+
+    // TODO: load the block data
 
     // put it in the cache
-    _cache.insert(filename, block, t);
+    _cache.insert(block, tuples, t);
     ++_cache_misses;
 
     // done
-    return block;
+    return tuples;
   }
 
 private:
@@ -106,6 +115,8 @@ private:
     t_lru_cache::t_lru_iterator it_end(_cache.lru_end());
     while(it != it_end && _cache.size() >= _max_size) {
         // TODO: check that blocks are not dirty
+        // TODO: make sure there is no race condition
+        // with the update code
         it = _cache.lru_erase(it);
     }
   }
@@ -164,5 +175,3 @@ my::size_t rrdb_metric_block_cache::get_cache_misses() const
   boost::lock_guard<spinlock> guard(_lock);
   return _blocks_cache_impl->get_cache_misses();
 }
-
-

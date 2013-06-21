@@ -38,7 +38,7 @@ rrdb_metric_block::~rrdb_metric_block()
 }
 
 
-boost::shared_array<rrdb_metric_tuple_t> rrdb_metric_block::get_tuples(
+rrdb_metric_tuples_t rrdb_metric_block::get_tuples(
     const rrdb * const rrdb,
     const rrdb_metric * const rrdb_metric
 ) const
@@ -141,7 +141,7 @@ void rrdb_metric_block::update(
     update_ctx_t & out
 )
 {
-  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples(rrdb, rrdb_metric));
+  rrdb_metric_tuples_t the_tuples(this->get_tuples(rrdb, rrdb_metric));
   CHECK_AND_THROW(the_tuples.get());
   CHECK_AND_THROW(this->get_cur_ts() == the_tuples[_header._pos]._ts);
 
@@ -181,7 +181,7 @@ void rrdb_metric_block::select(
 {
   CHECK_AND_THROW(_header._pos < _header._count);
 
-  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples(rrdb, rrdb_metric));
+  rrdb_metric_tuples_t the_tuples(this->get_tuples(rrdb, rrdb_metric));
   CHECK_AND_THROW(the_tuples.get());
 
   // walk through all the tuples until we hit the end or the time stops
@@ -212,7 +212,7 @@ void rrdb_metric_block::write_block(
     std::fstream & ofs
 )
 {
-  boost::shared_array<rrdb_metric_tuple_t> the_tuples(this->get_tuples(rrdb, rrdb_metric));
+  rrdb_metric_tuples_t the_tuples(this->get_tuples(rrdb, rrdb_metric));
   CHECK_AND_THROW(the_tuples.get());
 
   try {
@@ -268,10 +268,10 @@ void rrdb_metric_block::read_block(
   _tuples_data = this->read_block_data(ifs);
 }
 
-boost::shared_array<rrdb_metric_tuple_t> rrdb_metric_block::read_block_data(std::fstream & ifs)
+rrdb_metric_tuples_t rrdb_metric_block::read_block_data(std::fstream & ifs)
 {
   // read data
-  boost::shared_array<rrdb_metric_tuple_t> the_tuples(new rrdb_metric_tuple_t[_header._count]);
+  rrdb_metric_tuples_t the_tuples(new rrdb_metric_tuple_t[_header._count]);
   ifs.read((char*)the_tuples.get(), _header._data_size);
 
   // check data

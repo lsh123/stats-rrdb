@@ -93,9 +93,9 @@ private:
   mutable spinlock               _lock;
   rrdb_metric_header_t           _header;
   boost::shared_array<char>      _name;
-  std::vector<rrdb_metric_block> _blocks;
-
   std::string                    _filename;
+
+  std::vector< boost::shared_ptr<rrdb_metric_block> > _blocks;
 }; // class rrdb_metric
 
 #endif /* RRDB_METRIC_H_ */

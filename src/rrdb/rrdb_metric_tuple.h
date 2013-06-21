@@ -9,6 +9,7 @@
 #define RRDB_METRIC_TUPLE_H_
 
 #include <boost/cstdint.hpp>
+#include <boost/shared_array.hpp>
 
 #include "types.h"
 #include "memory_buffer.h"
@@ -24,6 +25,8 @@ typedef struct rrdb_metric_tuple_t_ {
   my::value_t   _min;               // min(data point value)
   my::value_t   _max;               // max(data point value)
 } rrdb_metric_tuple_t;
+
+typedef boost::shared_array< rrdb_metric_tuple_t > rrdb_metric_tuples_t;
 
 void rrdb_metric_tuple_update(rrdb_metric_tuple_t & tuple, const my::value_t & value);
 void rrdb_metric_tuple_update(rrdb_metric_tuple_t & tuple, const rrdb_metric_tuple_t & other);

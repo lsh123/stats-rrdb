@@ -10,11 +10,14 @@
 
 #include <boost/shared_ptr.hpp>
 
+#include "rrdb/rrdb_metric_tuple.h"
+
 #include "types.h"
 #include "spinlock.h"
 
 class config;
 class rrdb_metric_block_cache_impl;
+
 
 class rrdb_metric_block_cache
 {

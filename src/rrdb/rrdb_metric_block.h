@@ -165,7 +165,7 @@ public:
   );
 
 private:
-  boost::shared_array<rrdb_metric_tuple_t> get_tuples(
+  rrdb_metric_tuples_t get_tuples(
       const rrdb * const rrdb,
       const rrdb_metric * const rrdb_metric
   ) const;
@@ -176,7 +176,7 @@ private:
       update_ctx_t & out
   );
 
-  boost::shared_array<rrdb_metric_tuple_t> read_block_data(std::fstream & ifs);
+  rrdb_metric_tuples_t read_block_data(std::fstream & ifs);
 
   inline my::time_t normalize_ts(const my::time_t & ts) const {
     return ts - (ts % _header._freq);
@@ -191,8 +191,8 @@ private:
   }
 
 private:
-  rrdb_metric_block_header_t               _header;
-  boost::shared_array<rrdb_metric_tuple_t> _tuples_data;
+  rrdb_metric_block_header_t  _header;
+  rrdb_metric_tuples_t        _tuples_data;
 }; // rrdb_metric_block
 
 #endif /* RRDB_METRIC_BLOCK_H_ */
