@@ -118,7 +118,7 @@ private:
 
   boost::shared_ptr<rrdb_file_cache>         _files_cache;
   boost::shared_ptr<rrdb_metric_tuples_cache> _blocks_cache;
-  boost::shared_ptr< boost::thread >         _flush_to_disk_thread; // TODO: make it a pool?
+  boost::shared_ptr< boost::thread >         _flush_to_disk_thread;
 }; // class rrdb
 
 #endif /* RRDB_H_ */

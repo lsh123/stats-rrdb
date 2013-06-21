@@ -19,13 +19,10 @@ using namespace boost::program_options;
 
 config::config()
 {
-  // TODO Auto-generated constructor stub
-
 }
 
 config::~config()
 {
-  // TODO Auto-generated destructor stub
 }
 
 bool config::init(int argc, char ** argv)

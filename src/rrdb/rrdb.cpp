@@ -225,7 +225,8 @@ class statement_execute_visitor : public boost::static_visitor<void>
             } else {
                 // calculate the contribution of the tuple based
                 // simple proportion
-                // TODO: hack for now
+                // TODO: hack for now: implement rrdb_metric_tuple_update_with_factor()
+                //
                 rrdb_metric_tuple_t t;
                 memcpy(&t, &tuple, sizeof(t));
                 rrdb_metric_tuple_normalize(t, overlap / (double)interval);
@@ -669,7 +670,6 @@ void rrdb::select_from_metric(const std::string & name, const my::time_t & ts1, 
 {
   boost::shared_ptr<rrdb_metric> metric = this->find_metric(name);
   if(!metric) {
-      // TODO: create metric automatically when needed
       throw exception("The metric '%s' does not exist", name.c_str());
   }
 

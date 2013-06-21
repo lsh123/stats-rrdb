@@ -131,13 +131,10 @@ private:
 rrdb_metric_tuples_cache::rrdb_metric_tuples_cache():
     _blocks_cache_impl(new rrdb_metric_tuples_cache_impl(1024))
 {
-  // TODO Auto-generated constructor stub
-
 }
 
 rrdb_metric_tuples_cache::~rrdb_metric_tuples_cache()
 {
-  // TODO Auto-generated destructor stub
 }
 
 

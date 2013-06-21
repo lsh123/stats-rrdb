@@ -140,7 +140,6 @@ rrdb_file_cache::rrdb_file_cache():
 
 rrdb_file_cache::~rrdb_file_cache()
 {
-  // TODO Auto-generated destructor stub
 }
 
 void rrdb_file_cache::initialize(boost::shared_ptr<config> config)
