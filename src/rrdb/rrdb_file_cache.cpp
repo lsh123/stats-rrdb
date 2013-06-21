@@ -83,6 +83,8 @@ public:
       std::ios_base::openmode mode
   )
   {
+    // TODO: break this function into two pieces: find and insert
+    // to make sure we don't perform IO operations under the lock
     LOG(log::LEVEL_DEBUG3, "Looking for file '%s'", filename.c_str());
 
     // try to find
@@ -186,7 +188,7 @@ std::string rrdb_file_cache::get_filename(const std::string & metric_name) const
   return buf + metric_name + RRDB_METRIC_EXTENSION;
 }
 
-void rrdb_file_cache::load_metrics(const rrdb * const rrdb, rrdb::t_metrics_map & metrics)
+void rrdb_file_cache::load_metrics(const boost::shared_ptr<rrdb> & rrdb, rrdb::t_metrics_map & metrics)
 {
   // ensure folders exist
   boost::filesystem::create_directories(_path);

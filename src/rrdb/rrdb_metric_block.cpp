@@ -6,6 +6,7 @@
  */
 
 #include "rrdb/rrdb_metric_block.h"
+#include "rrdb/rrdb_metric_tuples_cache.h"
 
 #include "types.h"
 #include "log.h"
@@ -27,9 +28,9 @@ rrdb_metric_block::rrdb_metric_block(
   _header._offset    = offset;
   _header._data_size = _header._count * sizeof(rrdb_metric_tuple_t);
 
-  if(_header._count > 0) {
-      _tuples_data.reset(new rrdb_metric_tuple_t[_header._count]);
-      memset(_tuples_data.get(), 0, _header._data_size);
+  if(_header._count && _header._data_size) {
+      _modified_tuples.reset(new rrdb_metric_tuple_t[_header._count]);
+      memset(_modified_tuples.get(), 0, _header._data_size);
   }
 }
 
@@ -39,14 +40,22 @@ rrdb_metric_block::~rrdb_metric_block()
 
 
 rrdb_metric_tuples_t rrdb_metric_block::get_tuples(
-    const rrdb * const rrdb,
-    const rrdb_metric * const rrdb_metric
-) const
+    const boost::shared_ptr<rrdb> & rrdb,
+    const boost::shared_ptr<rrdb_metric> & rrdb_metric
+)
 {
-  CHECK_AND_THROW(rrdb);
-  CHECK_AND_THROW(rrdb_metric);
+  CHECK_AND_THROW(rrdb.get());
+  CHECK_AND_THROW(rrdb_metric.get());
 
-  return _tuples_data;
+  if(_modified_tuples) {
+    return _modified_tuples;
+  } else {
+    return rrdb->get_tuples_cache()->find_or_load_tuples(
+        rrdb,
+        rrdb_metric,
+        shared_from_this()
+    );
+  }
 }
 
 rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(
@@ -135,8 +144,8 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(
 }
 
 void rrdb_metric_block::update(
-    const rrdb * const rrdb,
-    const rrdb_metric * const rrdb_metric,
+    const boost::shared_ptr<rrdb> & rrdb,
+    const boost::shared_ptr<rrdb_metric> & rrdb_metric,
     const update_ctx_t & in,
     update_ctx_t & out
 )
@@ -167,17 +176,17 @@ void rrdb_metric_block::update(
     throw exception("Unexpected update ctx state %d", in._state);
   }
 
-  // mark dirty
-  my::bitmask_set<boost::uint16_t>(_header._status, Status_Dirty);
+  // remember modified tuples
+  _modified_tuples.swap(the_tuples);
 }
 
 void rrdb_metric_block::select(
-    const rrdb * const rrdb,
-    const rrdb_metric * const rrdb_metric,
+    const boost::shared_ptr<rrdb> & rrdb,
+    const boost::shared_ptr<rrdb_metric> & rrdb_metric,
     const my::time_t & ts1,
     const my::time_t & ts2,
     rrdb::data_walker & walker
-) const
+)
 {
   CHECK_AND_THROW(_header._pos < _header._count);
 
@@ -207,38 +216,34 @@ void rrdb_metric_block::select(
 }
 
 void rrdb_metric_block::write_block(
-    const rrdb * const rrdb,
-    const rrdb_metric * const rrdb_metric,
+    const boost::shared_ptr<rrdb> & rrdb,
+    const boost::shared_ptr<rrdb_metric> & rrdb_metric,
     std::fstream & ofs
 )
 {
-  rrdb_metric_tuples_t the_tuples(this->get_tuples(rrdb, rrdb_metric));
-  CHECK_AND_THROW(the_tuples.get());
+  CHECK_AND_THROW(_modified_tuples.get());
 
-  try {
-    // not dirty (clear before writing header)
-    my::bitmask_clear<boost::uint16_t>(_header._status, Status_Dirty);
+  LOG(log::LEVEL_DEBUG3, "RRDB writing block at offset %ld, size %ld", _header._offset, _header._data_size);
 
-    // write header
-    ofs.write((const char*)&_header, sizeof(_header));
+  // write header
+  ofs.write((const char*)&_header, sizeof(_header));
 
-    // write data
-    ofs.write((const char*)the_tuples.get(), _header._data_size);
-  } catch(...) {
-      // well, still dirty
-      my::bitmask_set<boost::uint16_t>(_header._status, Status_Dirty);
-      throw;
-  }
+  // write data
+  ofs.write((const char*)_modified_tuples.get(), _header._data_size);
+
+  // modified tuples no longer needed
+  _modified_tuples.reset();
 }
 
 void rrdb_metric_block::read_block(
-    const rrdb * const rrdb,
-    const rrdb_metric * const rrdb_metric,
+    const boost::shared_ptr<rrdb> & rrdb,
+    const boost::shared_ptr<rrdb_metric> & rrdb_metric,
     std::fstream & ifs
 )
 {
   // rememeber where are we
-  uint64_t offset = ifs.tellg();
+  my::size_t offset = ifs.tellg();
+  LOG(log::LEVEL_DEBUG3, "RRDB metric block data: reading at pos %lu", offset);
 
   // read header
   ifs.read((char*)&_header, sizeof(_header));
@@ -264,12 +269,15 @@ void rrdb_metric_block::read_block(
       throw exception("Unexpected rrdb metric block data size: %lu (expected %su)", _header._data_size, _header._count * sizeof(rrdb_metric_tuple_t));
   }
 
-  // read data
-  _tuples_data = this->read_block_data(ifs);
+  // skip data block - we load it async
+  LOG(log::LEVEL_DEBUG3, "RRDB metric block data: seek %ld", _header._data_size);
+  ifs.seekg(_header._data_size, ifs.cur);
 }
 
 rrdb_metric_tuples_t rrdb_metric_block::read_block_data(std::fstream & ifs)
 {
+  LOG(log::LEVEL_DEBUG3, "RRDB metric block read data at offset %ld, size %ld", _header._offset, _header._data_size);
+
   // read data
   rrdb_metric_tuples_t the_tuples(new rrdb_metric_tuple_t[_header._count]);
   ifs.read((char*)the_tuples.get(), _header._data_size);

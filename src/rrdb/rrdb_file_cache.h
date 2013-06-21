@@ -43,7 +43,7 @@ public:
   void delete_file(const std::string & filename);
 
   std::string get_filename(const std::string & metric_name) const;
-  void load_metrics(const rrdb * const rrdb, rrdb::t_metrics_map & metrics);
+  void load_metrics(const boost::shared_ptr<rrdb> & rrdb, rrdb::t_metrics_map & metrics);
 
 private:
   std::string get_full_path(const std::string & filename) const;

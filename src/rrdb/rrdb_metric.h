@@ -13,7 +13,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
-#include <boost/cstdint.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric_tuple.h"
@@ -49,7 +49,8 @@ typedef struct rrdb_metric_header_t_ {
 //
 //
 //
-class rrdb_metric
+class rrdb_metric:
+    public boost::enable_shared_from_this<rrdb_metric>
 {
   enum status {
     Status_Dirty        = 0x01,
@@ -71,14 +72,17 @@ public:
     return my::bitmask_check<boost::uint16_t>(_header._status, Status_Dirty);
   }
 
-  void load_file(const rrdb * const rrdb);
-  void save_file(const rrdb * const rrdb);
-  void save_dirty_blocks(const rrdb * const rrdb);
-  void delete_file(const rrdb * const rrdb);
+  void load_file(const boost::shared_ptr<rrdb> & rrdb);
+  void save_file(const boost::shared_ptr<rrdb> & rrdb);
+  void delete_file(const boost::shared_ptr<rrdb> & rrdb);
 
+  rrdb_metric_tuples_t load_single_block(const boost::shared_ptr<rrdb> & rrdb,
+      const boost::shared_ptr<rrdb_metric_block> & rrdb_metric_block);
+  void save_dirty_blocks(const boost::shared_ptr<rrdb> & rrdb);
 
-  void update(const rrdb * const rrdb, const my::time_t & ts, const my::value_t & value);
-  void select(const rrdb * const rrdb, const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker) const;
+  void update(const boost::shared_ptr<rrdb> & rrdb, const my::time_t & ts, const my::value_t & value);
+  void select(const boost::shared_ptr<rrdb> & rrdb, const my::time_t & ts1, const my::time_t & ts2,
+      rrdb::data_walker & walker);
 
   void get_last_value(my::value_t & value, my::time_t & value_ts) const;
 

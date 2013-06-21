@@ -378,7 +378,7 @@ void rrdb::initialize(boost::shared_ptr<config> config)
   // load metrics from disk - we do it under lock though it doesn't matter
   {
     boost::lock_guard<spinlock> guard(_metrics_lock);
-    _files_cache->load_metrics(this, _metrics);
+    _files_cache->load_metrics(shared_from_this(), _metrics);
   }
 
   LOG(log::LEVEL_INFO, "Loaded RRDB data files");
@@ -482,7 +482,7 @@ void rrdb::flush_to_disk()
   BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, dirty_metrics) {
     try {
         // we expect metric file already exists
-        metric->save_dirty_blocks(this);
+        metric->save_dirty_blocks(shared_from_this());
     } catch(std::exception & e) {
       LOG(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
     } catch(...) {
@@ -558,7 +558,7 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
   }
 
   // write to disk
-  res->save_file(this);
+  res->save_file(shared_from_this());
 
   // log
   LOG(log::LEVEL_INFO, "RRDB: created metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
@@ -582,7 +582,7 @@ void rrdb::drop_metric(const std::string & name)
   }
 
   // delete file - outside the spin lock
-  res->delete_file(this);
+  res->delete_file(shared_from_this());
 
   // lock access to _metrics
   {
@@ -663,7 +663,7 @@ void rrdb::update_metric(const std::string & name, const my::time_t & ts, const 
       metric = this->create_metric(name, _default_policy, false);
   }
 
-  metric->update(this, ts, value);
+  metric->update(shared_from_this(), ts, value);
 }
 
 void rrdb::select_from_metric(const std::string & name, const my::time_t & ts1, const my::time_t & ts2, data_walker & walker)
@@ -673,7 +673,7 @@ void rrdb::select_from_metric(const std::string & name, const my::time_t & ts1, 
       throw exception("The metric '%s' does not exist", name.c_str());
   }
 
-  metric->select(this, ts1, ts2, walker);
+  metric->select(shared_from_this(), ts1, ts2, walker);
 }
 
 void rrdb::execute_tcp_command(const std::string & buffer, memory_buffer_t & res)

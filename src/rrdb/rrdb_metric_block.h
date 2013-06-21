@@ -14,6 +14,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
+#include <boost/enable_shared_from_this.hpp>
 #include <boost/cstdint.hpp>
 
 #include "rrdb/rrdb.h"
@@ -54,11 +55,9 @@ typedef struct rrdb_metric_block_header_t_ {
 //
 // Metrics block of data for a single policy
 //
-class rrdb_metric_block
+class rrdb_metric_block:
+    public boost::enable_shared_from_this<rrdb_metric_block>
 {
-  enum status {
-    Status_Dirty        = 0x01
-  };
 
 public:
   enum update_state {
@@ -98,12 +97,15 @@ public:
   // STATUS STUFF
   inline bool is_dirty() const
   {
-    return my::bitmask_check<boost::uint16_t>(_header._status, Status_Dirty);
+    return _modified_tuples;
   }
 
   // DATA STUFF
   inline my::size_t get_offset() const {
     return _header._offset;
+  }
+  inline my::size_t get_offset_to_data() const {
+    return _header._offset + sizeof(_header);
   }
   inline my::size_t get_data_size() const {
     return _header._data_size;
@@ -139,36 +141,38 @@ public:
 
   // SELECT or UPDATE - main operations
   void select(
-      const rrdb * const rrdb,
-      const rrdb_metric * const rrdb_metric,
+      const boost::shared_ptr<rrdb> & rrdb,
+      const boost::shared_ptr<rrdb_metric> & rrdb_metric,
       const my::time_t & ts1,
       const my::time_t & ts2,
       rrdb::data_walker & walker
-  ) const;
+  );
   void update(
-      const rrdb * const rrdb,
-      const rrdb_metric * const rrdb_metric,
+      const boost::shared_ptr<rrdb> & rrdb,
+      const boost::shared_ptr<rrdb_metric> & rrdb_metric,
       const update_ctx_t & in,
       update_ctx_t & out
   );
 
   // READ/WRITE FILES
   void write_block(
-      const rrdb * const rrdb,
-      const rrdb_metric * const rrdb_metric,
+      const boost::shared_ptr<rrdb> & rrdb,
+      const boost::shared_ptr<rrdb_metric> & rrdb_metric,
       std::fstream & ofs
   );
   void read_block(
-      const rrdb * const rrdb,
-      const rrdb_metric * const rrdb_metric,
+      const boost::shared_ptr<rrdb> & rrdb,
+      const boost::shared_ptr<rrdb_metric> & rrdb_metric,
       std::fstream & ifs
   );
 
+  rrdb_metric_tuples_t read_block_data(std::fstream & ifs);
+
 private:
   rrdb_metric_tuples_t get_tuples(
-      const rrdb * const rrdb,
-      const rrdb_metric * const rrdb_metric
-  ) const;
+      const boost::shared_ptr<rrdb> & rrdb,
+      const boost::shared_ptr<rrdb_metric> & rrdb_metric
+  );
 
   rrdb_metric_tuple_t * find_tuple(
       rrdb_metric_tuple_t * the_tuples,
@@ -176,7 +180,6 @@ private:
       update_ctx_t & out
   );
 
-  rrdb_metric_tuples_t read_block_data(std::fstream & ifs);
 
   inline my::time_t normalize_ts(const my::time_t & ts) const {
     return ts - (ts % _header._freq);
@@ -192,7 +195,7 @@ private:
 
 private:
   rrdb_metric_block_header_t  _header;
-  rrdb_metric_tuples_t        _tuples_data;
+  rrdb_metric_tuples_t        _modified_tuples;
 }; // rrdb_metric_block
 
 #endif /* RRDB_METRIC_BLOCK_H_ */

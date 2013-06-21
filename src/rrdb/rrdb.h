@@ -94,7 +94,7 @@ public:
   {
     return _files_cache;
   }
-  const boost::shared_ptr<rrdb_metric_tuples_cache> & get_blocks_cache() const
+  const boost::shared_ptr<rrdb_metric_tuples_cache> & get_tuples_cache() const
   {
     return _blocks_cache;
   }

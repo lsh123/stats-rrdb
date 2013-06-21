@@ -102,7 +102,7 @@ void rrdb_metric::get_last_value(my::value_t & value, my::time_t & value_ts) con
   value_ts = _header._last_value_ts;
 }
 
-void rrdb_metric::update(const rrdb * const rrdb, const my::time_t & ts, const my::value_t & value)
+void rrdb_metric::update(const boost::shared_ptr<rrdb> & rrdb, const my::time_t & ts, const my::value_t & value)
 {
   CHECK_AND_THROW(rrdb);
 
@@ -143,7 +143,7 @@ void rrdb_metric::update(const rrdb * const rrdb, const my::time_t & ts, const m
       if(ii == 1) {
           LOG(log::LEVEL_DEBUG3, "Updating block with 'one' at ts %lld with ctx state %d", one.get_ts(), one._state);
 
-          block->update(rrdb, this, one, two);
+          block->update(rrdb, shared_from_this(), one, two);
           if(two._state == rrdb_metric_block::UpdateState_Stop) {
               break;
           }
@@ -151,7 +151,7 @@ void rrdb_metric::update(const rrdb * const rrdb, const my::time_t & ts, const m
       } else {
           LOG(log::LEVEL_DEBUG3, "Updating block with 'two' at ts %lld with ctx state %d", two.get_ts(), two._state);
 
-          block->update(rrdb, this, two, one);
+          block->update(rrdb, shared_from_this(), two, one);
           if(one._state == rrdb_metric_block::UpdateState_Stop) {
               break;
           }
@@ -161,7 +161,7 @@ void rrdb_metric::update(const rrdb * const rrdb, const my::time_t & ts, const m
   }
 }
 
-void rrdb_metric::select(const rrdb * const rrdb, const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker) const
+void rrdb_metric::select(const boost::shared_ptr<rrdb> & rrdb, const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker)
 {
   CHECK_AND_THROW(rrdb);
 
@@ -181,7 +181,7 @@ void rrdb_metric::select(const rrdb * const rrdb, const my::time_t & ts1, const 
     }
     if(res ==  0) {
         // res == 0 => block and interval intersect!
-        block->select(rrdb, this, ts1, ts2, walker);
+        block->select(rrdb, shared_from_this(), ts1, ts2, walker);
     }
   }
 
@@ -202,7 +202,7 @@ std::string rrdb_metric::get_filename() const
   return _filename;
 }
 
-void rrdb_metric::load_file(const rrdb * const rrdb)
+void rrdb_metric::load_file(const boost::shared_ptr<rrdb> & rrdb)
 {
   CHECK_AND_THROW(rrdb);
 
@@ -222,7 +222,7 @@ void rrdb_metric::load_file(const rrdb * const rrdb)
     this->_blocks.reserve(this->_header._blocks_size);
     for(my::size_t ii = 0; ii < this->_header._blocks_size; ++ii) {
         boost::shared_ptr<rrdb_metric_block> block(new rrdb_metric_block());
-        block->read_block(rrdb, this, *ifs);
+        block->read_block(rrdb, shared_from_this(), *ifs);
 
         this->_blocks.push_back(block);
     }
@@ -232,7 +232,28 @@ void rrdb_metric::load_file(const rrdb * const rrdb)
   }
 }
 
-void rrdb_metric::save_file(const rrdb * const rrdb)
+rrdb_metric_tuples_t rrdb_metric::load_single_block(const boost::shared_ptr<rrdb> & rrdb,
+    const boost::shared_ptr<rrdb_metric_block> & rrdb_metric_block)
+{
+  // should be locked - this method is never called directly
+  // but only from some other higher level call
+  CHECK_AND_THROW(_lock.is_locked());
+
+  CHECK_AND_THROW(rrdb);
+  CHECK_AND_THROW(rrdb_metric_block);
+
+  LOG(log::LEVEL_DEBUG, "RRDB loading tuples from file '%s'", _filename.c_str());
+
+  // open file
+  boost::shared_ptr<std::fstream> ifs(rrdb->get_files_cache()->open_file(_filename, true));
+  ifs->seekg(rrdb_metric_block->get_offset_to_data(), ifs->beg);
+
+  // load data
+  return rrdb_metric_block->read_block_data(*ifs);
+}
+
+
+void rrdb_metric::save_file(const boost::shared_ptr<rrdb> & rrdb)
 {
   CHECK_AND_THROW(rrdb);
 
@@ -259,7 +280,7 @@ void rrdb_metric::save_file(const rrdb * const rrdb)
 
       // write data
       BOOST_FOREACH(boost::shared_ptr<rrdb_metric_block> & block, _blocks) {
-        block->write_block(rrdb, this, *ofs);
+        block->write_block(rrdb, shared_from_this(), *ofs);
       }
 
       // flush, don't close
@@ -277,7 +298,7 @@ void rrdb_metric::save_file(const rrdb * const rrdb)
 }
 
 
-void rrdb_metric::save_dirty_blocks(const rrdb * const rrdb)
+void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb> & rrdb)
 {
   CHECK_AND_THROW(rrdb);
 
@@ -308,7 +329,7 @@ void rrdb_metric::save_dirty_blocks(const rrdb * const rrdb)
       BOOST_FOREACH(boost::shared_ptr<rrdb_metric_block> & block, _blocks) {
         if(block->is_dirty()) {
             ofs->seekg(block->get_offset(), ofs->beg);
-            block->write_block(rrdb, this, *ofs);
+            block->write_block(rrdb, shared_from_this(), *ofs);
         }
       }
 
@@ -326,7 +347,7 @@ void rrdb_metric::save_dirty_blocks(const rrdb * const rrdb)
   }
 }
 
-void rrdb_metric::delete_file(const rrdb * const rrdb)
+void rrdb_metric::delete_file(const boost::shared_ptr<rrdb> & rrdb)
 {
   CHECK_AND_THROW(rrdb);
 
@@ -380,5 +401,5 @@ void rrdb_metric::read_header(std::fstream & ifs)
   _name.reset(new char[_header._name_size]);
   ifs.read((char*)_name.get(), _header._name_size);
 
-  LOG(log::LEVEL_DEBUG, "RRDB metric: read '%s'", _name.get());
+  LOG(log::LEVEL_DEBUG, "RRDB metric: read header '%s'", _name.get());
 }
