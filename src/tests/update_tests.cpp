@@ -42,7 +42,7 @@ public:
       t_memory_buffer_data output_buffer;
       t_memory_buffer res(output_buffer);
 
-      _rrdb->execute_udp_command(_cmd, res);
+      _rrdb->execute_update_statement(_cmd, res);
       res.flush();
   }
 

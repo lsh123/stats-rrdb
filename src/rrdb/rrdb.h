@@ -86,8 +86,8 @@ public:
   void select_from_metric(const std::string & name, const my::time_t & ts1, const my::time_t & ts2, data_walker & walker);
 
   // commands
-  void execute_tcp_command(const std::string & buffer, t_memory_buffer & res);
-  void execute_udp_command(const std::string & buffer, t_memory_buffer & res);
+  void execute_query_statement(const std::string & buffer, t_memory_buffer & res);
+  void execute_update_statement(const std::string & buffer, t_memory_buffer & res);
 
   // helpers
   const boost::shared_ptr<rrdb_file_cache> & get_files_cache() const

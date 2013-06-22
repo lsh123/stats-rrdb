@@ -675,7 +675,7 @@ void rrdb::select_from_metric(const std::string & name, const my::time_t & ts1, 
   metric->select(shared_from_this(), ts1, ts2, walker);
 }
 
-void rrdb::execute_tcp_command(const std::string & buffer, t_memory_buffer & res)
+void rrdb::execute_query_statement(const std::string & buffer, t_memory_buffer & res)
 {
   LOG(log::LEVEL_DEBUG3, "TCP command: '%s'", buffer.c_str());
 
@@ -683,7 +683,7 @@ void rrdb::execute_tcp_command(const std::string & buffer, t_memory_buffer & res
   boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
 }
 
-void rrdb::execute_udp_command(const std::string & buffer, t_memory_buffer & res)
+void rrdb::execute_update_statement(const std::string & buffer, t_memory_buffer & res)
 {
   LOG(log::LEVEL_DEBUG3, "UDP command: %s", buffer.c_str());
 

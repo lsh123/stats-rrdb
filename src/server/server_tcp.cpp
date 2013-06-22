@@ -56,7 +56,7 @@ public:
     // execute command
     t_memory_buffer res(_output_buffer);
     try {
-        _rrdb->execute_tcp_command(_input_buffer, res);
+        _rrdb->execute_query_statement(_input_buffer, res);
     } catch(std::exception & e) {
         LOG(log::LEVEL_ERROR, "Exception executing long rrdb command: %s", e.what());
 

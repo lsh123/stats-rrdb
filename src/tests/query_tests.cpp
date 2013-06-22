@@ -97,7 +97,7 @@ void query_tests::test_select_all(const int & n)
 
   t_memory_buffer_data res_data;
   t_memory_buffer res(res_data);
-  _rrdb->execute_tcp_command(buf, res);
+  _rrdb->execute_query_statement(buf, res);
 
   t_test_csv_data parsed_data;
   test_parse_csv_data(res_data, parsed_data);
@@ -131,7 +131,7 @@ void query_tests::test_select_5_sec(const int & n)
 
   t_memory_buffer_data res_data;
   t_memory_buffer res(res_data);
-  _rrdb->execute_tcp_command(buf, res);
+  _rrdb->execute_query_statement(buf, res);
 
   t_test_csv_data parsed_data;
   test_parse_csv_data(res_data, parsed_data);
@@ -165,7 +165,7 @@ void query_tests::test_select_all_group_by_30_sec(const int & n)
 
   t_memory_buffer_data res_data;
   t_memory_buffer res(res_data);
-  _rrdb->execute_tcp_command(buf, res);
+  _rrdb->execute_query_statement(buf, res);
 
   t_test_csv_data parsed_data;
   test_parse_csv_data(res_data, parsed_data);
@@ -199,7 +199,7 @@ void query_tests::test_select_all_group_by_1_year(const int & n)
 
   t_memory_buffer_data res_data;
   t_memory_buffer res(res_data);
-  _rrdb->execute_tcp_command(buf, res);
+  _rrdb->execute_query_statement(buf, res);
 
   t_test_csv_data parsed_data;
   test_parse_csv_data(res_data, parsed_data);
