@@ -52,32 +52,44 @@ rrdb_metric_tuples_t rrdb_metric_tuples_cache::find_or_load_tuples(
     const boost::shared_ptr<rrdb_metric_block> & rrdb_metric_block
 )
 {
+  // we break this function into three pieces: find (under lock),
+  // load data (no lock) and insert (under lock) to make sure we
+  // don't perform IO operations under the lock
   my::time_t t = time(NULL);
-
-  boost::lock_guard<spinlock> guard(_lock);
-
-  // TODO: break this function into two pieces: find and insert
-  // to make sure we don't perform IO operations under the lock
   LOG(log::LEVEL_DEBUG3, "Looking for block '%p'", rrdb_metric_block.get());
 
-  // try to find
-  rrdb_metric_tuples_cache_impl::t_iterator it = _blocks_cache_impl->find(rrdb_metric_block);
-  if(it != _blocks_cache_impl->end()) {
-      ++_cache_hits;
-      return _blocks_cache_impl->use(it, t);
+  //
+  // Try to find  - under lock
+  //
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+    rrdb_metric_tuples_cache_impl::t_iterator it = _blocks_cache_impl->find(rrdb_metric_block);
+    if(it != _blocks_cache_impl->end()) {
+        ++_cache_hits;
+        return _blocks_cache_impl->use(it, t);
+    }
   }
 
-  // purge cache if needed
-  if(_blocks_cache_impl->size() >= _max_size) {
-      this->purge();
+  //
+  // Load data from disk - OUTSIDE of the lock!
+  //
+  rrdb_metric_tuples_t tuples = rrdb_metric->load_single_block(rrdb->get_files_cache(), rrdb_metric_block);
+
+  //
+  // Insert back into cache - under lock
+  //
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+
+    // purge cache if needed
+    if(_blocks_cache_impl->size() >= _max_size) {
+        this->purge();
+    }
+
+    // and put it in the cache
+    _blocks_cache_impl->insert(rrdb_metric_block, tuples, t);
+    ++_cache_misses;
   }
-
-  // load block
-  rrdb_metric_tuples_t tuples = rrdb_metric->load_single_block(rrdb, rrdb_metric_block);
-
-  // and put it in the cache
-  _blocks_cache_impl->insert(rrdb_metric_block, tuples, t);
-  ++_cache_misses;
 
   // done
   return tuples;
@@ -109,7 +121,8 @@ void rrdb_metric_tuples_cache::clear_cache()
 
 void rrdb_metric_tuples_cache::erase(const boost::shared_ptr<rrdb_metric_block> & rrdb_metric_block)
 {
-
+  boost::lock_guard<spinlock> guard(_lock);
+  _blocks_cache_impl->erase(rrdb_metric_block);
 }
 
 my::size_t rrdb_metric_tuples_cache::get_max_size() const

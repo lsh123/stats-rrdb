@@ -28,7 +28,7 @@
 
 // forward
 class rrdb_metric;
-class rrdb_file_cache;
+class rrdb_files_cache;
 class rrdb_metric_tuples_cache;
 
 class config;
@@ -90,7 +90,7 @@ public:
   void execute_update_statement(const std::string & buffer, t_memory_buffer & res);
 
   // helpers
-  const boost::shared_ptr<rrdb_file_cache> & get_files_cache() const
+  const boost::shared_ptr<rrdb_files_cache> & get_files_cache() const
   {
     return _files_cache;
   }
@@ -114,7 +114,7 @@ private:
   t_metrics_map           _metrics;
   spinlock                _metrics_lock;
 
-  boost::shared_ptr<rrdb_file_cache>         _files_cache;
+  boost::shared_ptr<rrdb_files_cache>         _files_cache;
   boost::shared_ptr<rrdb_metric_tuples_cache> _blocks_cache;
   boost::shared_ptr< boost::thread >         _flush_to_disk_thread;
 }; // class rrdb

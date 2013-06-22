@@ -14,7 +14,7 @@
 
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric.h"
-#include "rrdb/rrdb_file_cache.h"
+#include "rrdb/rrdb_files_cache.h"
 #include "rrdb/rrdb_metric_tuples_cache.h"
 
 #include "parser/interval.h"
@@ -350,7 +350,7 @@ private:
 rrdb::rrdb() :
   _flush_interval(interval_parse("1 min")),
   _default_policy(retention_policy_parse("1 min FOR 1 day")),
-  _files_cache(new rrdb_file_cache()),
+  _files_cache(new rrdb_files_cache()),
   _blocks_cache(new rrdb_metric_tuples_cache())
 {
 }
@@ -540,7 +540,7 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
 
   // create new and try to insert into map, lock access to _metrics
   boost::shared_ptr<rrdb_metric> res(new rrdb_metric());
-  res->set_name_and_policy(_files_cache->get_filename(name_lc), name_lc, policy);
+  res->create(_files_cache->get_filename(name_lc), name_lc, policy);
   {
     // make sure there is always only one metric for the name
     boost::lock_guard<spinlock> guard(_metrics_lock);

@@ -27,6 +27,7 @@
 class rrdb;
 class rrdb_metric_block;
 class statement_select;
+class rrdb_files_cache;
 
 //
 // RRDB Metric file header format:
@@ -64,7 +65,7 @@ public:
 
   std::string get_name() const ;
   t_retention_policy get_policy() const;
-  void set_name_and_policy(const std::string & filename, const std::string & name, const t_retention_policy & policy);
+  void create(const std::string & filename, const std::string & name, const t_retention_policy & policy);
 
   inline bool is_dirty() const
   {
@@ -76,8 +77,10 @@ public:
   void save_file(const boost::shared_ptr<rrdb> & rrdb);
   void delete_file(const boost::shared_ptr<rrdb> & rrdb);
 
-  rrdb_metric_tuples_t load_single_block(const boost::shared_ptr<rrdb> & rrdb,
-      const boost::shared_ptr<rrdb_metric_block> & rrdb_metric_block);
+  rrdb_metric_tuples_t load_single_block(
+      const boost::shared_ptr<rrdb_files_cache> & files_cache,
+      const boost::shared_ptr<rrdb_metric_block> & rrdb_metric_block
+  );
   void save_dirty_blocks(const boost::shared_ptr<rrdb> & rrdb);
 
   void update(const boost::shared_ptr<rrdb> & rrdb, const my::time_t & ts, const my::value_t & value);

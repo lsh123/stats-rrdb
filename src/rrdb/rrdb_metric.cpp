@@ -13,7 +13,7 @@
 #include "parser/statements.h"
 
 #include "rrdb/rrdb.h"
-#include "rrdb/rrdb_file_cache.h"
+#include "rrdb/rrdb_files_cache.h"
 #include "rrdb/rrdb_metric.h"
 #include "rrdb/rrdb_metric_block.h"
 
@@ -65,7 +65,7 @@ t_retention_policy rrdb_metric::get_policy() const
 }
 
 
-void rrdb_metric::set_name_and_policy(const std::string & filename, const std::string & name, const t_retention_policy & policy)
+void rrdb_metric::create(const std::string & filename, const std::string & name, const t_retention_policy & policy)
 {
   {
     boost::lock_guard<spinlock> guard(_lock);
@@ -232,20 +232,21 @@ void rrdb_metric::load_file(const boost::shared_ptr<rrdb> & rrdb)
   }
 }
 
-rrdb_metric_tuples_t rrdb_metric::load_single_block(const boost::shared_ptr<rrdb> & rrdb,
-    const boost::shared_ptr<rrdb_metric_block> & rrdb_metric_block)
-{
+rrdb_metric_tuples_t rrdb_metric::load_single_block(
+    const boost::shared_ptr<rrdb_files_cache> & files_cache,
+    const boost::shared_ptr<rrdb_metric_block> & rrdb_metric_block
+) {
   // should be locked - this method is never called directly
   // but only from some other higher level call
   CHECK_AND_THROW(_lock.is_locked());
 
-  CHECK_AND_THROW(rrdb);
+  CHECK_AND_THROW(files_cache);
   CHECK_AND_THROW(rrdb_metric_block);
 
   LOG(log::LEVEL_DEBUG, "RRDB loading tuples from file '%s'", _filename.c_str());
 
   // open file
-  boost::shared_ptr<std::fstream> ifs(rrdb->get_files_cache()->open_file(_filename, true));
+  boost::shared_ptr<std::fstream> ifs(files_cache->open_file(_filename));
   ifs->seekg(rrdb_metric_block->get_offset_to_data(), ifs->beg);
 
   // load data
@@ -268,32 +269,38 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb> & rrdb)
     }
 
     // open file
-    boost::shared_ptr<std::fstream> ofs(rrdb->get_files_cache()->open_file(_filename, true));
-    ofs->seekg(0, ofs->beg);
+    boost::shared_ptr<std::fstream> fs(rrdb->get_files_cache()->open_file(_filename, true));
+    fs->seekg(0, fs->beg);
 
     try {
       // not dirty (clear before writing header)
       my::bitmask_clear<boost::uint16_t>(_header._status, Status_Dirty);
 
       // write header
-      this->write_header(*ofs);
+      this->write_header(*fs);
 
       // write data
       BOOST_FOREACH(boost::shared_ptr<rrdb_metric_block> & block, _blocks) {
-        block->write_block(rrdb, shared_from_this(), *ofs);
+        block->write_block(rrdb, shared_from_this(), *fs);
       }
 
       // flush, don't close
-      ofs->flush();
-      ofs->sync();
+      fs->flush();
+      fs->sync();
     } catch(...) {
         // well, still dirty
         my::bitmask_set<boost::uint16_t>(_header._status, Status_Dirty);
         throw;
     }
 
+    // TODO: remove
+    fs->seekg( 0, fs->end );
+    my::size_t sz = fs->tellg();
+    fs->seekg( 0, fs->beg );
+    sz -= fs->tellg();
+
     // done
-    LOG(log::LEVEL_DEBUG2, "RRDB metric saved file '%s'", _filename.c_str());
+    LOG(log::LEVEL_DEBUG2, "RRDB metric saved file '%s', size %lu", _filename.c_str(), sz);
   }
 }
 
