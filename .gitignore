@@ -11,3 +11,47 @@
 *.lai
 *.la
 *.a
+
+# generated Makefiles
+Makefile
+Makefile.in
+*/Makefile
+*/Makefile.in
+
+# generated config files
+config.guess
+config.log
+config.status
+config.sub
+configure
+
+# generated autoconf/automake files
+aclocal.m4
+autom4te.cache/*
+depcomp
+install-sh
+libtool
+ltmain.sh
+m4/libtool.m4
+m4/ltoptions.m4
+m4/ltsugar.m4
+m4/ltversion.m4
+m4/lt~obsolete.m4
+first
+missing
+
+
+# generated project files
+deploy/stats-rrdb.conf
+deploy/init.d/stats-rrdb
+deploy/logrotate.d/stats-rrdb
+stats-rrdb.spec
+
+# build files
+src/.deps/
+src/.libs/
+src/stats-rrdb
+src/stats-rrdb-tests
+*.tar.gz
+
+
