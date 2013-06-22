@@ -25,7 +25,11 @@
     bool test_ok = true;
 
 #define TEST_SUBTEST_END() \
-     std::cout << ((test_ok) ? "OK" : "ERROR!!!") << std::endl;
+     std::cout << ((test_ok) ? "OK" : "ERROR") << std::endl;
+
+#define TEST_SUBTEST_END2( msg ) \
+     std::cout << ((test_ok) ? "OK" : "ERROR") << " - " << msg << std::endl;
+
 
 #define TEST_DATA( name, data ) \
     if(!test_ok) { \

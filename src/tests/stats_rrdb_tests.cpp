@@ -28,6 +28,7 @@
 
 #include "tests/lru_tests.h"
 #include "tests/query_tests.h"
+#include "tests/update_tests.h"
 
 
 boost::shared_ptr<config> test_setup_config(const std::string & path, const t_test_config_data & data)
@@ -95,6 +96,14 @@ int main(int argc, char ** argv)
     TEST_START("query_tests");
     query_tests::run(path);
     TEST_END("query_tests");
+
+    //
+    // update_tests
+    //
+    TEST_START("update_tests");
+    update_tests::run(path);
+    TEST_END("update_tests");
+
 
   } catch (const std::exception & e) {
     LOG(log::LEVEL_CRITICAL,  "EXCEPTION: %s", e.what());

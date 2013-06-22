@@ -20,34 +20,6 @@
 
 #include "tests/stats_rrdb_tests.h"
 
-class rrdb_test_perf_task :
-    public thread_pool_task
-{
-public:
-  rrdb_test_perf_task(boost::shared_ptr<rrdb> rrdb, const std::string & cmd) :
-    _rrdb(rrdb),
-    _cmd(cmd)
-  {
-  }
-  virtual ~rrdb_test_perf_task()
-  {
-  }
-
-public:
-  // thread_pool_task
-  void run()
-  {
-      t_memory_buffer_data output_buffer;
-      t_memory_buffer res(output_buffer);
-
-      _rrdb->execute_udp_command(_cmd, res);
-      res.flush();
-  }
-
-private:
-  boost::shared_ptr<rrdb> _rrdb;
-  std::string             _cmd;
-}; // rrdb_test_perf_task
 
 
 
@@ -173,32 +145,7 @@ void rrdb_test::run_perf_test(const rrdb_test::params_t & params)
     << tasks_num << " tasks, "
     << metrics_num << " metrics"
     << std::endl;
-  boost::shared_ptr<thread_pool> threads(new thread_pool(threads_num));
-  time_t ts1(time(NULL));
-  char buf[1024];
-  for(my::size_t ii = 0; ii < tasks_num; ii++) {
-      snprintf(buf, sizeof(buf),  "u|%s|1|%lu",
-          rrdb_test::get_test_metric_name(rand() % metrics_num).c_str(),
-          ts1 + ii
-      );
 
-      boost::shared_ptr<rrdb_test_perf_task> task(new rrdb_test_perf_task(_rrdb, buf));
-      threads->run(task);
-
-      // wait if load factor is bigger than 2.0
-      while(threads->get_load_factor() > 2.0) {
-          LOG(log::LEVEL_DEBUG, "Load factor > 2.0, sleeping\n");
-          boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-      }
-  }
-
-  // wait until done
-  while(threads->get_load_factor() > 0) {
-      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-  }
-
-  // done - print results
-  time_t ts2(time(NULL));
 
   std::cout << "Finished performance test with "
         << tasks_num << " tasks, "

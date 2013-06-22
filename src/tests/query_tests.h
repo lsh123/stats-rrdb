@@ -12,6 +12,8 @@
 
 #include <boost/shared_ptr.hpp>
 
+#include "common/types.h"
+
 class rrdb;
 
 class query_tests

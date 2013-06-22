@@ -231,10 +231,12 @@ void query_tests::test_template(const int & n)
 
 void query_tests::run(const std::string & path)
 {
+  // setup
   query_tests test;
   test.initialize(path);
   test.cleanup();
 
+  // tests
   test.test_create(0);
   test.test_select_all(1);
   test.test_select_5_sec(2);
@@ -243,6 +245,5 @@ void query_tests::run(const std::string & path)
 
   // cleanup
   test.cleanup();
-
 }
 
