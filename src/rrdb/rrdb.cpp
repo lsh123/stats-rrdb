@@ -22,9 +22,9 @@
 
 #include "server/server.h"
 
-#include "config.h"
-#include "log.h"
-#include "exception.h"
+#include "common/config.h"
+#include "common/log.h"
+#include "common/exception.h"
 
 
 //
@@ -39,7 +39,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
        public rrdb::metrics_walker
    {
    public:
-     metrics_walker_show_metrics(memory_buffer_t & res) :
+     metrics_walker_show_metrics(t_memory_buffer & res) :
        _res(res)
      {
      }
@@ -55,7 +55,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
        _res << name  << std::endl;
      }
    private:
-     mutable memory_buffer_t &  _res;
+     mutable t_memory_buffer &  _res;
    }; // class metrics_walker_show_metrics
 
   //
@@ -65,7 +65,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
        public rrdb::metrics_walker
   {
    public:
-    metrics_walker_show_status(memory_buffer_t & res) :
+    metrics_walker_show_status(t_memory_buffer & res) :
        _res(res),
        _value(0),
        _value_ts(0)
@@ -92,7 +92,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
        ;
      }
    private:
-     mutable memory_buffer_t &  _res;
+     mutable t_memory_buffer &  _res;
      my::value_t                _value;
      my::time_t                 _value_ts;
    }; // class metrics_walker_show_status
@@ -104,7 +104,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
       public rrdb::data_walker
   {
   public:
-    data_walker_select_no_group_by(const statement_select & select, memory_buffer_t & res) :
+    data_walker_select_no_group_by(const statement_select & select, t_memory_buffer & res) :
       _select(select),
       _res(res),
       _last_ts(select._ts_end + 1)
@@ -119,7 +119,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
 
   public:
     // rrdb::data_walker
-    void append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval)
+    void append(const t_rrdb_metric_tuple & tuple, const my::interval_t & interval)
     {
       // we are guaranteed that tuple is in the select's [ts1, ts2) interval
       // but do we want this tuple? we might have lower resolution data in subsequent
@@ -137,7 +137,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
 
   private:
     const statement_select  & _select;
-    mutable memory_buffer_t & _res;
+    mutable t_memory_buffer & _res;
     my::time_t                _last_ts;
   }; // class data_walker_select_no_group_by
 
@@ -148,7 +148,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
         public rrdb::data_walker
     {
     public:
-      data_walker_select(const statement_select & select, memory_buffer_t & res) :
+      data_walker_select(const statement_select & select, t_memory_buffer & res) :
         _select(select),
         _res(res),
         _group_by(*select._group_by),
@@ -178,7 +178,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
 
     public:
       // rrdb::data_walker
-      void append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval)
+      void append(const t_rrdb_metric_tuple & tuple, const my::interval_t & interval)
       {
         /*
         std::cout
@@ -227,7 +227,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
                 // simple proportion
                 // TODO: hack for now: implement rrdb_metric_tuple_update_with_factor()
                 //
-                rrdb_metric_tuple_t t;
+                t_rrdb_metric_tuple t;
                 memcpy(&t, &tuple, sizeof(t));
                 rrdb_metric_tuple_normalize(t, overlap / (double)interval);
                 rrdb_metric_tuple_update(_cur_tuple, t);
@@ -267,10 +267,10 @@ class statement_execute_visitor : public boost::static_visitor<void>
 
     private:
       const statement_select  & _select;
-      mutable memory_buffer_t & _res;
+      mutable t_memory_buffer & _res;
       const my::interval_t      _group_by;
 
-      rrdb_metric_tuple_t       _cur_tuple;
+      t_rrdb_metric_tuple       _cur_tuple;
       my::time_t                _ts;
       my::time_t                _ts_beg;
       my::time_t                _ts_end;
@@ -278,7 +278,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
 
 
 public:
-  statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb, memory_buffer_t & res) :
+  statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb, t_memory_buffer & res) :
       _rrdb(rrdb),
       _res(res)
   {
@@ -340,7 +340,7 @@ public:
 
 private:
   const boost::shared_ptr<rrdb> _rrdb;
-  mutable memory_buffer_t &  _res;
+  mutable t_memory_buffer &  _res;
 };
 // statement_execute_visitor
 
@@ -524,7 +524,7 @@ boost::shared_ptr<rrdb_metric> rrdb::get_metric(const std::string & name)
   return res;
 }
 
-boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, const retention_policy & policy, bool throw_if_exists)
+boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, const t_retention_policy & policy, bool throw_if_exists)
 {
   // log
   LOG(log::LEVEL_DEBUG, "RRDB: creating metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
@@ -676,19 +676,19 @@ void rrdb::select_from_metric(const std::string & name, const my::time_t & ts1, 
   metric->select(shared_from_this(), ts1, ts2, walker);
 }
 
-void rrdb::execute_tcp_command(const std::string & buffer, memory_buffer_t & res)
+void rrdb::execute_tcp_command(const std::string & buffer, t_memory_buffer & res)
 {
   LOG(log::LEVEL_DEBUG3, "TCP command: '%s'", buffer.c_str());
 
-  statement st = statement_parse_tcp(buffer);
+  t_statement st = statement_parse_tcp(buffer);
   boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
 }
 
-void rrdb::execute_udp_command(const std::string & buffer, memory_buffer_t & res)
+void rrdb::execute_udp_command(const std::string & buffer, t_memory_buffer & res)
 {
   LOG(log::LEVEL_DEBUG3, "UDP command: %s", buffer.c_str());
 
-  statement st = statement_parse_udp(buffer);
+  t_statement st = statement_parse_udp(buffer);
   boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
 }
 

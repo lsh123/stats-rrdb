@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "types.h"
+#include "common/types.h"
 
 /**
  * Interval string representation:

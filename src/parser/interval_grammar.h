@@ -10,7 +10,7 @@
 
 #include "grammar.h"
 #include "interval.h"
-#include "exception.h"
+#include "common/exception.h"
 
 #include "interval.h"
 

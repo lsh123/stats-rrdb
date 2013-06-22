@@ -16,7 +16,7 @@
 
 #include <boost/fusion/include/adapt_struct.hpp>
 
-#include "exception.h"
+#include "common/exception.h"
 
 namespace spirit = boost::spirit;
 namespace qi = boost::spirit::qi;

@@ -16,9 +16,9 @@
 
 #include "rrdb/rrdb.h"
 
-#include "exception.h"
-#include "log.h"
-#include "config.h"
+#include "common/exception.h"
+#include "common/log.h"
+#include "common/config.h"
 
 using namespace boost::asio::ip;
 
@@ -60,7 +60,7 @@ public:
 public:
   // thread_pool_task
   void run() {
-    memory_buffer_t res(_output_buffer);
+    t_memory_buffer res(_output_buffer);
     try {
         _rrdb->execute_udp_command(_input_buffer, res);
     } catch(std::exception & e) {
@@ -128,7 +128,7 @@ private:
 
   udp::endpoint                 _remote_endpoint;
   std::string                   _input_buffer;
-  memory_buffer_data_t          _output_buffer;
+  t_memory_buffer_data          _output_buffer;
 }; // class connection_udp
 
 

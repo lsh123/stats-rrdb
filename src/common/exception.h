@@ -5,13 +5,13 @@
  *      Author: aleksey
  */
 
-#ifndef EXCEPTION_H_
-#define EXCEPTION_H_
+#ifndef COMMON_EXCEPTION_H_
+#define COMMON_EXCEPTION_H_
 
 #include <string>
 
-#include "log.h"
-#include "types.h"
+#include "common/log.h"
+#include "common/types.h"
 
 class exception: public std::exception
 {
@@ -40,5 +40,5 @@ private:
 
 
 
-#endif /* EXCEPTION_H_ */
+#endif /* COMMON_EXCEPTION_H_ */
 

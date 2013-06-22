@@ -15,7 +15,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/atomic.hpp>
 
-#include "types.h"
+#include "common/types.h"
 
 class thread_pool_task
 {

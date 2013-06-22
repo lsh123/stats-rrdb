@@ -17,9 +17,9 @@
 #include <boost/asio.hpp>
 #include <boost/asio/signal_set.hpp>
 
-#include "types.h"
+#include "common/types.h"
 
-#include "spinlock.h"
+#include "common/spinlock.h"
 
 // forward
 class config;

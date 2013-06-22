@@ -12,11 +12,11 @@
 #include "rrdb/rrdb_file_cache.h"
 #include "rrdb/rrdb_metric.h"
 
-#include "lru_cache.h"
-#include "config.h"
-#include "log.h"
-#include "exception.h"
-#include "spinlock.h"
+#include "common/lru_cache.h"
+#include "common/config.h"
+#include "common/log.h"
+#include "common/exception.h"
+#include "common/spinlock.h"
 
 // make it configurable?
 #define RRDB_METRIC_SUBFOLDERS_NUM      512

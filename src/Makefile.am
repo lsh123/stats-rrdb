@@ -10,13 +10,13 @@ bin_PROGRAMS= \
 	$(NULL)
 
 EXTRA_DIST = \
-	config.h \
-	exception.h \
-	log.h \
-	memory_buffer.h \
-	spinlock.h \
-	lru_cache.h \
-	types.h \
+	common/config.h \
+	common/exception.h \
+	common/log.h \
+	common/memory_buffer.h \
+	common/spinlock.h \
+	common/lru_cache.h \
+	common/types.h \
 	parser/grammar.h \
 	parser/interval.h \
 	parser/interval_grammar.h \
@@ -66,9 +66,9 @@ CUSTOM_LDADD= \
 # libstats-rrdb
 #
 libstats_rrdb_la_SOURCES= \
-	config.cpp \
-	exception.cpp \
-	log.cpp \
+	common/config.cpp \
+	common/exception.cpp \
+	common/log.cpp \
 	parser/grammar.cpp \
 	parser/interval.cpp \
 	parser/retention_policy.cpp \

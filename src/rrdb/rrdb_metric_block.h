@@ -20,9 +20,9 @@
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric_tuple.h"
 
-#include "types.h"
-#include "spinlock.h"
-#include "exception.h"
+#include "common/types.h"
+#include "common/spinlock.h"
+#include "common/exception.h"
 
 
 class rrdb;
@@ -33,7 +33,7 @@ typedef boost::uint32_t rrdb_metric_block_pos_t;
 //
 // RRDB Metric Block Header format
 //
-typedef struct rrdb_metric_block_header_t_ {
+typedef struct t_rrdb_metric_block_header_ {
   boost::uint16_t           _magic;             // magic bytes (0x99DB)
   boost::uint16_t           _status;            // block status flags
   boost::uint32_t           _unused1;
@@ -49,7 +49,7 @@ typedef struct rrdb_metric_block_header_t_ {
   my::time_t                _pos_ts;            // current start time for this block
   boost::uint32_t           _unused2;
   boost::uint32_t           _unused3;
-} rrdb_metric_block_header_t;
+} t_rrdb_metric_block_header;
 
 
 //
@@ -66,12 +66,12 @@ public:
     UpdateState_Tuple = 2
   };
 
-  typedef struct update_ctx_t_ {
+  typedef struct t_update_ctx_ {
     enum update_state   _state;
 
     my::time_t          _ts;
     my::value_t         _value;
-    rrdb_metric_tuple_t _tuple;
+    t_rrdb_metric_tuple _tuple;
 
     inline my::time_t get_ts() const {
       switch(_state) {
@@ -83,7 +83,7 @@ public:
         throw exception("Unexpected update ctx state %d", _state);
       }
     }
-  } update_ctx_t;
+  } t_update_ctx;
 
 
 public:
@@ -150,8 +150,8 @@ public:
   void update(
       const boost::shared_ptr<rrdb> & rrdb,
       const boost::shared_ptr<rrdb_metric> & rrdb_metric,
-      const update_ctx_t & in,
-      update_ctx_t & out
+      const t_update_ctx & in,
+      t_update_ctx & out
   );
 
   // READ/WRITE FILES
@@ -174,10 +174,10 @@ private:
       const boost::shared_ptr<rrdb_metric> & rrdb_metric
   );
 
-  rrdb_metric_tuple_t * find_tuple(
-      rrdb_metric_tuple_t * the_tuples,
-      const update_ctx_t & in,
-      update_ctx_t & out
+  t_rrdb_metric_tuple * find_tuple(
+      t_rrdb_metric_tuple * the_tuples,
+      const t_update_ctx & in,
+      t_update_ctx & out
   );
 
 
@@ -194,7 +194,7 @@ private:
   }
 
 private:
-  rrdb_metric_block_header_t  _header;
+  t_rrdb_metric_block_header  _header;
   rrdb_metric_tuples_t        _modified_tuples;
 }; // rrdb_metric_block
 

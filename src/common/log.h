@@ -5,16 +5,16 @@
  *      Author: aleksey
  */
 
-#ifndef LOG_H_
-#define LOG_H_
+#ifndef COMMON_LOG_H_
+#define COMMON_LOG_H_
 
 #include <string>
 #include <stdarg.h>
 
 #include <boost/shared_ptr.hpp>
 
-#include "types.h"
-#include "exception.h"
+#include "common/types.h"
+#include "common/exception.h"
 
 class config;
 
@@ -64,4 +64,4 @@ private:
 #define LOG(level, ...)  \
     if(log::check_level(level)) { log::write(level, __VA_ARGS__); }
 
-#endif /* LOG_H_ */
+#endif /* COMMON_LOG_H_ */

@@ -10,30 +10,30 @@
 
 #include "grammar.h"
 #include "interval.h"
-#include "exception.h"
+#include "common/exception.h"
 
 #include "retention_policy.h"
 #include "interval_grammar.h"
 
 BOOST_FUSION_ADAPT_STRUCT(
-    retention_policy_elem,
+    t_retention_policy_elem,
     (my::interval_t, _freq)
     (my::interval_t, _duration)
 )
 
 template<typename Iterator>
-class retention_policy_grammar:
-    public qi::grammar < Iterator, retention_policy(), ascii::space_type >
+class t_retention_policy_grammar:
+    public qi::grammar < Iterator, t_retention_policy(), ascii::space_type >
 {
-  typedef qi::grammar < Iterator, retention_policy(), ascii::space_type > base_type;
+  typedef qi::grammar < Iterator, t_retention_policy(), ascii::space_type > base_type;
 
 private:
-  qi::rule < Iterator, retention_policy(), ascii::space_type >      _start;
-  qi::rule < Iterator, retention_policy_elem(), ascii::space_type > _elem;
+  qi::rule < Iterator, t_retention_policy(), ascii::space_type >      _start;
+  qi::rule < Iterator, t_retention_policy_elem(), ascii::space_type > _elem;
   interval_grammar< Iterator > _interval;
 
 public:
-  retention_policy_grammar():
+  t_retention_policy_grammar():
     base_type(_start)
   {
     _elem  %= _interval >> nocaselit("for") >> _interval;
@@ -44,6 +44,6 @@ public:
         grammar_error_handler("Error parsing retention policy", qi::_1, qi::_2, qi::_3, qi::_4)
     );
   }
-}; // retention_policy_grammar
+}; // t_retention_policy_grammar
 
 #endif /* RETENTION_POLICY_GRAMMAR_H_ */

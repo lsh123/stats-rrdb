@@ -8,8 +8,8 @@
 #include "interval.h"
 #include "interval_grammar.h"
 
-#include "exception.h"
-#include "log.h"
+#include "common/exception.h"
+#include "common/log.h"
 
 
 my::interval_t interval_parse(const std::string & str)

@@ -5,8 +5,8 @@
  *      Author: aleksey
  */
 
-#ifndef SPINLOCK_H_
-#define SPINLOCK_H_
+#ifndef COMMON_SPINLOCK_H_
+#define COMMON_SPINLOCK_H_
 
 #include <boost/atomic.hpp>
 #include <boost/thread/locks.hpp>
@@ -45,4 +45,4 @@ private:
 }; // class spinlock
 
 
-#endif /* SPINLOCK_H_ */
+#endif /* COMMON_SPINLOCK_H_ */

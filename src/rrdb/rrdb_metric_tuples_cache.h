@@ -12,8 +12,8 @@
 
 #include "rrdb/rrdb_metric_tuple.h"
 
-#include "types.h"
-#include "spinlock.h"
+#include "common/types.h"
+#include "common/spinlock.h"
 
 class config;
 class rrdb_metric_tuples_cache_impl;

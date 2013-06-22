@@ -11,10 +11,10 @@
 #include "rrdb/rrdb_metric_block.h"
 #include "rrdb/rrdb_metric_tuples_cache.h"
 
-#include "lru_cache.h"
-#include "config.h"
-#include "log.h"
-#include "exception.h"
+#include "common/lru_cache.h"
+#include "common/config.h"
+#include "common/log.h"
+#include "common/exception.h"
 
 // black magic to make forward declarations work
 class rrdb_metric_tuples_cache_impl :

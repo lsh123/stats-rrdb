@@ -14,13 +14,13 @@
 #include "statements_grammar.h"
 
 
-#include "exception.h"
-#include "log.h"
+#include "common/exception.h"
+#include "common/log.h"
 
 
-statement statement_parse_tcp(const std::string & str)
+t_statement statement_parse_tcp(const std::string & str)
 {
-  statement ret;
+  t_statement ret;
   statement_grammar<std::string::const_iterator> grammar;
   std::string::const_iterator beg(str.begin());
   std::string::const_iterator end(str.end());
@@ -32,7 +32,7 @@ statement statement_parse_tcp(const std::string & str)
   return ret;
 }
 
-statement statement_parse_udp(const std::string & str)
+t_statement statement_parse_udp(const std::string & str)
 {
   std::vector< std::string > data;
   boost::algorithm::split(data, str, boost::algorithm::is_any_of("|"), boost::algorithm::token_compress_off);

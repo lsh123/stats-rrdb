@@ -8,9 +8,9 @@
 #include "rrdb/rrdb_metric_block.h"
 #include "rrdb/rrdb_metric_tuples_cache.h"
 
-#include "types.h"
-#include "log.h"
-#include "exception.h"
+#include "common/types.h"
+#include "common/log.h"
+#include "common/exception.h"
 
 #define RRDB_METRIC_BLOCK_MAGIC    0xBB99
 
@@ -26,10 +26,10 @@ rrdb_metric_block::rrdb_metric_block(
   _header._count     = count;
   _header._duration  = _header._freq * _header._count;
   _header._offset    = offset;
-  _header._data_size = _header._count * sizeof(rrdb_metric_tuple_t);
+  _header._data_size = _header._count * sizeof(t_rrdb_metric_tuple);
 
   if(_header._count && _header._data_size) {
-      _modified_tuples.reset(new rrdb_metric_tuple_t[_header._count]);
+      _modified_tuples.reset(new t_rrdb_metric_tuple[_header._count]);
       memset(_modified_tuples.get(), 0, _header._data_size);
   }
 }
@@ -58,10 +58,10 @@ rrdb_metric_tuples_t rrdb_metric_block::get_tuples(
   }
 }
 
-rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(
-    rrdb_metric_tuple_t * the_tuples,
-    const update_ctx_t & in,
-    update_ctx_t & out
+t_rrdb_metric_tuple * rrdb_metric_block::find_tuple(
+    t_rrdb_metric_tuple * the_tuples,
+    const t_update_ctx & in,
+    t_update_ctx & out
 ) {
   CHECK_AND_THROW(the_tuples);
   CHECK_AND_THROW(_header._pos < _header._count);
@@ -75,7 +75,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(
 
       // start from 0 and assume this ts is the latest
       memset(the_tuples, 0, _header._data_size);
-      rrdb_metric_tuple_t & tuple = the_tuples[0];
+      t_rrdb_metric_tuple & tuple = the_tuples[0];
       _header._pos      = 0;
       _header._pos_ts   = tuple._ts = this->normalize_ts(ts);
 
@@ -83,7 +83,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(
       return &tuple;
   } else if(this->get_cur_ts() <= ts) {
       // we are somewhere ahead but not too much
-      rrdb_metric_tuple_t * tuple = &the_tuples[_header._pos];
+      t_rrdb_metric_tuple * tuple = &the_tuples[_header._pos];
       my::time_t next_tuple_ts = tuple->_ts + _header._freq;
       if(ts < next_tuple_ts) {
           // our current tuple will do
@@ -123,7 +123,7 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(
           tuple_ts -= _header._freq;
 
           // overwrite tuple ts just in case (it might not be initialized!)
-          rrdb_metric_tuple_t * tuple = &the_tuples[pos];
+          t_rrdb_metric_tuple * tuple = &the_tuples[pos];
           tuple->_ts = tuple_ts;
           if(ts >= tuple->_ts) {
               CHECK_AND_THROW(ts < tuple->_ts + _header._freq);
@@ -146,15 +146,15 @@ rrdb_metric_tuple_t * rrdb_metric_block::find_tuple(
 void rrdb_metric_block::update(
     const boost::shared_ptr<rrdb> & rrdb,
     const boost::shared_ptr<rrdb_metric> & rrdb_metric,
-    const update_ctx_t & in,
-    update_ctx_t & out
+    const t_update_ctx & in,
+    t_update_ctx & out
 )
 {
   rrdb_metric_tuples_t the_tuples(this->get_tuples(rrdb, rrdb_metric));
   CHECK_AND_THROW(the_tuples.get());
   CHECK_AND_THROW(this->get_cur_ts() == the_tuples[_header._pos]._ts);
 
-  rrdb_metric_tuple_t * tuple = this->find_tuple(the_tuples.get(), in, out);
+  t_rrdb_metric_tuple * tuple = this->find_tuple(the_tuples.get(), in, out);
   if(!tuple) {
       LOG(log::LEVEL_DEBUG, "Can not find tuple ts: %ld (current block time: %ld, duration: %ld)", in.get_ts(), this->get_cur_ts(), this->get_duration());
       return;
@@ -198,7 +198,7 @@ void rrdb_metric_block::select(
   // is very similar
   rrdb_metric_block_pos_t pos(_header._pos);
   do {
-      const rrdb_metric_tuple_t & tuple(the_tuples[pos]);
+      const t_rrdb_metric_tuple & tuple(the_tuples[pos]);
       int res = my::interval_overlap(tuple._ts, tuple._ts + _header._freq, ts1, ts2);
       if(res < 0) {
           // [tuple) < [ts1, ts2): tuples are ordered from newest to oldest, so we
@@ -265,8 +265,8 @@ void rrdb_metric_block::read_block(
   if(_header._offset != offset) {
       throw exception("Unexpected rrdb metric block offset: %lu (expected %lu)", _header._offset, offset);
   }
-  if(_header._data_size != _header._count * sizeof(rrdb_metric_tuple_t)) {
-      throw exception("Unexpected rrdb metric block data size: %lu (expected %su)", _header._data_size, _header._count * sizeof(rrdb_metric_tuple_t));
+  if(_header._data_size != _header._count * sizeof(t_rrdb_metric_tuple)) {
+      throw exception("Unexpected rrdb metric block data size: %lu (expected %su)", _header._data_size, _header._count * sizeof(t_rrdb_metric_tuple));
   }
 
   // skip data block - we load it async
@@ -279,7 +279,7 @@ rrdb_metric_tuples_t rrdb_metric_block::read_block_data(std::fstream & ifs)
   LOG(log::LEVEL_DEBUG3, "RRDB metric block read data at offset %ld, size %ld", _header._offset, _header._data_size);
 
   // read data
-  rrdb_metric_tuples_t the_tuples(new rrdb_metric_tuple_t[_header._count]);
+  rrdb_metric_tuples_t the_tuples(new t_rrdb_metric_tuple[_header._count]);
   ifs.read((char*)the_tuples.get(), _header._data_size);
 
   // check data

@@ -27,7 +27,7 @@ class statement_create
 {
 public:
   std::string      _name;
-  retention_policy _policy;
+  t_retention_policy _policy;
 };
 
 /**
@@ -121,12 +121,12 @@ typedef boost::variant<
     statement_show_policy,
     statement_show_metrics,
     statement_show_status
-> statement;
+> t_statement;
 
 // The above grammar
-statement statement_parse_tcp(const std::string & str);
+t_statement statement_parse_tcp(const std::string & str);
 
 // <command>|<param1>|<param2>|....
-statement statement_parse_udp(const std::string & str);
+t_statement statement_parse_udp(const std::string & str);
 
 #endif /* STATEMENTS_H_ */

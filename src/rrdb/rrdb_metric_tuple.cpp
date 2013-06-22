@@ -9,9 +9,9 @@
 
 #include "rrdb_metric_tuple.h"
 
-#include "log.h"
+#include "common/log.h"
 
-void rrdb_metric_tuple_update(rrdb_metric_tuple_t & tuple, const my::value_t & value)
+void rrdb_metric_tuple_update(t_rrdb_metric_tuple & tuple, const my::value_t & value)
 {
   if(tuple._min > value || tuple._count == 0) {
       tuple._min = value;
@@ -24,7 +24,7 @@ void rrdb_metric_tuple_update(rrdb_metric_tuple_t & tuple, const my::value_t & v
   ++tuple._count;
 }
 
-void rrdb_metric_tuple_update(rrdb_metric_tuple_t & tuple, const rrdb_metric_tuple_t & other)
+void rrdb_metric_tuple_update(t_rrdb_metric_tuple & tuple, const t_rrdb_metric_tuple & other)
 {
   if(tuple._min > other._min || tuple._count == 0) {
       tuple._min = other._min;
@@ -37,7 +37,7 @@ void rrdb_metric_tuple_update(rrdb_metric_tuple_t & tuple, const rrdb_metric_tup
   tuple._count   += other._count;
 }
 
-void rrdb_metric_tuple_normalize(rrdb_metric_tuple_t & tuple, const my::value_t & factor)
+void rrdb_metric_tuple_normalize(t_rrdb_metric_tuple & tuple, const my::value_t & factor)
 {
   if(factor > 0) {
       // leave alone min/max
@@ -47,12 +47,12 @@ void rrdb_metric_tuple_normalize(rrdb_metric_tuple_t & tuple, const my::value_t 
   }
 }
 
-void rrdb_metric_tuple_write_header(memory_buffer_t & res)
+void rrdb_metric_tuple_write_header(t_memory_buffer & res)
 {
   res << "ts,count,sum,avg,stddev,min,max" << std::endl;
 }
 
-void rrdb_metric_tuple_write(const rrdb_metric_tuple_t & tuple, memory_buffer_t & res)
+void rrdb_metric_tuple_write(const t_rrdb_metric_tuple & tuple, t_memory_buffer & res)
 {
   // calculate
   my::value_t avg, stddev;

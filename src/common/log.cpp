@@ -14,9 +14,9 @@
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "exception.h"
-#include "log.h"
-#include "config.h"
+#include "common/exception.h"
+#include "common/log.h"
+#include "common/config.h"
 
 // Statics
 enum log::levels log::_log_level  = log::LEVEL_INFO;

@@ -5,15 +5,15 @@
  *      Author: aleksey
  */
 
-#ifndef LRU_CACHE_H_
-#define LRU_CACHE_H_
+#ifndef COMMON_LRU_CACHE_H_
+#define COMMON_LRU_CACHE_H_
 
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 
-#include "types.h"
+#include "common/types.h"
 
 using namespace ::boost::multi_index;
 
@@ -155,4 +155,4 @@ private:
 }; // class lru_cache
 
 
-#endif /* LRU_CACHE_H_ */
+#endif /* COMMON_LRU_CACHE_H_ */

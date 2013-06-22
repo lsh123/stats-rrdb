@@ -8,7 +8,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "exception.h"
+#include "common/exception.h"
 
 exception::exception(const std::string & msg) :
     _msg(msg)

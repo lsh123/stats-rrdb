@@ -14,9 +14,9 @@
 
 #include "server/thread_pool.h"
 
-#include "lru_cache.h"
-#include "log.h"
-#include "exception.h"
+#include "common/lru_cache.h"
+#include "common/log.h"
+#include "common/exception.h"
 
 #define TEST_CHECK( a ) \
     if( !( a ) ) { \
@@ -56,8 +56,8 @@ public:
   // thread_pool_task
   void run()
   {
-      memory_buffer_data_t output_buffer;
-      memory_buffer_t res(output_buffer);
+      t_memory_buffer_data output_buffer;
+      t_memory_buffer res(output_buffer);
 
       _rrdb->execute_udp_command(_cmd, res);
       res.flush();
@@ -125,7 +125,7 @@ void rrdb_test::run(const std::string & params_str) {
   }
 }
 
-rrdb_test::csv_data_t rrdb_test::parse_csv_data(const memory_buffer_data_t & data)
+rrdb_test::csv_data_t rrdb_test::parse_csv_data(const t_memory_buffer_data & data)
 {
   // break into lines
   std::vector<std::string> lines;
@@ -182,8 +182,8 @@ void rrdb_test::run_select_test(const params_t & params)
         start_ts + tests_count + 100
     );
 
-    memory_buffer_data_t res_data;
-    memory_buffer_t res(res_data);
+    t_memory_buffer_data res_data;
+    t_memory_buffer res(res_data);
     _rrdb->execute_tcp_command(buf, res);
 
     rrdb_test::csv_data_t parsed_data = rrdb_test::parse_csv_data(res_data);
@@ -216,8 +216,8 @@ void rrdb_test::run_select_test(const params_t & params)
         start_ts + tests_count
     );
 
-    memory_buffer_data_t res_data;
-    memory_buffer_t res(res_data);
+    t_memory_buffer_data res_data;
+    t_memory_buffer res(res_data);
     _rrdb->execute_tcp_command(buf, res);
 
     rrdb_test::csv_data_t parsed_data  = rrdb_test::parse_csv_data(res_data);
@@ -250,8 +250,8 @@ void rrdb_test::run_select_test(const params_t & params)
         start_ts + tests_count + 30
     );
 
-    memory_buffer_data_t res_data;
-    memory_buffer_t res(res_data);
+    t_memory_buffer_data res_data;
+    t_memory_buffer res(res_data);
     _rrdb->execute_tcp_command(buf, res);
 
     rrdb_test::csv_data_t parsed_data = rrdb_test::parse_csv_data(res_data);
@@ -285,8 +285,8 @@ void rrdb_test::run_select_test(const params_t & params)
         start_ts + tests_count + 37
     );
 
-    memory_buffer_data_t res_data;
-    memory_buffer_t res(res_data);
+    t_memory_buffer_data res_data;
+    t_memory_buffer res(res_data);
     _rrdb->execute_tcp_command(buf, res);
 
     rrdb_test::csv_data_t parsed_data = rrdb_test::parse_csv_data(res_data);
@@ -318,8 +318,8 @@ void rrdb_test::run_select_test(const params_t & params)
         start_ts + tests_count + 10000
     );
 
-    memory_buffer_data_t res_data;
-    memory_buffer_t res(res_data);
+    t_memory_buffer_data res_data;
+    t_memory_buffer res(res_data);
     _rrdb->execute_tcp_command(buf, res);
 
     rrdb_test::csv_data_t parsed_data = rrdb_test::parse_csv_data(res_data);

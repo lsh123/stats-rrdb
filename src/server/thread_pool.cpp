@@ -5,8 +5,8 @@
  *      Author: aleksey
  */
 
-#include "exception.h"
-#include "log.h"
+#include "common/exception.h"
+#include "common/log.h"
 #include "server/thread_pool.h"
 
 thread_pool::thread_pool(my::size_t pool_size) :

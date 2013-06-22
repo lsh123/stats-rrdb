@@ -8,10 +8,11 @@
 #include <iostream>
 #include <fstream>
 #include <exception>
-#include "config.h"
 
-#include "exception.h"
-#include "log.h"
+#include "common/config.h"
+
+#include "common/exception.h"
+#include "common/log.h"
 
 
 using namespace boost::program_options;

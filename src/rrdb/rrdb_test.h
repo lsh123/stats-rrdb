@@ -13,8 +13,8 @@
 
 #include <boost/shared_ptr.hpp>
 
-#include "memory_buffer.h"
-#include "types.h"
+#include "common/memory_buffer.h"
+#include "common/types.h"
 
 class rrdb;
 
@@ -40,7 +40,7 @@ private:
   static std::string get_test_metric_name(const my::size_t & n);
   void cleanup(const my::size_t & metrics_num);
 
-  static csv_data_t parse_csv_data(const memory_buffer_data_t & data);
+  static csv_data_t parse_csv_data(const t_memory_buffer_data & data);
 
 private:
   boost::shared_ptr<rrdb> _rrdb;

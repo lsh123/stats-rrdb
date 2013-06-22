@@ -17,9 +17,9 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/thread.hpp>
 
-#include "types.h"
-#include "spinlock.h"
-#include "memory_buffer.h"
+#include "common/types.h"
+#include "common/spinlock.h"
+#include "common/memory_buffer.h"
 
 #include "parser/interval.h"
 #include "parser/retention_policy.h"
@@ -55,7 +55,7 @@ public:
   //
   class data_walker {
   public:
-    virtual void append(const rrdb_metric_tuple_t & tuple, const my::interval_t & interval) = 0;
+    virtual void append(const t_rrdb_metric_tuple & tuple, const my::interval_t & interval) = 0;
     virtual void flush() = 0;
   }; // class data_walker
 
@@ -75,7 +75,7 @@ public:
   boost::shared_ptr<rrdb_metric> get_metric(const std::string & name);
   boost::shared_ptr<rrdb_metric> find_metric(const std::string & name);
 
-  boost::shared_ptr<rrdb_metric> create_metric(const std::string & name, const retention_policy & policy, bool throw_if_exists = true);
+  boost::shared_ptr<rrdb_metric> create_metric(const std::string & name, const t_retention_policy & policy, bool throw_if_exists = true);
   void drop_metric(const std::string & name);
 
   void get_metrics(const boost::optional<std::string> & like, metrics_walker & walker);
@@ -86,8 +86,8 @@ public:
   void select_from_metric(const std::string & name, const my::time_t & ts1, const my::time_t & ts2, data_walker & walker);
 
   // commands
-  void execute_tcp_command(const std::string & buffer, memory_buffer_t & res);
-  void execute_udp_command(const std::string & buffer, memory_buffer_t & res);
+  void execute_tcp_command(const std::string & buffer, t_memory_buffer & res);
+  void execute_udp_command(const std::string & buffer, t_memory_buffer & res);
 
   // helpers
   const boost::shared_ptr<rrdb_file_cache> & get_files_cache() const
@@ -111,7 +111,7 @@ private:
 
   // config
   my::interval_t          _flush_interval;
-  retention_policy        _default_policy;
+  t_retention_policy        _default_policy;
 
   t_metrics_map           _metrics;
   spinlock                _metrics_lock;

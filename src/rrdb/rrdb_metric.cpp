@@ -17,8 +17,8 @@
 #include "rrdb/rrdb_metric.h"
 #include "rrdb/rrdb_metric_block.h"
 
-#include "log.h"
-#include "exception.h"
+#include "common/log.h"
+#include "common/exception.h"
 
 #define RRDB_METRIC_MAGIC               0xDB99
 #define RRDB_METRIC_VERSION             0x01
@@ -47,15 +47,15 @@ std::string rrdb_metric::get_name() const
 }
 
 // use copy here to avoid problems with MT
-retention_policy rrdb_metric::get_policy() const
+t_retention_policy rrdb_metric::get_policy() const
 {
   boost::lock_guard<spinlock> guard(_lock);
   CHECK_AND_THROW(_blocks.size() == _header._blocks_size);
 
-  retention_policy res;
+  t_retention_policy res;
   res.reserve(_header._blocks_size);
   BOOST_FOREACH(const boost::shared_ptr<rrdb_metric_block> & block, _blocks) {
-    retention_policy_elem elem;
+    t_retention_policy_elem elem;
     elem._freq     = block->get_freq();
     elem._duration = block->get_freq() * block->get_count();
 
@@ -65,7 +65,7 @@ retention_policy rrdb_metric::get_policy() const
 }
 
 
-void rrdb_metric::set_name_and_policy(const std::string & filename, const std::string & name, const retention_policy & policy)
+void rrdb_metric::set_name_and_policy(const std::string & filename, const std::string & name, const t_retention_policy & policy)
 {
   {
     boost::lock_guard<spinlock> guard(_lock);
@@ -82,7 +82,7 @@ void rrdb_metric::set_name_and_policy(const std::string & filename, const std::s
     _blocks.clear();
     _blocks.reserve(_header._blocks_size);
     my::size_t offset = sizeof(_header) + _header._name_size;
-    BOOST_FOREACH(const retention_policy_elem & elem, policy) {
+    BOOST_FOREACH(const t_retention_policy_elem & elem, policy) {
       boost::shared_ptr<rrdb_metric_block> block(
           new rrdb_metric_block(elem._freq, elem._duration / elem._freq, offset)
       );
@@ -133,7 +133,7 @@ void rrdb_metric::update(const boost::shared_ptr<rrdb> & rrdb, const my::time_t 
   //
   // - We are moving past the current in this block - roll up in the next block
   //
-  rrdb_metric_block::update_ctx_t one, two;
+  rrdb_metric_block::t_update_ctx one, two;
   one._state = rrdb_metric_block::UpdateState_Value;
   one._ts    = ts;
   one._value = value;

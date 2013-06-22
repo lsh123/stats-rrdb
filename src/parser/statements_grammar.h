@@ -10,7 +10,7 @@
 
 #include "grammar.h"
 #include "interval.h"
-#include "exception.h"
+#include "common/exception.h"
 
 #include "statements.h"
 
@@ -20,7 +20,7 @@
 BOOST_FUSION_ADAPT_STRUCT(
     statement_create,
     (std::string,      _name)
-    (retention_policy, _policy)
+    (t_retention_policy, _policy)
 )
 BOOST_FUSION_ADAPT_STRUCT(
     statement_drop,
@@ -55,19 +55,19 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 template<typename Iterator>
 class statement_grammar:
-    public qi::grammar < Iterator, statement(), ascii::space_type >
+    public qi::grammar < Iterator, t_statement(), ascii::space_type >
 {
-  typedef qi::grammar < Iterator, statement(), ascii::space_type > base_type;
+  typedef qi::grammar < Iterator, t_statement(), ascii::space_type > base_type;
 
 private:
-  qi::rule < Iterator, statement(), ascii::space_type >        _start;
+  qi::rule < Iterator, t_statement(), ascii::space_type >        _start;
 
   qi::rule < Iterator, std::string(), ascii::space_type >      _name;
   qi::rule < Iterator, std::string(), ascii::space_type >      _quoted_name;
-  retention_policy_grammar<Iterator>                           _policy;
+  t_retention_policy_grammar<Iterator>                           _policy;
   interval_grammar< Iterator >                                 _interval;
 
-  qi::rule < Iterator, statement(),              ascii::space_type > _statement;
+  qi::rule < Iterator, t_statement(),            ascii::space_type > _statement;
   qi::rule < Iterator, statement_create(),       ascii::space_type > _statement_create;
   qi::rule < Iterator, statement_drop(),         ascii::space_type > _statement_drop;
   qi::rule < Iterator, statement_update(),       ascii::space_type > _statement_update;

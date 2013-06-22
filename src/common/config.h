@@ -5,13 +5,13 @@
  *      Author: aleksey
  */
 
-#ifndef CONFIG_H_
-#define CONFIG_H_
+#ifndef COMMON_CONFIG_H_
+#define COMMON_CONFIG_H_
 
 #include <string>
 #include <boost/program_options.hpp>
 
-#include "types.h"
+#include "common/types.h"
 
 class config
 {
@@ -37,4 +37,4 @@ private:
   boost::program_options::variables_map _data;
 }; //  class config
 
-#endif /* CONFIG_H_ */
+#endif /* COMMON_CONFIG_H_ */

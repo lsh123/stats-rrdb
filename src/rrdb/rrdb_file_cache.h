@@ -15,8 +15,8 @@
 
 #include "rrdb/rrdb.h"
 
-#include "types.h"
-#include "spinlock.h"
+#include "common/types.h"
+#include "common/spinlock.h"
 
 class rrdb;
 class config;

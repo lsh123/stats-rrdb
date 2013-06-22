@@ -5,8 +5,8 @@
  *      Author: aleksey
  */
 
-#ifndef TYPES_H_
-#define TYPES_H_
+#ifndef COMMON_TYPES_H_
+#define COMMON_TYPES_H_
 
 #include <boost/cstdint.hpp>
 
@@ -75,4 +75,4 @@ inline bool bitmask_check_all(const T & v, const T & mask) { return (v & mask) =
 
 } // namespace my
 
-#endif /* TYPES_H_ */
+#endif /* COMMON_TYPES_H_ */

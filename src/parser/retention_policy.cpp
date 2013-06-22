@@ -1,5 +1,5 @@
 /*
- * retention_policy.cpp
+ * t_retention_policy.cpp
  *
  *  Created on: Jun 7, 2013
  *      Author: aleksey
@@ -11,14 +11,14 @@
 #include "retention_policy_grammar.h"
 
 
-#include "exception.h"
-#include "log.h"
+#include "common/exception.h"
+#include "common/log.h"
 
 
-retention_policy retention_policy_parse(const std::string & str)
+t_retention_policy retention_policy_parse(const std::string & str)
 {
-  retention_policy ret;
-  retention_policy_grammar<std::string::const_iterator> grammar;
+  t_retention_policy ret;
+  t_retention_policy_grammar<std::string::const_iterator> grammar;
 
   std::string::const_iterator beg = str.begin();
   std::string::const_iterator end = str.end();
@@ -32,11 +32,11 @@ retention_policy retention_policy_parse(const std::string & str)
   return ret;
 }
 
-std::string retention_policy_write(const retention_policy & r_p)
+std::string retention_policy_write(const t_retention_policy & r_p)
 {
   std::ostringstream ret;
   my::size_t count = 0;
-  for(retention_policy::const_iterator it = r_p.begin(); it != r_p.end(); ++it, ++count) {
+  for(t_retention_policy::const_iterator it = r_p.begin(); it != r_p.end(); ++it, ++count) {
       if(count > 0) {
           ret << ", ";
       }
@@ -46,9 +46,9 @@ std::string retention_policy_write(const retention_policy & r_p)
   return ret.str();
 }
 
-void retention_policy_validate(const retention_policy & r_p)
+void retention_policy_validate(const t_retention_policy & r_p)
 {
-  for(retention_policy::const_iterator it = r_p.begin(), it_prev = r_p.end(); it != r_p.end(); it_prev = (it++)) {
+  for(t_retention_policy::const_iterator it = r_p.begin(), it_prev = r_p.end(); it != r_p.end(); it_prev = (it++)) {
       if((*it)._duration % (*it)._freq != 0) {
           throw exception("Policy duration '%s' should be a multiplier for the frequency '%s'", interval_write((*it)._duration).c_str(), interval_write((*it)._freq).c_str());
       }

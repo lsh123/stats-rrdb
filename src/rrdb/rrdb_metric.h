@@ -18,8 +18,8 @@
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric_tuple.h"
 
-#include "types.h"
-#include "spinlock.h"
+#include "common/types.h"
+#include "common/spinlock.h"
 #include "parser/retention_policy.h"
 
 
@@ -31,7 +31,7 @@ class statement_select;
 //
 // RRDB Metric file header format:
 //
-typedef struct rrdb_metric_header_t_ {
+typedef struct t_rrdb_metric_header_ {
   boost::uint16_t   _magic;             // magic bytes (0x99DB)
   boost::uint16_t   _version;           // version (0x01)
   boost::uint16_t   _status;            // status flags
@@ -44,7 +44,7 @@ typedef struct rrdb_metric_header_t_ {
   boost::uint16_t   _name_size;         // 64-bit padded size of the name array
   boost::uint16_t   _unused1;
   boost::uint16_t   _unused2;
-} rrdb_metric_header_t;
+} t_rrdb_metric_header;
 
 //
 //
@@ -63,8 +63,8 @@ public:
   virtual ~rrdb_metric();
 
   std::string get_name() const ;
-  retention_policy get_policy() const;
-  void set_name_and_policy(const std::string & filename, const std::string & name, const retention_policy & policy);
+  t_retention_policy get_policy() const;
+  void set_name_and_policy(const std::string & filename, const std::string & name, const t_retention_policy & policy);
 
   inline bool is_dirty() const
   {
@@ -95,7 +95,7 @@ private:
 
 private:
   mutable spinlock               _lock;
-  rrdb_metric_header_t           _header;
+  t_rrdb_metric_header           _header;
   boost::shared_array<char>      _name;
   std::string                    _filename;
 

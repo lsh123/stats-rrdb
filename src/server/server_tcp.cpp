@@ -11,9 +11,9 @@
 #include <boost/array.hpp>
 #include <boost/bind.hpp>
 
-#include "exception.h"
-#include "log.h"
-#include "config.h"
+#include "common/exception.h"
+#include "common/log.h"
+#include "common/config.h"
 
 #include "server/thread_pool.h"
 
@@ -54,7 +54,7 @@ public:
   // thread_pool_task
   void run() {
     // execute command
-    memory_buffer_t res(_output_buffer);
+    t_memory_buffer res(_output_buffer);
     try {
         _rrdb->execute_tcp_command(_input_buffer, res);
     } catch(std::exception & e) {
@@ -110,7 +110,7 @@ private:
   tcp::socket                   _socket;
   boost::shared_ptr<rrdb>       _rrdb;
   std::string                   _input_buffer;
-  memory_buffer_data_t          _output_buffer;
+  t_memory_buffer_data          _output_buffer;
 }; // class connection_tcp
 
 server_tcp::server_tcp(boost::shared_ptr<rrdb> rrdb) :

@@ -4,7 +4,6 @@
  Author      : Aleksey Sanin
  Version     :
  Copyright   : Copyright 2013, Aleksey Sanin. All Rights Reserved.
- Description : Hello World in C++,
  ============================================================================
  */
 
@@ -15,9 +14,9 @@
 
 #include <boost/shared_ptr.hpp>
 
-#include "log.h"
-#include "config.h"
-#include "exception.h"
+#include "common/log.h"
+#include "common/config.h"
+#include "common/exception.h"
 #include "server/server.h"
 
 int main(int argc, char ** argv)

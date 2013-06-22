@@ -12,8 +12,8 @@
 
 #include "server/server.h"
 
-#include "log.h"
-#include "config.h"
+#include "common/log.h"
+#include "common/config.h"
 #include "server/thread_pool.h"
 
 #include "rrdb/rrdb.h"
