@@ -9,35 +9,16 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/foreach.hpp>
 
-#include "rrdb/rrdb_test.h"
 #include "rrdb/rrdb.h"
 
 #include "server/thread_pool.h"
 
-#include "common/lru_cache.h"
+#include "tests/rrdb_test.h"
+
 #include "common/log.h"
 #include "common/exception.h"
 
-#define TEST_CHECK( a ) \
-    if( !( a ) ) { \
-        std::cerr << "TEST CHECK FAILURE: '" \
-          << (#a) \
-          << std::endl; \
-    }
-
-#define TEST_CHECK_EQUAL( a, b ) \
-    if( (a) != (b) ) { \
-        std::cerr << "TEST CHECK EQUAL FAILURE: '" \
-          << (#a) << "' = " << (a) << " and '" << (#b) << "' = " << (b) \
-          << std::endl; \
-    }
-
-#define TEST_CHECK_NOT_EQUAL( a, b ) \
-    if( (a) == (b) ) { \
-        std::cerr << "TEST CHECK NOT EQUAL FAILURE: '" \
-          << (#a) << "' = " << (a) << " and '" << (#b) << "' = " << (b) \
-          << std::endl; \
-    }
+#include "tests/stats_rrdb_tests.h"
 
 class rrdb_test_perf_task :
     public thread_pool_task
@@ -68,7 +49,7 @@ private:
   std::string             _cmd;
 }; // rrdb_test_perf_task
 
-typedef lru_cache<std::string, int, my::time_t> t_test_lru_cache;
+
 
 rrdb_test::rrdb_test(const boost::shared_ptr<rrdb> & rrdb) :
   _rrdb(rrdb)
@@ -349,85 +330,6 @@ void rrdb_test::run_lru_cache_test(const rrdb_test::params_t & params)
       throw exception("Invalid test params: expected <test_name>");
   }
 
-  // create cache
-  std::cout << "Starting LRU cache test..." << std::endl;
-  my::time_t start_ts(time(NULL));
-  t_test_lru_cache cache;
-
-  // insert some data
-  std::cout << "TEST 0: Adding initial data to LRU cache..." << std::endl;
-  {
-    cache.insert("test-0", 0, start_ts);
-    cache.insert("test-1", 1, start_ts + 1);
-    cache.insert("test-2", 2, start_ts + 2);
-  }
-
-  // check it's in the right order
-  std::cout << "TEST 1: Checking initial data in the LRU cache..." << std::endl;
-  {
-    t_test_lru_cache::t_lru_iterator lru_it(cache.lru_begin());
-    t_test_lru_cache::value_type vt(*(lru_it++));
-
-    TEST_CHECK(lru_it != cache.lru_end());
-    TEST_CHECK_EQUAL(vt._v, 0);
-    TEST_CHECK_EQUAL(vt._k, "test-0");
-    vt = *(lru_it++);
-
-    TEST_CHECK(lru_it != cache.lru_end());
-    TEST_CHECK_EQUAL(vt._v, 1);
-    TEST_CHECK_EQUAL(vt._k, "test-1");
-    vt = *(lru_it++);
-
-    TEST_CHECK(lru_it == cache.lru_end());
-    TEST_CHECK_EQUAL(vt._v, 2);
-    TEST_CHECK_EQUAL(vt._k, "test-2");
-
-  }
-
-  // check find() + use()
-  std::cout << "TEST 2: Checking find() + use()..." << std::endl;
-  {
-    t_test_lru_cache::t_iterator it(cache.find("test-1"));
-    TEST_CHECK(it != cache.end());
-    cache.use(it, start_ts + 10);
-
-    // the "test-1" key should now be the most recently used
-    t_test_lru_cache::t_lru_iterator lru_it(cache.lru_begin());
-    t_test_lru_cache::value_type vt(*(lru_it++));
-
-    TEST_CHECK(lru_it != cache.lru_end());
-    TEST_CHECK_EQUAL(vt._v, 0);
-    TEST_CHECK_EQUAL(vt._k, "test-0");
-    vt = *(lru_it++);
-
-    TEST_CHECK(lru_it != cache.lru_end());
-    TEST_CHECK_EQUAL(vt._v, 2);
-    TEST_CHECK_EQUAL(vt._k, "test-2");
-    vt = *(lru_it++);
-
-    TEST_CHECK(lru_it == cache.lru_end());
-    TEST_CHECK_EQUAL(vt._v, 1);
-    TEST_CHECK_EQUAL(vt._k, "test-1");
-  }
-
-  // check lru_erase()
-  std::cout << "TEST 2: Checking lru_erase()..." << std::endl;
-  {
-    // erase the second lru item
-    t_test_lru_cache::t_lru_iterator lru_it(cache.lru_begin());
-    t_test_lru_cache::value_type vt(*(++lru_it));
-    TEST_CHECK_EQUAL(vt._v, 2);
-    TEST_CHECK_EQUAL(vt._k, "test-2");
-    lru_it = cache.lru_erase(lru_it);
-
-    // it should now point to the next item
-    TEST_CHECK(lru_it != cache.lru_end());
-    vt = *(lru_it++);
-
-    TEST_CHECK(lru_it == cache.lru_end());
-    TEST_CHECK_EQUAL(vt._v, 1);
-    TEST_CHECK_EQUAL(vt._k, "test-1");
-  }
 
   // done
   std::cout << "Finished LRU cache test" << std::endl;

@@ -19,6 +19,9 @@
 #include "common/exception.h"
 #include "server/server.h"
 
+#include "tests/stats_rrdb_tests.h"
+#include "tests/lru_tests.h"
+
 int main(int argc, char ** argv)
 {
 
@@ -26,28 +29,21 @@ int main(int argc, char ** argv)
     // init
     srand(time(NULL));
 
-    // load config
-    boost::shared_ptr<config> cfg(new config());
-    if(!cfg->init(argc, argv)) {
-        return (0);
-    }
+    //
+    // lru_cache
+    //
+    TEST_START("lru_cache");
+    lru_tests::run();
+    TEST_END("lru_cache");
 
 
+
+    // TODO
     // main server
-    boost::shared_ptr<server> main_server(new server());
-    main_server->initialize(cfg);
-
-    if(cfg->has("test")) {
-        main_server->test(cfg->get<std::string>("test"));
-        return(0);
-    }
-    if(cfg->has("daemon")) {
-        main_server->daemonize(cfg->get<std::string>("daemon"));
-    }
-    if(cfg->has("server.user")) {
-        main_server->setuid_user(cfg->get<std::string>("server.user"));
-    }
-    main_server->run();
+    // boost::shared_ptr<server> main_server(new server());
+    // main_server->initialize(cfg);
+    // boost::shared_ptr<rrdb_test> test(new rrdb_test(main_server->_rrdb));
+    // test->run(params);
 
   } catch (const std::exception & e) {
     LOG(log::LEVEL_CRITICAL,  "EXCEPTION: %s", e.what());

@@ -44,7 +44,6 @@ public:
   void stop();
 
   void update_status();
-  void test(const std::string & params);
 
 private:
   void signal_handler(const boost::system::error_code& error, int signal_number);

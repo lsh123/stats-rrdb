@@ -17,7 +17,6 @@
 #include "server/thread_pool.h"
 
 #include "rrdb/rrdb.h"
-#include "rrdb/rrdb_test.h"
 
 #include "server/server_udp.h"
 #include "server/server_tcp.h"
@@ -264,10 +263,4 @@ void server::status_update_thread()
 
   // done
   LOG(log::LEVEL_INFO, "Server status update thread stopped");
-}
-
-void server::test(const std::string & params)
-{
-  boost::shared_ptr<rrdb_test> test(new rrdb_test(_rrdb));
-  test->run(params);
 }

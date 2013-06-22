@@ -34,7 +34,6 @@ bool config::init(int argc, char ** argv)
       ("help,h",                            "produce this message")
       ("config,c", value<std::string>(),    "load configuration file")
       ("daemon,d", value<std::string>(),    "daemonize server and write pid to file")
-      ("test,t",   value<std::string>(),    "run performance test and exit, the parameter defines the test configuration: <threads>|<tasks>|<metrics>")
   ;
   options_description config_file_desc("Config File Options");
   config_file_desc.add_options()

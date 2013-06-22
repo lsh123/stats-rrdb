@@ -37,10 +37,6 @@ int main(int argc, char ** argv)
     boost::shared_ptr<server> main_server(new server());
     main_server->initialize(cfg);
 
-    if(cfg->has("test")) {
-        main_server->test(cfg->get<std::string>("test"));
-        return(0);
-    }
     if(cfg->has("daemon")) {
         main_server->daemonize(cfg->get<std::string>("daemon"));
     }

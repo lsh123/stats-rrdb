@@ -30,11 +30,13 @@ EXTRA_DIST = \
 	rrdb/rrdb_metric_block.h \
 	rrdb/rrdb_metric_tuples_cache.h \
 	rrdb/rrdb_metric_tuple.h \
-	rrdb/rrdb_test.h \
 	server/server.h \
 	server/server_tcp.h \
 	server/server_udp.h \
 	server/thread_pool.h \
+	tests/lru_tests.h \
+	tests/rrdb_test.h \
+	tests/stats_rrdb_tests.h \
 	$(NULL)
 
 
@@ -79,7 +81,6 @@ libstats_rrdb_la_SOURCES= \
 	rrdb/rrdb_metric_block.cpp \
 	rrdb/rrdb_metric_tuples_cache.cpp \
 	rrdb/rrdb_metric_tuple.cpp \
-	rrdb/rrdb_test.cpp \
 	server/server.cpp \
 	server/server_tcp.cpp \
 	server/server_udp.cpp \
@@ -118,6 +119,8 @@ stats_rrdb_LDADD= \
 # stats-rrdb-tests (tests)
 #
 stats_rrdb_tests_SOURCES= \
+	tests/lru_tests.cpp \
+	tests/rrdb_test.cpp \
 	tests/stats_rrdb_tests.cpp \
 	$(NULL)
 stats_rrdb_tests_CPPFLAGS= \
