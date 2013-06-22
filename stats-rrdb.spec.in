@@ -83,9 +83,16 @@ exit 0
 %files
 %defattr(-,root,root,-)
 
-%doc AUTHORS ChangeLog COPYING NEWS README.md LANGUAGE.md
+%exclude %{_bindir}/%{name}-tests
+%exclude %{_libdir}/lib%{name}.*
+
 %{_bindir}/%{name}
 %{_initrddir}/%{name}
+# %{_libdir}/lib%{name}.a
+# %{_libdir}/lib%{name}.so
+# %{_libdir}/lib%{name}.so.*
+
+%doc AUTHORS ChangeLog COPYING NEWS README.md LANGUAGE.md
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 
