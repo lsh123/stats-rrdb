@@ -19,18 +19,18 @@ public:
   config();
   virtual ~config();
 
-  bool init(int argc, char ** argv);
+  bool init(int argc, const char ** argv);
 
   bool has(const std::string & name);
 
   template<typename T>
-  T get(const std::string & name, const T & default_value = T()) const {
+  T get(const std::string & name, const T & default_value = T()) const
+  {
     if (!this->_data.count(name)) {
         return default_value;
     }
     return this->_data[name].as<T>();
   }
-
 
 private:
   std::string                           _config_file;

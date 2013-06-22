@@ -26,7 +26,7 @@ config::~config()
 {
 }
 
-bool config::init(int argc, char ** argv)
+bool config::init(int argc, const char ** argv)
 {
   // setup possible command line and config file options
   options_description cmd_line_desc("Command-Line Options");

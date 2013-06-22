@@ -5,10 +5,12 @@
  *      Author: aleksey
  */
 
-#include "lru_tests.h"
+#include "tests/lru_tests.h"
 #include "tests/stats_rrdb_tests.h"
 
-
+#include "common/log.h"
+#include "common/config.h"
+#include "common/exception.h"
 
 
 
@@ -23,6 +25,8 @@ lru_tests::~lru_tests()
 
 void lru_tests::test0_insert()
 {
+  TEST_SUBTEST_START(0, "insert()");
+
   // insert some data
   _cache.insert("test-0", 0, _start_ts);
   _cache.insert("test-1", 1, _start_ts + 1);
@@ -49,10 +53,15 @@ void lru_tests::test0_insert()
   TEST_CHECK(lru_it == _cache.lru_end());
   TEST_CHECK_EQUAL(vt._v, 2);
   TEST_CHECK_EQUAL(vt._k, "test-2");
+
+  // done
+  TEST_SUBTEST_END();
 }
 
 void lru_tests::test1_find_and_use()
 {
+  TEST_SUBTEST_START(1, "find() and use()");
+
   // check size
   my::size_t size = _cache.size();
   TEST_CHECK_EQUAL(size, 3);
@@ -78,10 +87,15 @@ void lru_tests::test1_find_and_use()
   TEST_CHECK(lru_it == _cache.lru_end());
   TEST_CHECK_EQUAL(vt._v, 1);
   TEST_CHECK_EQUAL(vt._k, "test-1");
+
+  // done
+  TEST_SUBTEST_END();
 }
 
 void lru_tests::test2_erase()
 {
+  TEST_SUBTEST_START(2, "erase()");
+
   // check size
   my::size_t size = _cache.size();
   TEST_CHECK_EQUAL(size, 3);
@@ -104,18 +118,15 @@ void lru_tests::test2_erase()
   TEST_CHECK(lru_it == _cache.lru_end());
   TEST_CHECK_EQUAL(vt._v, 1);
   TEST_CHECK_EQUAL(vt._k, "test-1");
+
+  // done
+  TEST_SUBTEST_END();
 }
 
 void lru_tests::run()
 {
   lru_tests test;
-
-  TEST_SUBTEST(0, "insert()");
   test.test0_insert();
-
-  TEST_SUBTEST(1, "find() and use()");
   test.test1_find_and_use();
-
-  TEST_SUBTEST(2, "erase()");
   test.test2_erase();
 }

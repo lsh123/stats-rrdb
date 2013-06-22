@@ -347,8 +347,7 @@ private:
 //
 //
 //
-rrdb::rrdb(boost::shared_ptr<server> server) :
-  _server(server),
+rrdb::rrdb() :
   _flush_interval(interval_parse("1 min")),
   _default_policy(retention_policy_parse("1 min FOR 1 day")),
   _files_cache(new rrdb_file_cache()),

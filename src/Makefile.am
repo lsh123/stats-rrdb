@@ -35,6 +35,7 @@ EXTRA_DIST = \
 	server/server_udp.h \
 	server/thread_pool.h \
 	tests/lru_tests.h \
+	tests/query_tests.h \
 	tests/rrdb_test.h \
 	tests/stats_rrdb_tests.h \
 	$(NULL)
@@ -120,6 +121,7 @@ stats_rrdb_LDADD= \
 #
 stats_rrdb_tests_SOURCES= \
 	tests/lru_tests.cpp \
+	tests/query_tests.cpp \
 	tests/rrdb_test.cpp \
 	tests/stats_rrdb_tests.cpp \
 	$(NULL)

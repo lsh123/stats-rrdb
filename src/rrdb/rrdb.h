@@ -60,7 +60,7 @@ public:
   }; // class data_walker
 
 public:
-  rrdb(boost::shared_ptr<server> server);
+  rrdb();
   virtual ~rrdb();
 
   void initialize(boost::shared_ptr<config> config);
@@ -107,8 +107,6 @@ private:
   t_metrics_vector get_dirty_metrics();
 
 private:
-  boost::weak_ptr<server> _server;
-
   // config
   my::interval_t          _flush_interval;
   t_retention_policy        _default_policy;

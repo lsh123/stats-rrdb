@@ -22,7 +22,7 @@ class rrdb_test
 {
 public:
   typedef std::vector< std::string > params_t;
-  typedef std::vector< std::vector<std::string> > csv_data_t;
+  typedef std::vector< std::vector<std::string> > t_csv_data;
 
 
 public:
@@ -40,7 +40,7 @@ private:
   static std::string get_test_metric_name(const my::size_t & n);
   void cleanup(const my::size_t & metrics_num);
 
-  static csv_data_t parse_csv_data(const t_memory_buffer_data & data);
+  static t_csv_data parse_csv_data(const t_memory_buffer_data & data);
 
 private:
   boost::shared_ptr<rrdb> _rrdb;

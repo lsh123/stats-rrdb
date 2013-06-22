@@ -40,7 +40,7 @@ void server::initialize(boost::shared_ptr<config> config)
   );
 
   // create
-  _rrdb.reset(new rrdb(shared_from_this()));
+  _rrdb.reset(new rrdb());
   _server_udp.reset(new server_udp(_rrdb));
   _server_tcp.reset(new server_tcp(_rrdb));
 

@@ -106,7 +106,7 @@ void rrdb_test::run(const std::string & params_str) {
   }
 }
 
-rrdb_test::csv_data_t rrdb_test::parse_csv_data(const t_memory_buffer_data & data)
+rrdb_test::t_csv_data rrdb_test::parse_csv_data(const t_memory_buffer_data & data)
 {
   // break into lines
   std::vector<std::string> lines;
@@ -114,7 +114,7 @@ rrdb_test::csv_data_t rrdb_test::parse_csv_data(const t_memory_buffer_data & dat
 
   // break fields in the line
   std::vector<std::string> v;
-  rrdb_test::csv_data_t res;
+  rrdb_test::t_csv_data res;
   res.reserve(lines.size());
   BOOST_FOREACH(const std::string & line, lines) {
     if(line.empty()) continue;
@@ -132,189 +132,6 @@ void rrdb_test::run_select_test(const params_t & params)
 {
   if(params.size() != 1) {
       throw exception("Invalid test params: expected <test_name>");
-  }
-
-  // pre-test cleanup
-  std::cout << "Pre-test clean up..." << std::endl;
-  this->cleanup(1);
-
-  // setup
-  std::cout << "Setup..." << std::endl;
-  std::string metric_name = rrdb_test::get_test_metric_name(1);
-  my::time_t start_ts = 1371600000; // Wed, 19 Jun 2013 00:00:00 GMT
-  my::size_t tests_count = 180;
-  _rrdb->create_metric(metric_name, retention_policy_parse("1 sec FOR 10 secs, 10 secs for 30 secs, 30 sec for 1 hour"));
-
-  // insert data
-  std::cout << "Insert data..." << std::endl;
-  for(my::size_t ts = 0; ts < tests_count; ++ts) {
-      _rrdb->update_metric(metric_name, start_ts + ts, 1.0);
-  }
-
-  //
-  // TEST 1: get all data
-  //
-  std::cout << "=== QUERY ALL DATA" << std::endl;
-  {
-    char buf[1024];
-    snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu ; ",
-        metric_name.c_str(),
-        start_ts,
-        start_ts + tests_count + 100
-    );
-
-    t_memory_buffer_data res_data;
-    t_memory_buffer res(res_data);
-    _rrdb->execute_tcp_command(buf, res);
-
-    rrdb_test::csv_data_t parsed_data = rrdb_test::parse_csv_data(res_data);
-
-    // count: 1 header row + 10 rows 1 sec each + (30 / 10) rows 10 sec each + 30 sec rows
-    TEST_CHECK_EQUAL(parsed_data.size(), (1 + 10 / 1 + (30 / 10 - 1) + (tests_count / 30 - 1) ) );
-
-    // first line is the latest: latest ts + count = 1
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data[1][0]), (my::time_t)(start_ts + tests_count - 1));
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data[1][1]), 1);
-
-    // last line is the oldest: oldest ts + full 30 sec interval data
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data.back()[0]), start_ts);
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data.back()[1]), 30);
-
-    // test 1: done
-    std::cout << "=== Result for " << buf << std::endl;
-    std::cout << std::string(res_data.begin(), res_data.end()) << std::endl;
-  }
-
-  //
-  // TEST 2: get 5 secs
-  //
-  std::cout << "=== QUERY LAST 5 SEC" << std::endl;
-  {
-    char buf[1024];
-    snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu ; ",
-        metric_name.c_str(),
-        start_ts + tests_count - 5,
-        start_ts + tests_count
-    );
-
-    t_memory_buffer_data res_data;
-    t_memory_buffer res(res_data);
-    _rrdb->execute_tcp_command(buf, res);
-
-    rrdb_test::csv_data_t parsed_data  = rrdb_test::parse_csv_data(res_data);
-
-    // expect 5 rows + header
-    TEST_CHECK_EQUAL(parsed_data.size(), (1 + 5) );
-
-    // first line is the latest: latest ts + count = 1
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data[1][0]), (my::time_t)(start_ts + tests_count - 1));
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data[1][1]), 1);
-
-    // last line is the oldest: (latest ts - 5 secs) + count = 1
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data.back()[0]), (my::time_t)(start_ts + tests_count - 5));
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data.back()[1]), 1);
-
-    // test 2: done
-    std::cout << "=== Result for " << buf << std::endl;
-    std::cout << std::string(res_data.begin(), res_data.end()) << std::endl;
-  }
-
-  //
-  // TEST 3: get all data group by 30 secs (end ts shift is 30)
-  //
-  std::cout << "=== QUERY ALL DATA GROUP BY 30 secs" << std::endl;
-  {
-    char buf[1024];
-    snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu group by 30 secs; ",
-        metric_name.c_str(),
-        start_ts,
-        start_ts + tests_count + 30
-    );
-
-    t_memory_buffer_data res_data;
-    t_memory_buffer res(res_data);
-    _rrdb->execute_tcp_command(buf, res);
-
-    rrdb_test::csv_data_t parsed_data = rrdb_test::parse_csv_data(res_data);
-
-    // count: 1 header row + 30 sec rows
-    TEST_CHECK_EQUAL(parsed_data.size(), (1 + tests_count / 30) );
-
-    // first line is the latest: latest ts + count = 1
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data[1][0]), (my::time_t)(start_ts + tests_count - 30));
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data[1][1]), 30);
-
-    // last line is the oldest: oldest ts + full 30 sec interval data
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data.back()[0]), start_ts);
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data.back()[1]), 30);
-
-    // test 1: done
-    std::cout << "=== Result for " << buf << std::endl;
-    std::cout << std::string(res_data.begin(), res_data.end()) << std::endl;
-  }
-
-
-  //
-  // TEST 4: get all data group by 30 secs (end ts shift is 37)
-  //
-  std::cout << "=== QUERY ALL DATA GROUP BY 30 secs (shift 37 secs)" << std::endl;
-  {
-    char buf[1024];
-    snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu group by 30 secs; ",
-        metric_name.c_str(),
-        start_ts,
-        start_ts + tests_count + 37
-    );
-
-    t_memory_buffer_data res_data;
-    t_memory_buffer res(res_data);
-    _rrdb->execute_tcp_command(buf, res);
-
-    rrdb_test::csv_data_t parsed_data = rrdb_test::parse_csv_data(res_data);
-
-    // count: 1 header row + 30 sec rows
-    TEST_CHECK_EQUAL(parsed_data.size(), (1 + tests_count / 30) );
-
-    // first line is the latest: latest ts + count = 1
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data[2][1]), 30);
-
-    // last line is the oldest: start ts + full 30 sec interval data
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data.back()[0]), start_ts);
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data.back()[1]), 30);
-
-    // test 1: done
-    std::cout << "=== Result for " << buf << std::endl;
-    std::cout << std::string(res_data.begin(), res_data.end()) << std::endl;
-  }
-
-  //
-  // TEST 5: get all data group by 1 year
-  //
-  std::cout << "=== QUERY ALL DATA GROUP BY 1 year" << std::endl;
-  {
-    char buf[1024];
-    snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu group by 1 year; ",
-        metric_name.c_str(),
-        start_ts,
-        start_ts + tests_count + 10000
-    );
-
-    t_memory_buffer_data res_data;
-    t_memory_buffer res(res_data);
-    _rrdb->execute_tcp_command(buf, res);
-
-    rrdb_test::csv_data_t parsed_data = rrdb_test::parse_csv_data(res_data);
-
-    // count: 1 header row + 1 data row
-    TEST_CHECK_EQUAL(parsed_data.size(), 2);
-
-    // first and only line: start ts + count = 1
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data[1][0]), start_ts);
-    TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data[1][1]), tests_count);
-
-    // test 4: done
-    std::cout << "=== Result for " << buf << std::endl;
-    std::cout << std::string(res_data.begin(), res_data.end()) << std::endl;
   }
 
 
