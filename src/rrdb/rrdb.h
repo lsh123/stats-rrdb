@@ -96,7 +96,7 @@ public:
   }
   const boost::shared_ptr<rrdb_metric_tuples_cache> & get_tuples_cache() const
   {
-    return _blocks_cache;
+    return _tuples_cache;
   }
 
 private:
@@ -115,8 +115,8 @@ private:
   spinlock                _metrics_lock;
 
   boost::shared_ptr<rrdb_files_cache>         _files_cache;
-  boost::shared_ptr<rrdb_metric_tuples_cache> _blocks_cache;
-  boost::shared_ptr< boost::thread >         _flush_to_disk_thread;
+  boost::shared_ptr<rrdb_metric_tuples_cache> _tuples_cache;
+  boost::shared_ptr< boost::thread >          _flush_to_disk_thread;
 }; // class rrdb
 
 #endif /* RRDB_H_ */

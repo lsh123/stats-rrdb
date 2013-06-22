@@ -102,9 +102,12 @@ void rrdb_metric::get_last_value(my::value_t & value, my::time_t & value_ts) con
   value_ts = _header._last_value_ts;
 }
 
-void rrdb_metric::update(const boost::shared_ptr<rrdb> & rrdb, const my::time_t & ts, const my::value_t & value)
-{
-  CHECK_AND_THROW(rrdb);
+void rrdb_metric::update(
+    const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
+    const my::time_t & ts,
+    const my::value_t & value
+) {
+  CHECK_AND_THROW(tuples_cache);
 
   boost::lock_guard<spinlock> guard(_lock);
   if(_header._blocks_size <= 0) {
@@ -143,7 +146,7 @@ void rrdb_metric::update(const boost::shared_ptr<rrdb> & rrdb, const my::time_t 
       if(ii == 1) {
           LOG(log::LEVEL_DEBUG3, "Updating block with 'one' at ts %lld with ctx state %d", one.get_ts(), one._state);
 
-          block->update(rrdb, shared_from_this(), one, two);
+          block->update(tuples_cache, shared_from_this(), one, two);
           if(two._state == rrdb_metric_block::UpdateState_Stop) {
               break;
           }
@@ -151,7 +154,7 @@ void rrdb_metric::update(const boost::shared_ptr<rrdb> & rrdb, const my::time_t 
       } else {
           LOG(log::LEVEL_DEBUG3, "Updating block with 'two' at ts %lld with ctx state %d", two.get_ts(), two._state);
 
-          block->update(rrdb, shared_from_this(), two, one);
+          block->update(tuples_cache, shared_from_this(), two, one);
           if(one._state == rrdb_metric_block::UpdateState_Stop) {
               break;
           }
@@ -161,9 +164,13 @@ void rrdb_metric::update(const boost::shared_ptr<rrdb> & rrdb, const my::time_t 
   }
 }
 
-void rrdb_metric::select(const boost::shared_ptr<rrdb> & rrdb, const my::time_t & ts1, const my::time_t & ts2, rrdb::data_walker & walker)
-{
-  CHECK_AND_THROW(rrdb);
+void rrdb_metric::select(
+    const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
+    const my::time_t & ts1,
+    const my::time_t & ts2,
+    rrdb::data_walker & walker
+) {
+  CHECK_AND_THROW(tuples_cache);
 
   boost::lock_guard<spinlock> guard(_lock);
   if(_header._blocks_size <= 0) {
@@ -181,7 +188,7 @@ void rrdb_metric::select(const boost::shared_ptr<rrdb> & rrdb, const my::time_t 
     }
     if(res ==  0) {
         // res == 0 => block and interval intersect!
-        block->select(rrdb, shared_from_this(), ts1, ts2, walker);
+        block->select(tuples_cache, shared_from_this(), ts1, ts2, walker);
     }
   }
 

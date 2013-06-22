@@ -6,6 +6,7 @@
  */
 
 #include "rrdb/rrdb_metric_block.h"
+#include "rrdb/rrdb_files_cache.h"
 #include "rrdb/rrdb_metric_tuples_cache.h"
 
 #include "common/types.h"
@@ -40,18 +41,17 @@ rrdb_metric_block::~rrdb_metric_block()
 
 
 rrdb_metric_tuples_t rrdb_metric_block::get_tuples(
-    const boost::shared_ptr<rrdb> & rrdb,
+    const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
     const boost::shared_ptr<rrdb_metric> & rrdb_metric
 )
 {
-  CHECK_AND_THROW(rrdb.get());
-  CHECK_AND_THROW(rrdb_metric.get());
+  CHECK_AND_THROW(tuples_cache);
+  CHECK_AND_THROW(rrdb_metric);
 
   if(_modified_tuples) {
     return _modified_tuples;
   } else {
-    return rrdb->get_tuples_cache()->find_or_load_tuples(
-        rrdb,
+    return tuples_cache->find_or_load_tuples(
         rrdb_metric,
         shared_from_this()
     );
@@ -144,13 +144,13 @@ t_rrdb_metric_tuple * rrdb_metric_block::find_tuple(
 }
 
 void rrdb_metric_block::update(
-    const boost::shared_ptr<rrdb> & rrdb,
+    const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
     const boost::shared_ptr<rrdb_metric> & rrdb_metric,
     const t_update_ctx & in,
     t_update_ctx & out
 )
 {
-  rrdb_metric_tuples_t the_tuples(this->get_tuples(rrdb, rrdb_metric));
+  rrdb_metric_tuples_t the_tuples(this->get_tuples(tuples_cache, rrdb_metric));
   CHECK_AND_THROW(the_tuples.get());
   CHECK_AND_THROW(this->get_cur_ts() == the_tuples[_header._pos]._ts);
 
@@ -181,7 +181,7 @@ void rrdb_metric_block::update(
 }
 
 void rrdb_metric_block::select(
-    const boost::shared_ptr<rrdb> & rrdb,
+    const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
     const boost::shared_ptr<rrdb_metric> & rrdb_metric,
     const my::time_t & ts1,
     const my::time_t & ts2,
@@ -190,7 +190,7 @@ void rrdb_metric_block::select(
 {
   CHECK_AND_THROW(_header._pos < _header._count);
 
-  rrdb_metric_tuples_t the_tuples(this->get_tuples(rrdb, rrdb_metric));
+  rrdb_metric_tuples_t the_tuples(this->get_tuples(tuples_cache, rrdb_metric));
   CHECK_AND_THROW(the_tuples.get());
 
   // walk through all the tuples until we hit the end or the time stops

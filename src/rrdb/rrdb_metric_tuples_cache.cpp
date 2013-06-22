@@ -27,9 +27,12 @@ class rrdb_metric_tuples_cache_impl :
 }; // rrdb_metric_tuples_cache_impl
 
 
-rrdb_metric_tuples_cache::rrdb_metric_tuples_cache():
+rrdb_metric_tuples_cache::rrdb_metric_tuples_cache(
+    const boost::shared_ptr<rrdb_files_cache> & files_cache
+):
+    _files_cache(files_cache),
     _max_size(1024),
-    _blocks_cache_impl(new rrdb_metric_tuples_cache_impl()),
+    _tuples_cache_impl(new rrdb_metric_tuples_cache_impl()),
     _cache_hits(0),
     _cache_misses(0)
 {
@@ -47,7 +50,6 @@ void rrdb_metric_tuples_cache::initialize(boost::shared_ptr<config> config)
 }
 
 rrdb_metric_tuples_t rrdb_metric_tuples_cache::find_or_load_tuples(
-    const boost::shared_ptr<rrdb> & rrdb,
     const boost::shared_ptr<rrdb_metric> & rrdb_metric,
     const boost::shared_ptr<rrdb_metric_block> & rrdb_metric_block
 )
@@ -63,17 +65,17 @@ rrdb_metric_tuples_t rrdb_metric_tuples_cache::find_or_load_tuples(
   //
   {
     boost::lock_guard<spinlock> guard(_lock);
-    rrdb_metric_tuples_cache_impl::t_iterator it = _blocks_cache_impl->find(rrdb_metric_block);
-    if(it != _blocks_cache_impl->end()) {
+    rrdb_metric_tuples_cache_impl::t_iterator it = _tuples_cache_impl->find(rrdb_metric_block);
+    if(it != _tuples_cache_impl->end()) {
         ++_cache_hits;
-        return _blocks_cache_impl->use(it, t);
+        return _tuples_cache_impl->use(it, t);
     }
   }
 
   //
   // Load data from disk - OUTSIDE of the lock!
   //
-  rrdb_metric_tuples_t tuples = rrdb_metric->load_single_block(rrdb->get_files_cache(), rrdb_metric_block);
+  rrdb_metric_tuples_t tuples = rrdb_metric->load_single_block(_files_cache, rrdb_metric_block);
 
   //
   // Insert back into cache - under lock
@@ -82,12 +84,12 @@ rrdb_metric_tuples_t rrdb_metric_tuples_cache::find_or_load_tuples(
     boost::lock_guard<spinlock> guard(_lock);
 
     // purge cache if needed
-    if(_blocks_cache_impl->size() >= _max_size) {
+    if(_tuples_cache_impl->size() >= _max_size) {
         this->purge();
     }
 
     // and put it in the cache
-    _blocks_cache_impl->insert(rrdb_metric_block, tuples, t);
+    _tuples_cache_impl->insert(rrdb_metric_block, tuples, t);
     ++_cache_misses;
   }
 
@@ -115,14 +117,14 @@ void rrdb_metric_tuples_cache::purge()
 void rrdb_metric_tuples_cache::clear_cache()
 {
   boost::lock_guard<spinlock> guard(_lock);
-  _blocks_cache_impl->clear();
+  _tuples_cache_impl->clear();
   _cache_hits = _cache_misses = 0;
 }
 
 void rrdb_metric_tuples_cache::erase(const boost::shared_ptr<rrdb_metric_block> & rrdb_metric_block)
 {
   boost::lock_guard<spinlock> guard(_lock);
-  _blocks_cache_impl->erase(rrdb_metric_block);
+  _tuples_cache_impl->erase(rrdb_metric_block);
 }
 
 my::size_t rrdb_metric_tuples_cache::get_max_size() const
@@ -145,7 +147,7 @@ void rrdb_metric_tuples_cache::set_max_size(const my::size_t & max_size)
 my::size_t rrdb_metric_tuples_cache::get_cache_size() const
 {
   boost::lock_guard<spinlock> guard(_lock);
-  return _blocks_cache_impl->size();
+  return _tuples_cache_impl->size();
 }
 
 my::size_t rrdb_metric_tuples_cache::get_cache_hits() const

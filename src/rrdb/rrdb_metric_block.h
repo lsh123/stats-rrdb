@@ -27,6 +27,8 @@
 
 class rrdb;
 class rrdb_metric;
+class rrdb_metric_tuples_cache;
+class rrdb_files_cache;
 
 typedef boost::uint32_t rrdb_metric_block_pos_t;
 
@@ -141,14 +143,14 @@ public:
 
   // SELECT or UPDATE - main operations
   void select(
-      const boost::shared_ptr<rrdb> & rrdb,
+      const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
       const boost::shared_ptr<rrdb_metric> & rrdb_metric,
       const my::time_t & ts1,
       const my::time_t & ts2,
       rrdb::data_walker & walker
   );
   void update(
-      const boost::shared_ptr<rrdb> & rrdb,
+      const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
       const boost::shared_ptr<rrdb_metric> & rrdb_metric,
       const t_update_ctx & in,
       t_update_ctx & out
@@ -170,7 +172,7 @@ public:
 
 private:
   rrdb_metric_tuples_t get_tuples(
-      const boost::shared_ptr<rrdb> & rrdb,
+      const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
       const boost::shared_ptr<rrdb_metric> & rrdb_metric
   );
 

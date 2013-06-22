@@ -349,10 +349,10 @@ private:
 //
 rrdb::rrdb() :
   _flush_interval(interval_parse("1 min")),
-  _default_policy(retention_policy_parse("1 min FOR 1 day")),
-  _files_cache(new rrdb_files_cache()),
-  _blocks_cache(new rrdb_metric_tuples_cache())
+  _default_policy(retention_policy_parse("1 min FOR 1 day"))
 {
+  _files_cache.reset(new rrdb_files_cache());
+  _tuples_cache.reset(new rrdb_metric_tuples_cache(_files_cache));
 }
 
 rrdb::~rrdb()
@@ -372,7 +372,7 @@ void rrdb::initialize(boost::shared_ptr<config> config)
 
   LOG(log::LEVEL_DEBUG, "Loading RRDB data files");
   _files_cache->initialize(config);
-  _blocks_cache->initialize(config);
+  _tuples_cache->initialize(config);
 
   // load metrics from disk - we do it under lock though it doesn't matter
   {
@@ -421,7 +421,7 @@ void rrdb::stop()
 
   //
   _files_cache->clear_cache();
-  _blocks_cache->clear_cache();
+  _tuples_cache->clear_cache();
 
   LOG(log::LEVEL_INFO, "Stopped RRDB server");
 }
@@ -433,9 +433,9 @@ void rrdb::update_status(const time_t & now)
   this->update_metric("self.file_cache.hits", now,   _files_cache->get_cache_hits());
   this->update_metric("self.file_cache.misses", now, _files_cache->get_cache_misses());
 
-  this->update_metric("self.blocks_cache.size", now,   _blocks_cache->get_cache_size());
-  this->update_metric("self.blocks_cache.hits", now,   _blocks_cache->get_cache_hits());
-  this->update_metric("self.blocks_cache.misses", now, _blocks_cache->get_cache_misses());
+  this->update_metric("self.blocks_cache.size", now,   _tuples_cache->get_cache_size());
+  this->update_metric("self.blocks_cache.hits", now,   _tuples_cache->get_cache_hits());
+  this->update_metric("self.blocks_cache.misses", now, _tuples_cache->get_cache_misses());
 }
 
 void rrdb::flush_to_disk_thread()
@@ -662,7 +662,7 @@ void rrdb::update_metric(const std::string & name, const my::time_t & ts, const 
       metric = this->create_metric(name, _default_policy, false);
   }
 
-  metric->update(shared_from_this(), ts, value);
+  metric->update(_tuples_cache, ts, value);
 }
 
 void rrdb::select_from_metric(const std::string & name, const my::time_t & ts1, const my::time_t & ts2, data_walker & walker)
@@ -672,7 +672,7 @@ void rrdb::select_from_metric(const std::string & name, const my::time_t & ts1, 
       throw exception("The metric '%s' does not exist", name.c_str());
   }
 
-  metric->select(shared_from_this(), ts1, ts2, walker);
+  metric->select(_tuples_cache, ts1, ts2, walker);
 }
 
 void rrdb::execute_query_statement(const std::string & buffer, t_memory_buffer & res)

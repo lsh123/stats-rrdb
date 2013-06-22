@@ -83,9 +83,17 @@ public:
   );
   void save_dirty_blocks(const boost::shared_ptr<rrdb> & rrdb);
 
-  void update(const boost::shared_ptr<rrdb> & rrdb, const my::time_t & ts, const my::value_t & value);
-  void select(const boost::shared_ptr<rrdb> & rrdb, const my::time_t & ts1, const my::time_t & ts2,
-      rrdb::data_walker & walker);
+  void update(
+      const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
+      const my::time_t & ts,
+      const my::value_t & value
+  );
+  void select(
+      const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
+      const my::time_t & ts1,
+      const my::time_t & ts2,
+      rrdb::data_walker & walker
+  );
 
   void get_last_value(my::value_t & value, my::time_t & value_ts) const;
 

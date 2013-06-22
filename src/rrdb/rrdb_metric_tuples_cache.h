@@ -16,13 +16,14 @@
 #include "common/spinlock.h"
 
 class config;
+class rrdb_files_cache;
 class rrdb_metric_tuples_cache_impl;
 
 
 class rrdb_metric_tuples_cache
 {
 public:
-  rrdb_metric_tuples_cache();
+  rrdb_metric_tuples_cache(const boost::shared_ptr<rrdb_files_cache> & files_cache);
   virtual ~rrdb_metric_tuples_cache();
 
   void initialize(boost::shared_ptr<config> config);
@@ -32,7 +33,6 @@ public:
   void set_max_size(const my::size_t & max_size);
 
   rrdb_metric_tuples_t find_or_load_tuples(
-      const boost::shared_ptr<rrdb> & rrdb,
       const boost::shared_ptr<rrdb_metric> & rrdb_metric,
       const boost::shared_ptr<rrdb_metric_block> & rrdb_metric_block
   );
@@ -50,10 +50,11 @@ private:
   mutable spinlock _lock;
 
   // params
+  boost::shared_ptr<rrdb_files_cache> _files_cache;
   my::size_t  _max_size;
 
   // data
-  boost::shared_ptr<rrdb_metric_tuples_cache_impl> _blocks_cache_impl;
+  boost::shared_ptr<rrdb_metric_tuples_cache_impl> _tuples_cache_impl;
 
   // stats
   my::size_t  _cache_hits;
