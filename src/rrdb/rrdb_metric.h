@@ -67,7 +67,7 @@ public:
 
   std::string get_name() const ;
   t_retention_policy get_policy() const;
-  void create(const std::string & filename, const std::string & name, const t_retention_policy & policy);
+  void create(const std::string & name, const t_retention_policy & policy);
 
   inline bool is_dirty() const
   {
@@ -75,6 +75,9 @@ public:
     return my::bitmask_check<boost::uint16_t>(_header._status, Status_Dirty);
   }
 
+  //
+  // File operations
+  //
   std::string get_filename() const;
 
   void load_file(
@@ -86,12 +89,23 @@ public:
   void save_dirty_blocks(
       const boost::shared_ptr<rrdb_files_cache> & files_cache
   );
-
   void delete_file(
       const boost::shared_ptr<rrdb_files_cache> & files_cache,
       const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache
   );
 
+  static void load_metrics(
+      const boost::shared_ptr<rrdb_files_cache> & files_cache,
+      const std::string & path,
+      rrdb::t_metrics_map & metrics
+  );
+  static std::string construct_filename(
+      const std::string & metric_name
+  );
+
+  //
+  // Operations: update/select
+  //
   void update(
       const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
       const my::time_t & ts,

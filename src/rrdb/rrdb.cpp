@@ -378,7 +378,7 @@ void rrdb::initialize(boost::shared_ptr<config> config)
   // load metrics from disk - we do it under lock though it doesn't matter
   {
     boost::lock_guard<spinlock> guard(_metrics_lock);
-    _files_cache->load_metrics(_metrics);
+    rrdb_metric::load_metrics(_files_cache, _files_cache->get_path(), _metrics);
   }
 
   LOG(log::LEVEL_INFO, "Loaded RRDB data files");
@@ -541,7 +541,7 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
 
   // create new and try to insert into map, lock access to _metrics
   boost::shared_ptr<rrdb_metric> res(new rrdb_metric());
-  res->create(_files_cache->get_filename(name_lc), name_lc, policy);
+  res->create(name_lc, policy);
   {
     // make sure there is always only one metric for the name
     boost::lock_guard<spinlock> guard(_metrics_lock);

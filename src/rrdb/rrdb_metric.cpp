@@ -9,6 +9,7 @@
 #include <boost/thread/locks.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/foreach.hpp>
+#include <boost/filesystem.hpp>
 
 #include "parser/statements.h"
 
@@ -25,6 +26,12 @@
 
 #define RRDB_METRIC_MAGIC               0xDB99
 #define RRDB_METRIC_VERSION             0x01
+
+
+// make it configurable?
+#define RRDB_METRIC_SUBFOLDERS_NUM      512
+#define RRDB_METRIC_EXTENSION           ".rrdb"
+
 
 
 
@@ -67,7 +74,7 @@ t_retention_policy rrdb_metric::get_policy() const
 }
 
 
-void rrdb_metric::create(const std::string & filename, const std::string & name, const t_retention_policy & policy)
+void rrdb_metric::create(const std::string & name, const t_retention_policy & policy)
 {
   {
     boost::lock_guard<spinlock> guard(_lock);
@@ -93,7 +100,7 @@ void rrdb_metric::create(const std::string & filename, const std::string & name,
     }
 
     // set filename
-    _filename = filename;
+    _filename = rrdb_metric::construct_filename(name);
   }
 }
 
@@ -408,3 +415,67 @@ void rrdb_metric::read_header(std::fstream & fs)
 
   LOG(log::LEVEL_DEBUG, "RRDB metric: read header '%s'", _name.get());
 }
+
+
+void rrdb_metric::load_metrics(
+    const boost::shared_ptr<rrdb_files_cache> & files_cache,
+    const std::string & path,
+    rrdb::t_metrics_map & metrics
+)
+{
+  // ensure folders exist
+  boost::filesystem::create_directories(path);
+
+  // create subfolders for metrics
+  char buf[64];
+  for(my::size_t ii = 0; ii < RRDB_METRIC_SUBFOLDERS_NUM; ++ii) {
+      snprintf(buf, sizeof(buf), "%lu", SIZE_T_CAST ii);
+      boost::filesystem::create_directories(path + buf);
+  }
+
+  // check all files and folders
+  my::size_t path_len = path.length();
+  for(boost::filesystem::recursive_directory_iterator end, cur(path); cur != end; ++cur) {
+      std::string full_path = (*cur).path().string();
+      LOG(log::LEVEL_DEBUG3, "Checking file %s", full_path.c_str());
+
+      // we are looking for files
+      if((*cur).status().type() != boost::filesystem::regular_file) {
+          continue;
+      }
+
+      // with specified extension
+      if((*cur).path().extension() != RRDB_METRIC_EXTENSION) {
+          continue;
+      }
+
+      // load metric
+      LOG(log::LEVEL_DEBUG2, "Loading file %s", full_path.c_str());
+      std::string filename(full_path.substr(path_len));
+      boost::shared_ptr<rrdb_metric> metric(new rrdb_metric(filename));
+      metric->load_file(files_cache);
+
+      // insert into the output map
+      std::string name(metric->get_name());
+      rrdb::t_metrics_map::const_iterator it = metrics.find(name);
+      if(it == metrics.end()) {
+          // insert loaded metric into map and return
+          metrics[name] = metric;
+      }
+  }
+}
+
+std::string rrdb_metric::construct_filename(const std::string & metric_name)
+{
+  // calculate subfolder
+  my::size_t name_hash = boost::hash<std::string>()(metric_name) % RRDB_METRIC_SUBFOLDERS_NUM;
+  char buf[64];
+  snprintf(buf, sizeof(buf), "%lu/", SIZE_T_CAST name_hash);
+
+  // the name should match the "a-zA-Z0-9._-" pattern so we can safely
+  // use it as filename
+  return buf + metric_name + RRDB_METRIC_EXTENSION;
+}
+
+
+

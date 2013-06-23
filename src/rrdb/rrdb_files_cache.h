@@ -47,11 +47,9 @@ public:
   my::size_t get_cache_misses() const;
 
   fstream_ptr open_file(const std::string & filename, bool new_file = false);
-  void move_file(const std::string & from, const std::string & to);
   void delete_file(const std::string & filename);
 
   std::string get_filename(const std::string & metric_name) const;
-  void load_metrics(rrdb::t_metrics_map & metrics);
 
 private:
   void purge();
