@@ -375,12 +375,6 @@ void rrdb::initialize(boost::shared_ptr<config> config)
   _files_cache->initialize(config);
   _tuples_cache->initialize(config);
 
-  // load metrics from disk - we do it under lock though it doesn't matter
-  {
-    boost::lock_guard<spinlock> guard(_metrics_lock);
-    rrdb_metric::load_metrics(_files_cache, _files_cache->get_path(), _metrics);
-  }
-
   LOG(log::LEVEL_INFO, "Loaded RRDB data files");
 }
 
@@ -396,6 +390,12 @@ void rrdb::start()
   }
 
   LOG(log::LEVEL_DEBUG, "Starting RRDB server");
+
+  // load metrics from disk - we do it under lock though it doesn't matter
+  {
+    boost::lock_guard<spinlock> guard(_metrics_lock);
+    rrdb_metric::load_metrics(_files_cache, _files_cache->get_path(), _metrics);
+  }
 
   // start flush thread
   _flush_to_disk_thread.reset(new boost::thread(boost::bind(&rrdb::flush_to_disk_thread, this)));
