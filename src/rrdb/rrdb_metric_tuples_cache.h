@@ -66,10 +66,11 @@ private:
   mutable spinlock _lock;
 
   // params
-  boost::shared_ptr<rrdb_files_cache> _files_cache;
-  my::size_t  _max_size;
+  my::size_t        _max_size;
+  double            _purge_threshold;
 
   // data
+  boost::shared_ptr<rrdb_files_cache> _files_cache;
   boost::shared_ptr<rrdb_metric_tuples_cache_impl> _tuples_cache_impl;
 }; // rrdb_metric_tuples_cache
 

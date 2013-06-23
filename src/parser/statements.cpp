@@ -17,8 +17,8 @@
 #include "common/exception.h"
 #include "common/log.h"
 
-
-t_statement statement_parse_tcp(const std::string & str)
+// TODO: better error handled
+t_statement statement_query_parse(const std::string & str)
 {
   t_statement ret;
   statement_grammar<std::string::const_iterator> grammar;
@@ -32,7 +32,7 @@ t_statement statement_parse_tcp(const std::string & str)
   return ret;
 }
 
-t_statement statement_parse_udp(const std::string & str)
+t_statement statement_update_parse(const std::string & str)
 {
   std::vector< std::string > data;
   boost::algorithm::split(data, str, boost::algorithm::is_any_of("|"), boost::algorithm::token_compress_off);

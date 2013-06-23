@@ -30,9 +30,10 @@ class rrdb_metric_tuples_cache_impl :
 rrdb_metric_tuples_cache::rrdb_metric_tuples_cache(
     const boost::shared_ptr<rrdb_files_cache> & files_cache
 ):
-    _files_cache(files_cache),
-    _max_size(1024),
-    _tuples_cache_impl(new rrdb_metric_tuples_cache_impl())
+  _max_size(1024),
+  _purge_threshold(0.8),
+  _files_cache(files_cache),
+  _tuples_cache_impl(new rrdb_metric_tuples_cache_impl())
 {
 }
 
@@ -45,6 +46,15 @@ void rrdb_metric_tuples_cache::initialize(boost::shared_ptr<config> config)
 {
   // set cache size
   this->set_max_size(config->get<my::size_t>("rrdb.blocks_cache_size", this->get_max_size()));
+
+  // simple - under lock
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+    _purge_threshold = config->get<double>("rrdb.blocks_cache_purge_threshold", _purge_threshold);
+    if(_purge_threshold > 1.0) {
+        throw exception("The rrdb.open_files_cache_purge_threshold should not exceed 1.0");
+    }
+  }
 }
 
 rrdb_metric_tuples_t rrdb_metric_tuples_cache::find(
@@ -95,7 +105,8 @@ void rrdb_metric_tuples_cache::purge()
   /* TODO: enable purge later
   t_lru_cache::t_lru_iterator it(_cache.lru_begin());
   t_lru_cache::t_lru_iterator it_end(_cache.lru_end());
-  while(it != it_end && _cache.size() >= _max_size) {
+  my::size_t purge_limit = _max_size * _purge_threshold;
+  while(it != it_end && _cache.size() >= purge_limit) {
       // TODO: check that blocks are not dirty
       // TODO: make sure there is no race condition
       // with the update code

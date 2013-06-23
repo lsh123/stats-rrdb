@@ -28,6 +28,7 @@ class rrdb_files_cache_impl :
 rrdb_files_cache::rrdb_files_cache():
   _path("/var/lib/rrdb/"),
   _max_size(1024),
+  _purge_threshold(0.8),
   _files_cache_impl(new rrdb_files_cache_impl())
 {
 
@@ -44,6 +45,15 @@ void rrdb_files_cache::initialize(boost::shared_ptr<config> config)
 
   // set cache size
   this->set_max_size(config->get<my::size_t>("rrdb.open_files_cache_size", this->get_max_size()));
+
+  // simple - under lock
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+    _purge_threshold = config->get<double>("rrdb.open_files_cache_purge_threshold", _purge_threshold);
+    if(_purge_threshold > 1.0) {
+        throw exception("The rrdb.open_files_cache_purge_threshold should not exceed 1.0");
+    }
+  }
 }
 
 my::size_t rrdb_files_cache::get_max_size() const
@@ -118,7 +128,8 @@ void rrdb_files_cache::purge()
 
   rrdb_files_cache_impl::t_lru_iterator it(_files_cache_impl->lru_begin());
   rrdb_files_cache_impl::t_lru_iterator it_end(_files_cache_impl->lru_end());
-  while(it != it_end && _files_cache_impl->get_size() >= _max_size) {
+  my::size_t purge_limit = _max_size * _purge_threshold;
+  while(it != it_end && _files_cache_impl->get_size() >= purge_limit) {
       it = _files_cache_impl->lru_erase(it);
   }
 }

@@ -56,6 +56,7 @@ private:
   // params
   std::string      _path;
   my::size_t       _max_size;
+  double           _purge_threshold;
 
   // data
   boost::shared_ptr<rrdb_files_cache_impl> _files_cache_impl;

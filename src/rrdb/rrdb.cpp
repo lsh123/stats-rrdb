@@ -681,7 +681,7 @@ void rrdb::execute_query_statement(const std::string & buffer, t_memory_buffer &
 {
   LOG(log::LEVEL_DEBUG3, "TCP command: '%s'", buffer.c_str());
 
-  t_statement st = statement_parse_tcp(buffer);
+  t_statement st = statement_query_parse(buffer);
   boost::apply_visitor<>(statement_execute_visitor(*this, res), st);
 }
 
@@ -689,7 +689,7 @@ void rrdb::execute_update_statement(const std::string & buffer, t_memory_buffer 
 {
   LOG(log::LEVEL_DEBUG3, "UDP command: %s", buffer.c_str());
 
-  t_statement st = statement_parse_udp(buffer);
+  t_statement st = statement_update_parse(buffer);
   boost::apply_visitor<>(statement_execute_visitor(*this, res), st);
 }
 

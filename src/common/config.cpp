@@ -42,6 +42,7 @@ bool config::init(int argc, const char ** argv)
       ("rrdb.default_policy",          value<std::string>(), "default metric policy (default: '1 sec for 1 min, 1 min for 1 year')")
       ("rrdb.flush_interval",          value<std::string>(), "how often do we flush to disk (default: '10 sec')")
       ("rrdb.open_files_cache_size",   value<my::size_t>(),  "the max size of open file handles (default: 1024)")
+      ("rrdb.open_files_cache_purge_threshold", value<double>(),  "how much do we purge each time (default: 0.8 means that we purge to 0.8*cache_size)")
 
       // server
       ("server.user",                  value<std::string>(), "the user name to switch the process to (default: not set)")

@@ -124,9 +124,9 @@ typedef boost::variant<
 > t_statement;
 
 // The above grammar
-t_statement statement_parse_tcp(const std::string & str);
+t_statement statement_query_parse(const std::string & str);
 
 // <command>|<param1>|<param2>|....
-t_statement statement_parse_udp(const std::string & str);
+t_statement statement_update_parse(const std::string & str);
 
 #endif /* STATEMENTS_H_ */
