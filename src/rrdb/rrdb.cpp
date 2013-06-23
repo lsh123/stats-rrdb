@@ -430,10 +430,13 @@ void rrdb::stop()
 
 void rrdb::update_status(const time_t & now)
 {
-  this->update_metric("self.file_cache.size", now,   _files_cache->get_cache_size());
-  this->update_metric("self.file_cache.hits", now,   _files_cache->get_cache_hits());
-  this->update_metric("self.file_cache.misses", now, _files_cache->get_cache_misses());
+  this->update_metric("self.file_cache.max_size", now,   _files_cache->get_max_size());
+  this->update_metric("self.file_cache.size", now,       _files_cache->get_cache_size());
+  this->update_metric("self.file_cache.hits", now,       _files_cache->get_cache_hits());
+  this->update_metric("self.file_cache.misses", now,     _files_cache->get_cache_misses());
 
+  this->update_metric("self.blocks_cache.max_used_memory", now,   _tuples_cache->get_max_used_memory());
+  this->update_metric("self.blocks_cache.used_memory", now,       _tuples_cache->get_cache_used_memory());
   this->update_metric("self.blocks_cache.size", now,   _tuples_cache->get_cache_size());
   this->update_metric("self.blocks_cache.hits", now,   _tuples_cache->get_cache_hits());
   this->update_metric("self.blocks_cache.misses", now, _tuples_cache->get_cache_misses());

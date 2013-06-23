@@ -36,6 +36,7 @@ public:
   void insert(
       const rrdb_metric_block * const block,
       const rrdb_metric_tuples_t & tuples,
+      const my::memory_size_t & tuples_size,
       const my::time_t & ts
   );
   void erase(
@@ -44,11 +45,12 @@ public:
   void clear();
 
   // params
-  my::size_t get_max_size() const;
-  void set_max_size(const my::size_t & max_size);
+  my::memory_size_t get_max_used_memory() const;
+  void set_max_used_memory(const my::memory_size_t & max_used_memory);
 
 
   // stats
+  my::memory_size_t get_cache_used_memory() const;
   my::size_t get_cache_size() const;
   my::size_t get_cache_hits() const;
   my::size_t get_cache_misses() const;
@@ -66,10 +68,11 @@ private:
   mutable spinlock _lock;
 
   // params
-  my::size_t        _max_size;
+  my::memory_size_t _max_used_memory;
   double            _purge_threshold;
 
   // data
+  my::memory_size_t _used_memory;
   boost::shared_ptr<rrdb_files_cache> _files_cache;
   boost::shared_ptr<rrdb_metric_tuples_cache_impl> _tuples_cache_impl;
 }; // rrdb_metric_tuples_cache

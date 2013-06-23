@@ -38,7 +38,7 @@ inline int interval_overlap(const time_t & ts1_b, const time_t & ts1_e, const ti
 //
 typedef boost::uint32_t interval_t;
 
-#define INTERVAL_SEC    1
+#define INTERVAL_SEC    (1)
 #define INTERVAL_MIN    (60 * INTERVAL_SEC)
 #define INTERVAL_HOUR   (60 * INTERVAL_MIN)
 #define INTERVAL_DAY    (24 * INTERVAL_HOUR)
@@ -58,6 +58,21 @@ typedef boost::uint64_t size_t;
 //
 typedef double value_t;
 
+//
+// Memory size
+//
+typedef boost::uint64_t memory_size_t;
+
+#define MEMORY_SIZE_BYTE        (1)
+#define MEMORY_SIZE_KILOBYTE    (1024 * MEMORY_SIZE_BYTE)
+#define MEMORY_SIZE_MEGABYTE    (1024 * MEMORY_SIZE_KILOBYTE)
+#define MEMORY_SIZE_GIGABYTE    (1024 * MEMORY_SIZE_MEGABYTE)
+
+//
+// Filename - shared_ptr to save space
+//
+typedef boost::shared_ptr<std::string> filename_t;
+
 
 //
 // Bitmask Ops
@@ -74,10 +89,6 @@ inline bool bitmask_check(const T & v, const T & mask) { return (v & mask); }
 template<typename T>
 inline bool bitmask_check_all(const T & v, const T & mask) { return (v & mask) == mask; }
 
-//
-// Filename - shared_ptr to save space
-//
-typedef boost::shared_ptr<std::string> filename_t;
 
 } // namespace my
 

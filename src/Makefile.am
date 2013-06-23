@@ -20,6 +20,8 @@ EXTRA_DIST = \
 	parser/grammar.h \
 	parser/interval.h \
 	parser/interval_grammar.h \
+	parser/memory_size.h \
+	parser/memory_size_grammar.h \
 	parser/retention_policy.h \
 	parser/retention_policy_grammar.h \
 	parser/statements.h \
@@ -75,6 +77,7 @@ libstats_rrdb_la_SOURCES= \
 	common/log.cpp \
 	parser/grammar.cpp \
 	parser/interval.cpp \
+	parser/memory_size.cpp \
 	parser/retention_policy.cpp \
 	parser/statements.cpp \
 	rrdb/rrdb.cpp \

@@ -16,11 +16,34 @@
 #include "common/log.h"
 #include "common/exception.h"
 
+
+class rrdb_metric_tuples_cache_elem
+{
+public:
+  rrdb_metric_tuples_cache_elem(
+    const rrdb_metric_tuples_t & tuples = rrdb_metric_tuples_t(),
+    const my::memory_size_t & tuples_size  = 0
+  ) :
+    _tuples(tuples),
+    _tuples_size(tuples_size)
+  {
+  }
+
+  bool is_valid() const
+  {
+    return _tuples && _tuples_size;
+  }
+
+public:
+  rrdb_metric_tuples_t _tuples;
+  my::memory_size_t    _tuples_size;
+}; // rrdb_metric_tuples_cache_elem
+
 // black magic to make forward declarations work
 class rrdb_metric_tuples_cache_impl :
     public lru_cache<
       const rrdb_metric_block * const,
-      rrdb_metric_tuples_t,
+      rrdb_metric_tuples_cache_elem,
       my::size_t
     >
 {
@@ -30,8 +53,9 @@ class rrdb_metric_tuples_cache_impl :
 rrdb_metric_tuples_cache::rrdb_metric_tuples_cache(
     const boost::shared_ptr<rrdb_files_cache> & files_cache
 ):
-  _max_size(1024),
+  _max_used_memory(1024*1024*1024), // 1GB
   _purge_threshold(0.8),
+  _used_memory(0),
   _files_cache(files_cache),
   _tuples_cache_impl(new rrdb_metric_tuples_cache_impl())
 {
@@ -45,7 +69,7 @@ rrdb_metric_tuples_cache::~rrdb_metric_tuples_cache()
 void rrdb_metric_tuples_cache::initialize(boost::shared_ptr<config> config)
 {
   // set cache size
-  this->set_max_size(config->get<my::size_t>("rrdb.blocks_cache_size", this->get_max_size()));
+  this->set_max_used_memory(config->get<my::memory_size_t>("rrdb.blocks_cache_memory_used", this->get_max_used_memory()));
 
   // simple - under lock
   {
@@ -64,37 +88,54 @@ rrdb_metric_tuples_t rrdb_metric_tuples_cache::find(
   LOG(log::LEVEL_DEBUG3, "Looking for block '%p'", block);
 
   boost::lock_guard<spinlock> guard(_lock);
-  return _tuples_cache_impl->find(block, ts);
+  rrdb_metric_tuples_cache_elem elem(_tuples_cache_impl->find(block, ts));
+  if(elem.is_valid()) {
+      return elem._tuples;
+  }
+
+  return rrdb_metric_tuples_t();
 }
 
 void rrdb_metric_tuples_cache::insert(
     const rrdb_metric_block * const block,
     const rrdb_metric_tuples_t & tuples,
+    const my::memory_size_t & tuples_size,
     const my::time_t & ts
 ) {
+  LOG(log::LEVEL_DEBUG3, "Inserting block '%p'", block);
+
   boost::lock_guard<spinlock> guard(_lock);
 
   // purge cache if needed
-  if(_tuples_cache_impl->get_size() >= _max_size) {
+  if(_used_memory + tuples_size >= _max_used_memory) {
       this->purge();
   }
 
   // and put it in the cache
-  _tuples_cache_impl->insert(block, tuples, ts);
+  rrdb_metric_tuples_cache_elem elem(tuples, tuples_size);
+  if(_tuples_cache_impl->insert(block, elem, ts)) {
+      _used_memory += tuples_size;
+  }
 }
 
 
 void rrdb_metric_tuples_cache::erase(
     const rrdb_metric_block * const block
 ) {
+  LOG(log::LEVEL_DEBUG3, "Erasing block '%p'", block);
+
   boost::lock_guard<spinlock> guard(_lock);
-  _tuples_cache_impl->erase(block);
+  rrdb_metric_tuples_cache_elem elem = _tuples_cache_impl->erase(block);
+  if(elem.is_valid()) {
+      _used_memory -= elem._tuples_size;
+  }
 }
 
 void rrdb_metric_tuples_cache::clear()
 {
   boost::lock_guard<spinlock> guard(_lock);
   _tuples_cache_impl->clear();
+  _used_memory = 0;
 }
 
 void rrdb_metric_tuples_cache::purge()
@@ -102,34 +143,41 @@ void rrdb_metric_tuples_cache::purge()
   // should be locked
   CHECK_AND_THROW(_lock.is_locked());
 
-  /* TODO: enable purge later
-  t_lru_cache::t_lru_iterator it(_cache.lru_begin());
-  t_lru_cache::t_lru_iterator it_end(_cache.lru_end());
-  my::size_t purge_limit = _max_size * _purge_threshold;
-  while(it != it_end && _cache.size() >= purge_limit) {
-      // TODO: check that blocks are not dirty
-      // TODO: make sure there is no race condition
-      // with the update code
-      it = _cache.lru_erase(it);
+  rrdb_metric_tuples_cache_impl::t_lru_iterator it(_tuples_cache_impl->lru_begin());
+  rrdb_metric_tuples_cache_impl::t_lru_iterator it_end(_tuples_cache_impl->lru_end());
+  my::memory_size_t purge_limit = _max_used_memory * _purge_threshold;
+  while(it != it_end && _used_memory >= purge_limit) {
+      LOG(log::LEVEL_DEBUG3, "Purging block '%p'", (*it)._k);
+
+      CHECK_AND_THROW(_used_memory >= (*it)._v._tuples_size);
+      _used_memory -= (*it)._v._tuples_size;
+
+      // delete
+      it = _tuples_cache_impl->lru_erase(it);
   }
-  */
 }
 
-my::size_t rrdb_metric_tuples_cache::get_max_size() const
+my::memory_size_t rrdb_metric_tuples_cache::get_max_used_memory() const
 {
   boost::lock_guard<spinlock> guard(_lock);
-  return _max_size;
+  return _max_used_memory;
 }
 
-void rrdb_metric_tuples_cache::set_max_size(const my::size_t & max_size)
+void rrdb_metric_tuples_cache::set_max_used_memory(const my::memory_size_t & max_used_memory)
 {
   boost::lock_guard<spinlock> guard(_lock);
-  if(_max_size < max_size) {
-      _max_size = max_size;
+  if(_max_used_memory < max_used_memory) {
+      _max_used_memory = max_used_memory;
       this->purge();
   } else {
-      _max_size = max_size;
+      _max_used_memory = max_used_memory;
   }
+}
+
+my::memory_size_t rrdb_metric_tuples_cache::get_cache_used_memory() const
+{
+  boost::lock_guard<spinlock> guard(_lock);
+  return _used_memory;
 }
 
 my::size_t rrdb_metric_tuples_cache::get_cache_size() const

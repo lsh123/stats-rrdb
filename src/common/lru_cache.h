@@ -105,14 +105,17 @@ public:
     return V();
   }
 
-  inline void erase(const K & k)
+  inline V erase(const K & k)
   {
     key_index_t & key_index = _container.get<K>();
     t_iterator it = key_index.find(k);
     if(it != key_index.end()) {
+        V res = (*it)._v;
         key_index.erase(it);
         --_size;
+        return res;
     }
+    return V();
   }
 
   //
