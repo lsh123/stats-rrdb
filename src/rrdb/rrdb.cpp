@@ -377,7 +377,7 @@ void rrdb::initialize(boost::shared_ptr<config> config)
   // load metrics from disk - we do it under lock though it doesn't matter
   {
     boost::lock_guard<spinlock> guard(_metrics_lock);
-    _files_cache->load_metrics(shared_from_this(), _metrics);
+    _files_cache->load_metrics(_metrics);
   }
 
   LOG(log::LEVEL_INFO, "Loaded RRDB data files");
@@ -481,7 +481,7 @@ void rrdb::flush_to_disk()
   BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, dirty_metrics) {
     try {
         // we expect metric file already exists
-        metric->save_dirty_blocks(shared_from_this());
+        metric->save_dirty_blocks(this->get_files_cache());
     } catch(std::exception & e) {
       LOG(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
     } catch(...) {
@@ -557,7 +557,7 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
   }
 
   // write to disk
-  res->save_file(shared_from_this());
+  res->save_file(this->get_files_cache());
 
   // log
   LOG(log::LEVEL_INFO, "RRDB: created metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
@@ -574,20 +574,21 @@ void rrdb::drop_metric(const std::string & name)
   std::string name_lc(name);
   boost::algorithm::to_lower(name_lc);
 
-  // try to find the metric
-  boost::shared_ptr<rrdb_metric> res = this->find_metric_lc(name_lc);
-  if(!res) {
-      throw exception("The metric '%s' does not exists", name.c_str());
+  // lock access to _metrics and  try to find the metric
+  boost::shared_ptr<rrdb_metric> res;
+  {
+    boost::lock_guard<spinlock> guard(_metrics_lock);
+    t_metrics_map::const_iterator it = _metrics.find(name_lc);
+    if(it == _metrics.end()) {
+        throw exception("The metric '%s' does not exists", name.c_str());
+    }
+
+    res = (*it).second;
+    _metrics.erase(it);
   }
 
   // delete file - outside the spin lock
-  res->delete_file(shared_from_this());
-
-  // lock access to _metrics
-  {
-    boost::lock_guard<spinlock> guard(_metrics_lock);
-    _metrics.erase(name_lc);
-  }
+  res->delete_file(this->get_files_cache(), this->get_tuples_cache());
 
   // log
   LOG(log::LEVEL_INFO, "RRDB: dropped metric '%s'", name.c_str());

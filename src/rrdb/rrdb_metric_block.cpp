@@ -226,11 +226,7 @@ void rrdb_metric_block::select(
   } while(pos != _header._pos);
 }
 
-void rrdb_metric_block::write_block(
-    const boost::shared_ptr<rrdb> & rrdb,
-    const boost::shared_ptr<rrdb_metric> & rrdb_metric,
-    std::fstream & ofs
-)
+void rrdb_metric_block::write_block(std::fstream & ofs)
 {
   CHECK_AND_THROW(_modified_tuples.get());
 
@@ -246,13 +242,9 @@ void rrdb_metric_block::write_block(
   _modified_tuples.reset();
 }
 
-void rrdb_metric_block::read_block(
-    const boost::shared_ptr<rrdb> & rrdb,
-    const boost::shared_ptr<rrdb_metric> & rrdb_metric,
-    std::fstream & ifs
-)
+void rrdb_metric_block::read_block(std::fstream & ifs)
 {
-  // rememeber where are we
+  // remember where are we
   my::size_t offset = ifs.tellg();
   LOG(log::LEVEL_DEBUG3, "RRDB metric block data: reading at pos %lu", offset);
 

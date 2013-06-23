@@ -212,25 +212,25 @@ std::string rrdb_metric::get_filename() const
 }
 
 boost::shared_ptr<std::fstream> rrdb_metric::open_file(
-    const boost::shared_ptr<rrdb_files_cache> & file_cache,
+    const boost::shared_ptr<rrdb_files_cache> & files_cache,
     bool is_new_file
 ) {
   // should be locked already
   CHECK_AND_THROW(_lock.is_locked());
 
-  return file_cache->open_file(_filename, is_new_file);
+  return files_cache->open_file(_filename, is_new_file);
 }
 
-void rrdb_metric::load_file(const boost::shared_ptr<rrdb> & rrdb)
+void rrdb_metric::load_file(const boost::shared_ptr<rrdb_files_cache> & files_cache)
 {
-  CHECK_AND_THROW(rrdb);
+  CHECK_AND_THROW(files_cache);
 
   // operate on the file under lock: one at a time!
   {
     boost::lock_guard<spinlock> guard(_lock);
     LOG(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", _filename.c_str());
 
-    boost::shared_ptr<std::fstream> fs(this->open_file(rrdb->get_files_cache()));
+    boost::shared_ptr<std::fstream> fs(this->open_file(files_cache));
     fs->seekg(0, fs->beg);
     fs->sync();
 
@@ -241,7 +241,7 @@ void rrdb_metric::load_file(const boost::shared_ptr<rrdb> & rrdb)
     this->_blocks.reserve(this->_header._blocks_size);
     for(my::size_t ii = 0; ii < this->_header._blocks_size; ++ii) {
         boost::shared_ptr<rrdb_metric_block> block(new rrdb_metric_block());
-        block->read_block(rrdb, shared_from_this(), *fs);
+        block->read_block(*fs);
 
         this->_blocks.push_back(block);
     }
@@ -251,9 +251,9 @@ void rrdb_metric::load_file(const boost::shared_ptr<rrdb> & rrdb)
   }
 }
 
-void rrdb_metric::save_file(const boost::shared_ptr<rrdb> & rrdb)
+void rrdb_metric::save_file(const boost::shared_ptr<rrdb_files_cache> & files_cache)
 {
-  CHECK_AND_THROW(rrdb);
+  CHECK_AND_THROW(files_cache);
 
   // operate on the file under lock: one at a time!
   {
@@ -266,7 +266,7 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb> & rrdb)
     }
 
     // open file
-    boost::shared_ptr<std::fstream> fs(this->open_file(rrdb->get_files_cache(), true));
+    boost::shared_ptr<std::fstream> fs(this->open_file(files_cache, true));
     fs->seekg(0, fs->beg);
 
     try {
@@ -278,7 +278,7 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb> & rrdb)
 
       // write data
       BOOST_FOREACH(boost::shared_ptr<rrdb_metric_block> & block, _blocks) {
-        block->write_block(rrdb, shared_from_this(), *fs);
+        block->write_block(*fs);
       }
 
       // flush, don't close
@@ -296,9 +296,9 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb> & rrdb)
 }
 
 
-void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb> & rrdb)
+void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb_files_cache> & files_cache)
 {
-  CHECK_AND_THROW(rrdb);
+  CHECK_AND_THROW(files_cache);
 
   // TODO: implement journal file
 
@@ -313,7 +313,7 @@ void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb> & rrdb)
     }
 
     // open file - we expect the file to exists
-    boost::shared_ptr<std::fstream> fs(this->open_file(rrdb->get_files_cache()));
+    boost::shared_ptr<std::fstream> fs(this->open_file(files_cache));
     fs->seekg(0, fs->beg);
 
     try {
@@ -327,7 +327,7 @@ void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb> & rrdb)
       BOOST_FOREACH(boost::shared_ptr<rrdb_metric_block> & block, _blocks) {
         if(block->is_dirty()) {
             fs->seekg(block->get_offset(), fs->beg);
-            block->write_block(rrdb, shared_from_this(), *fs);
+            block->write_block(*fs);
         }
       }
 
@@ -345,9 +345,13 @@ void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb> & rrdb)
   }
 }
 
-void rrdb_metric::delete_file(const boost::shared_ptr<rrdb> & rrdb)
+void rrdb_metric::delete_file(
+    const boost::shared_ptr<rrdb_files_cache> & files_cache,
+    const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache
+)
 {
-  CHECK_AND_THROW(rrdb);
+  CHECK_AND_THROW(tuples_cache);
+  CHECK_AND_THROW(files_cache);
 
   // mark as deleted in case the flush thread picks it up in the meantime
   {
@@ -359,11 +363,11 @@ void rrdb_metric::delete_file(const boost::shared_ptr<rrdb> & rrdb)
 
     // drop blocks from cache
     BOOST_FOREACH(const boost::shared_ptr<rrdb_metric_block> & block, _blocks) {
-      rrdb->get_tuples_cache()->erase(block.get());
+      tuples_cache->erase(block.get());
     }
 
     // delete
-    rrdb->get_files_cache()->delete_file(_filename);
+    files_cache->delete_file(_filename);
 
     // done
     LOG(log::LEVEL_DEBUG2, "RRDB metric deleted file '%s'", _filename.c_str());

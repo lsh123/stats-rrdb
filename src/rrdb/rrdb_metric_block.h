@@ -157,16 +157,8 @@ public:
   );
 
   // READ/WRITE FILES
-  void write_block(
-      const boost::shared_ptr<rrdb> & rrdb,
-      const boost::shared_ptr<rrdb_metric> & rrdb_metric,
-      std::fstream & ofs
-  );
-  void read_block(
-      const boost::shared_ptr<rrdb> & rrdb,
-      const boost::shared_ptr<rrdb_metric> & rrdb_metric,
-      std::fstream & ifs
-  );
+  void write_block(std::fstream & ofs);
+  void read_block(std::fstream & ifs);
 
 private:
   rrdb_metric_tuples_t get_tuples(

@@ -76,11 +76,21 @@ public:
   }
 
   std::string get_filename() const;
-  void load_file(const boost::shared_ptr<rrdb> & rrdb);
-  void save_file(const boost::shared_ptr<rrdb> & rrdb);
-  void delete_file(const boost::shared_ptr<rrdb> & rrdb);
 
-  void save_dirty_blocks(const boost::shared_ptr<rrdb> & rrdb);
+  void load_file(
+      const boost::shared_ptr<rrdb_files_cache> & files_cache
+  );
+  void save_file(
+      const boost::shared_ptr<rrdb_files_cache> & files_cache
+  );
+  void save_dirty_blocks(
+      const boost::shared_ptr<rrdb_files_cache> & files_cache
+  );
+
+  void delete_file(
+      const boost::shared_ptr<rrdb_files_cache> & files_cache,
+      const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache
+  );
 
   void update(
       const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
@@ -98,6 +108,7 @@ public:
 
 private:
   static my::size_t get_padded_name_len(const my::size_t & name_len);
+
 
   boost::shared_ptr<std::fstream> open_file(
       const boost::shared_ptr<rrdb_files_cache> & file_cache,

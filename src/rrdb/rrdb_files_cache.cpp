@@ -69,7 +69,7 @@ std::string rrdb_files_cache::get_filename(const std::string & metric_name) cons
   return buf + metric_name + RRDB_METRIC_EXTENSION;
 }
 
-void rrdb_files_cache::load_metrics(const boost::shared_ptr<rrdb> & rrdb, rrdb::t_metrics_map & metrics)
+void rrdb_files_cache::load_metrics(rrdb::t_metrics_map & metrics)
 {
   // ensure folders exist
   boost::filesystem::create_directories(_path);
@@ -91,7 +91,7 @@ void rrdb_files_cache::load_metrics(const boost::shared_ptr<rrdb> & rrdb, rrdb::
 
       // load metric
       boost::shared_ptr<rrdb_metric> metric(new rrdb_metric(full_path.substr(path_len)));
-      metric->load_file(rrdb);
+      metric->load_file(shared_from_this());
 
       std::string name(metric->get_name());
       rrdb::t_metrics_map::const_iterator it = metrics.find(name);
@@ -206,12 +206,12 @@ rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const std::string & fi
   // open a new fstream - OUTSIDE of the lock!
   //
   std::string full_path = base_folder + filename;
-  LOG(log::LEVEL_DEBUG3, "Opening file '%s', full path '%s', new: %s", filename.c_str(), full_path.c_str(), new_file ? "yes" : "no");
-
   std::ios_base::openmode mode = std::ios_base::binary | std::ios_base::out | std::ios_base::in;
   if(new_file) {
       mode |= std::ios_base::trunc;
   }
+
+  LOG(log::LEVEL_DEBUG3, "Opening file '%s', full path '%s', new: %s", filename.c_str(), full_path.c_str(), new_file ? "yes" : "no");
   fs.reset(new std::fstream(full_path.c_str(), mode));
   fs->exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
 
