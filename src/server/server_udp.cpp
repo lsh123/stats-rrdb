@@ -10,6 +10,7 @@
 #include <iostream>
 #include <boost/array.hpp>
 #include <boost/bind.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 
 #include "server/thread_pool.h"

@@ -10,6 +10,7 @@
 #include <iostream>
 #include <boost/array.hpp>
 #include <boost/bind.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #include "common/exception.h"
 #include "common/log.h"
@@ -25,7 +26,8 @@ using namespace boost::asio::ip;
  * One connection
  */
 class connection_tcp:
-    public thread_pool_task
+    public thread_pool_task,
+    public boost::enable_shared_from_this<connection_tcp>
 {
 public:
   connection_tcp(boost::asio::io_service& io_service, const boost::shared_ptr<rrdb> & rrdb, const my::size_t & buffer_size) :
@@ -52,6 +54,8 @@ public:
 public:
   // thread_pool_task
   void run() {
+    // TODO: check TCP connection is still alive (in case we don't need to process the query)
+
     // execute command
     t_memory_buffer res(_output_buffer);
     try {
@@ -85,7 +89,7 @@ public:
         boost::asio::buffer(_output_buffer),
         boost::bind(
             &connection_tcp::handle_write,
-            this,
+            shared_from_this(),
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred
         )
