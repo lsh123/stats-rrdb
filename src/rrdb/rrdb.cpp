@@ -278,7 +278,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
 
 
 public:
-  statement_execute_visitor(const boost::shared_ptr<rrdb> rrdb, t_memory_buffer & res) :
+  statement_execute_visitor(rrdb & rrdb, t_memory_buffer & res) :
       _rrdb(rrdb),
       _res(res)
   {
@@ -287,17 +287,17 @@ public:
 public:
   void operator()(const statement_create & st) const
   {
-    _rrdb->create_metric(st._name, st._policy);
+    _rrdb.create_metric(st._name, st._policy);
   }
 
   void operator()(const statement_drop & st) const
   {
-    _rrdb->drop_metric(st._name);
+    _rrdb.drop_metric(st._name);
   }
 
   void operator()(const statement_update & st) const
   {
-    _rrdb->update_metric(st._name, st._ts ? *st._ts : time(NULL), st._value);
+    _rrdb.update_metric(st._name, st._ts ? *st._ts : time(NULL), st._value);
   }
 
   void operator()(const statement_select & st) const
@@ -309,18 +309,18 @@ public:
       if(st._group_by && (*st._group_by)) {
           // hard case
           data_walker_select walker(st, _res);
-          _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, walker);
+          _rrdb.select_from_metric(st._name, st._ts_begin, st._ts_end, walker);
       } else {
           // simple case
           data_walker_select_no_group_by walker(st, _res);
-          _rrdb->select_from_metric(st._name, st._ts_begin, st._ts_end, walker);
+          _rrdb.select_from_metric(st._name, st._ts_begin, st._ts_end, walker);
       }
     }
   }
 
   void operator()(const statement_show_policy & st) const
   {
-    boost::shared_ptr<rrdb_metric> metric = _rrdb->get_metric(st._name);
+    boost::shared_ptr<rrdb_metric> metric = _rrdb.get_metric(st._name);
     _res << retention_policy_write(metric->get_policy());
 
   }
@@ -328,19 +328,20 @@ public:
   void operator()(const statement_show_metrics & st) const
   {
     metrics_walker_show_metrics walker(_res);
-    _rrdb->get_metrics(st._like, walker);
+    _rrdb.get_metrics(st._like, walker);
   }
 
   void operator()(const statement_show_status & st) const
   {
     metrics_walker_show_status walker(_res);
-    _rrdb->get_status_metrics(st._like, walker);
+    _rrdb.get_status_metrics(st._like, walker);
 
   }
 
 private:
-  const boost::shared_ptr<rrdb> _rrdb;
-  mutable t_memory_buffer &  _res;
+  // TODO: can we get rid of these mutables?
+  mutable rrdb & _rrdb;
+  mutable t_memory_buffer & _res;
 };
 // statement_execute_visitor
 
@@ -681,7 +682,7 @@ void rrdb::execute_query_statement(const std::string & buffer, t_memory_buffer &
   LOG(log::LEVEL_DEBUG3, "TCP command: '%s'", buffer.c_str());
 
   t_statement st = statement_parse_tcp(buffer);
-  boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
+  boost::apply_visitor<>(statement_execute_visitor(*this, res), st);
 }
 
 void rrdb::execute_update_statement(const std::string & buffer, t_memory_buffer & res)
@@ -689,6 +690,6 @@ void rrdb::execute_update_statement(const std::string & buffer, t_memory_buffer 
   LOG(log::LEVEL_DEBUG3, "UDP command: %s", buffer.c_str());
 
   t_statement st = statement_parse_udp(buffer);
-  boost::apply_visitor<>(statement_execute_visitor(shared_from_this(), res), st);
+  boost::apply_visitor<>(statement_execute_visitor(*this, res), st);
 }
 
