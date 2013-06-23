@@ -420,8 +420,8 @@ void rrdb::stop()
   this->flush_to_disk();
 
   //
-  _files_cache->clear_cache();
-  _tuples_cache->clear_cache();
+  _files_cache->clear();
+  _tuples_cache->clear();
 
   LOG(log::LEVEL_INFO, "Stopped RRDB server");
 }

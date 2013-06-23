@@ -8,11 +8,14 @@
 #ifndef TESTS_LRU_TESTS_H_
 #define TESTS_LRU_TESTS_H_
 
+#include <string>
+
 #include "common/lru_cache.h"
+#include "common/types.h"
 
 class lru_tests
 {
-  typedef lru_cache<std::string, int, my::time_t> t_test_lru_cache;
+  typedef lru_cache<std::string, std::string, my::time_t> t_test_lru_cache;
 
 public:
   lru_tests();

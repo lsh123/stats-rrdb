@@ -53,6 +53,8 @@ typedef struct t_rrdb_metric_header_ {
 class rrdb_metric:
     public boost::enable_shared_from_this<rrdb_metric>
 {
+  friend class rrdb_metric_block;
+
   enum status {
     Status_Dirty        = 0x01,
     Status_Deleted      = 0x02
@@ -73,14 +75,11 @@ public:
     return my::bitmask_check<boost::uint16_t>(_header._status, Status_Dirty);
   }
 
+  std::string get_filename() const;
   void load_file(const boost::shared_ptr<rrdb> & rrdb);
   void save_file(const boost::shared_ptr<rrdb> & rrdb);
   void delete_file(const boost::shared_ptr<rrdb> & rrdb);
 
-  rrdb_metric_tuples_t load_single_block(
-      const boost::shared_ptr<rrdb_files_cache> & files_cache,
-      const boost::shared_ptr<rrdb_metric_block> & rrdb_metric_block
-  );
   void save_dirty_blocks(const boost::shared_ptr<rrdb> & rrdb);
 
   void update(
@@ -98,9 +97,12 @@ public:
   void get_last_value(my::value_t & value, my::time_t & value_ts) const;
 
 private:
-  std::string get_filename() const;
   static my::size_t get_padded_name_len(const my::size_t & name_len);
 
+  boost::shared_ptr<std::fstream> open_file(
+      const boost::shared_ptr<rrdb_files_cache> & file_cache,
+      bool is_new_file = false
+  );
   void write_header(std::fstream & ofs) const;
   void read_header(std::fstream & ifs);
 

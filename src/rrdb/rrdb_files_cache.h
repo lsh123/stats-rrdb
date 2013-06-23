@@ -32,7 +32,7 @@ public:
   virtual ~rrdb_files_cache();
 
   void initialize(boost::shared_ptr<config> config);
-  void clear_cache();
+  void clear();
 
   my::size_t get_max_size() const;
   void set_max_size(const my::size_t & max_size);
@@ -61,12 +61,9 @@ private:
   // params
   std::string      _path;
   my::size_t       _max_size;
+
   // data
   boost::shared_ptr<rrdb_files_cache_impl> _files_cache_impl;
-
-  // stats
-  my::size_t      _cache_hits;
-  my::size_t      _cache_misses;
 }; // rrdb_files_cache
 
 #endif /* RRDB_FILE_CACHE_H_ */

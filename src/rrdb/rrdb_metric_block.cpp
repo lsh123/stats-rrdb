@@ -6,6 +6,8 @@
  */
 
 #include "rrdb/rrdb_metric_block.h"
+
+#include "rrdb/rrdb_metric.h"
 #include "rrdb/rrdb_files_cache.h"
 #include "rrdb/rrdb_metric_tuples_cache.h"
 
@@ -48,14 +50,23 @@ rrdb_metric_tuples_t rrdb_metric_block::get_tuples(
   CHECK_AND_THROW(tuples_cache);
   CHECK_AND_THROW(rrdb_metric);
 
-  if(_modified_tuples) {
-    return _modified_tuples;
-  } else {
-    return tuples_cache->find_or_load_tuples(
-        rrdb_metric,
-        shared_from_this()
-    );
+  // easy case?
+  time_t ts(time(NULL));
+  rrdb_metric_tuples_t tuples = tuples_cache->find(this, ts);
+  if(tuples) {
+      return tuples;
   }
+
+  // hard case: load data from disk
+  const boost::shared_ptr<rrdb_files_cache> & file_cache(tuples_cache->get_files_cache());
+  boost::shared_ptr<std::fstream> ifs(rrdb_metric->open_file(file_cache));
+  ifs->seekg(this->get_offset_to_data(), ifs->beg);
+  tuples = this->read_block_data(*ifs);
+  CHECK_AND_THROW(tuples);
+
+  // insert into cache and we are done
+  tuples_cache->insert(this, tuples, ts);
+  return tuples;
 }
 
 t_rrdb_metric_tuple * rrdb_metric_block::find_tuple(
@@ -274,7 +285,7 @@ void rrdb_metric_block::read_block(
   ifs.seekg(_header._data_size, ifs.cur);
 }
 
-rrdb_metric_tuples_t rrdb_metric_block::read_block_data(std::fstream & ifs)
+rrdb_metric_tuples_t rrdb_metric_block::read_block_data(std::fstream & ifs) const
 {
   LOG(log::LEVEL_DEBUG3, "RRDB metric block read data at offset %ld, size %ld", _header._offset, _header._data_size);
 
@@ -290,3 +301,4 @@ rrdb_metric_tuples_t rrdb_metric_block::read_block_data(std::fstream & ifs)
   // done
   return the_tuples;
 }
+

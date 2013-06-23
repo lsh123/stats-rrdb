@@ -168,8 +168,6 @@ public:
       std::fstream & ifs
   );
 
-  rrdb_metric_tuples_t read_block_data(std::fstream & ifs);
-
 private:
   rrdb_metric_tuples_t get_tuples(
       const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
@@ -182,6 +180,9 @@ private:
       t_update_ctx & out
   );
 
+  rrdb_metric_tuples_t read_block_data(
+      std::fstream & ifs
+  ) const;
 
   inline my::time_t normalize_ts(const my::time_t & ts) const {
     return ts - (ts % _header._freq);

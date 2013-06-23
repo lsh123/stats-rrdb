@@ -32,9 +32,7 @@ class rrdb_files_cache_impl :
 rrdb_files_cache::rrdb_files_cache():
   _path("/var/lib/rrdb/"),
   _max_size(1024),
-  _files_cache_impl(new rrdb_files_cache_impl()),
-  _cache_hits(0),
-  _cache_misses(0)
+  _files_cache_impl(new rrdb_files_cache_impl())
 {
 
 }
@@ -138,29 +136,28 @@ void rrdb_files_cache::set_path(const std::string & path)
 }
 
 
-void rrdb_files_cache::clear_cache()
+void rrdb_files_cache::clear()
 {
   boost::lock_guard<spinlock> guard(_lock);
   _files_cache_impl->clear();
-  _cache_hits = _cache_misses = 0;
 }
 
 my::size_t rrdb_files_cache::get_cache_size() const
 {
   boost::lock_guard<spinlock> guard(_lock);
-  return _files_cache_impl->size();
+  return _files_cache_impl->get_size();
 }
 
 my::size_t rrdb_files_cache::get_cache_hits() const
 {
   boost::lock_guard<spinlock> guard(_lock);
-  return _cache_hits;
+  return _files_cache_impl->get_cache_hits();
 }
 
 my::size_t rrdb_files_cache::get_cache_misses() const
 {
   boost::lock_guard<spinlock> guard(_lock);
-  return _cache_misses;
+  return _files_cache_impl->get_cache_misses();
 }
 
 std::string rrdb_files_cache::get_full_path(const std::string & filename) const
@@ -176,7 +173,7 @@ void rrdb_files_cache::purge()
 
   rrdb_files_cache_impl::t_lru_iterator it(_files_cache_impl->lru_begin());
   rrdb_files_cache_impl::t_lru_iterator it_end(_files_cache_impl->lru_end());
-  while(it != it_end && _files_cache_impl->size() >= _max_size) {
+  while(it != it_end && _files_cache_impl->get_size() >= _max_size) {
       it = _files_cache_impl->lru_erase(it);
   }
 }
@@ -187,25 +184,22 @@ rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const std::string & fi
   // open file (no lock) and insert (under lock) to make sure we
   // don't perform IO operations under the lock
   LOG(log::LEVEL_DEBUG3, "Looking for file '%s'", filename.c_str());
-  my::time_t t = time(NULL);
+  boost::shared_ptr<std::fstream> fs;
+  my::time_t ts(time(NULL));
   std::string base_folder;
 
   //
-  // Try to find - don't bother if this is a new file
+  // Try to find
   //
-  if(!new_file) {
+  {
     boost::lock_guard<spinlock> guard(_lock);
-    rrdb_files_cache_impl::t_iterator it = _files_cache_impl->find(filename);
-    if(it != _files_cache_impl->end()) {
-        ++_cache_hits;
-        return _files_cache_impl->use(it, t);
+    fs = _files_cache_impl->find(filename, ts);
+    if(fs) {
+        return fs;
     }
-    ++_cache_misses;
 
     // while we are under lock copy base folder...
     base_folder = _path;
-  } else {
-    base_folder = this->get_path();
   }
 
   //
@@ -218,7 +212,7 @@ rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const std::string & fi
   if(new_file) {
       mode |= std::ios_base::trunc;
   }
-  boost::shared_ptr<std::fstream> fs(new std::fstream(full_path.c_str(), mode));
+  fs.reset(new std::fstream(full_path.c_str(), mode));
   fs->exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
 
   //
@@ -228,12 +222,12 @@ rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const std::string & fi
     boost::lock_guard<spinlock> guard(_lock);
 
     // purge cache if needed
-    if(_files_cache_impl->size() >= _max_size) {
+    if(_files_cache_impl->get_size() >= _max_size) {
         this->purge();
     }
 
     // put it in the cache
-    _files_cache_impl->insert(filename, fs, t);
+    _files_cache_impl->insert(filename, fs, ts);
   }
 
   //

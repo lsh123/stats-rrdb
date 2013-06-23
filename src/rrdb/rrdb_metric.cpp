@@ -16,6 +16,9 @@
 #include "rrdb/rrdb_files_cache.h"
 #include "rrdb/rrdb_metric.h"
 #include "rrdb/rrdb_metric_block.h"
+#include "rrdb/rrdb_metric_tuple.h"
+#include "rrdb/rrdb_metric_tuples_cache.h"
+
 
 #include "common/log.h"
 #include "common/exception.h"
@@ -36,7 +39,6 @@ rrdb_metric::rrdb_metric(const std::string & filename) :
 
 rrdb_metric::~rrdb_metric()
 {
-  // TODO: drop blocks from cache?
 }
 
 // use copy here to avoid problems with MT
@@ -209,6 +211,16 @@ std::string rrdb_metric::get_filename() const
   return _filename;
 }
 
+boost::shared_ptr<std::fstream> rrdb_metric::open_file(
+    const boost::shared_ptr<rrdb_files_cache> & file_cache,
+    bool is_new_file
+) {
+  // should be locked already
+  CHECK_AND_THROW(_lock.is_locked());
+
+  return file_cache->open_file(_filename, is_new_file);
+}
+
 void rrdb_metric::load_file(const boost::shared_ptr<rrdb> & rrdb)
 {
   CHECK_AND_THROW(rrdb);
@@ -218,18 +230,18 @@ void rrdb_metric::load_file(const boost::shared_ptr<rrdb> & rrdb)
     boost::lock_guard<spinlock> guard(_lock);
     LOG(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", _filename.c_str());
 
-    boost::shared_ptr<std::fstream> ifs(rrdb->get_files_cache()->open_file(_filename));
-    ifs->seekg(0, ifs->beg);
-    ifs->sync();
+    boost::shared_ptr<std::fstream> fs(this->open_file(rrdb->get_files_cache()));
+    fs->seekg(0, fs->beg);
+    fs->sync();
 
     // read header
-    this->read_header(*ifs);
+    this->read_header(*fs);
 
     // read blocks
     this->_blocks.reserve(this->_header._blocks_size);
     for(my::size_t ii = 0; ii < this->_header._blocks_size; ++ii) {
         boost::shared_ptr<rrdb_metric_block> block(new rrdb_metric_block());
-        block->read_block(rrdb, shared_from_this(), *ifs);
+        block->read_block(rrdb, shared_from_this(), *fs);
 
         this->_blocks.push_back(block);
     }
@@ -238,28 +250,6 @@ void rrdb_metric::load_file(const boost::shared_ptr<rrdb> & rrdb)
     LOG(log::LEVEL_DEBUG2, "RRDB metric loaded from file '%s'", _filename.c_str());
   }
 }
-
-rrdb_metric_tuples_t rrdb_metric::load_single_block(
-    const boost::shared_ptr<rrdb_files_cache> & files_cache,
-    const boost::shared_ptr<rrdb_metric_block> & rrdb_metric_block
-) {
-  // should be locked - this method is never called directly
-  // but only from some other higher level call
-  CHECK_AND_THROW(_lock.is_locked());
-
-  CHECK_AND_THROW(files_cache);
-  CHECK_AND_THROW(rrdb_metric_block);
-
-  LOG(log::LEVEL_DEBUG, "RRDB loading tuples from file '%s'", _filename.c_str());
-
-  // open file
-  boost::shared_ptr<std::fstream> ifs(files_cache->open_file(_filename));
-  ifs->seekg(rrdb_metric_block->get_offset_to_data(), ifs->beg);
-
-  // load data
-  return rrdb_metric_block->read_block_data(*ifs);
-}
-
 
 void rrdb_metric::save_file(const boost::shared_ptr<rrdb> & rrdb)
 {
@@ -276,7 +266,7 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb> & rrdb)
     }
 
     // open file
-    boost::shared_ptr<std::fstream> fs(rrdb->get_files_cache()->open_file(_filename, true));
+    boost::shared_ptr<std::fstream> fs(this->open_file(rrdb->get_files_cache(), true));
     fs->seekg(0, fs->beg);
 
     try {
@@ -323,27 +313,27 @@ void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb> & rrdb)
     }
 
     // open file - we expect the file to exists
-    boost::shared_ptr<std::fstream> ofs(rrdb->get_files_cache()->open_file(_filename));
-    ofs->seekg(0, ofs->beg);
+    boost::shared_ptr<std::fstream> fs(this->open_file(rrdb->get_files_cache()));
+    fs->seekg(0, fs->beg);
 
     try {
       // not dirty (clear before writing header)
       my::bitmask_clear<boost::uint16_t>(_header._status, Status_Dirty);
 
       // always write header
-      this->write_header(*ofs);
+      this->write_header(*fs);
 
       // write data
       BOOST_FOREACH(boost::shared_ptr<rrdb_metric_block> & block, _blocks) {
         if(block->is_dirty()) {
-            ofs->seekg(block->get_offset(), ofs->beg);
-            block->write_block(rrdb, shared_from_this(), *ofs);
+            fs->seekg(block->get_offset(), fs->beg);
+            block->write_block(rrdb, shared_from_this(), *fs);
         }
       }
 
       // flush, don't close
-      ofs->flush();
-      ofs->sync();
+      fs->flush();
+      fs->sync();
     } catch(...) {
         // well, still dirty
         my::bitmask_set<boost::uint16_t>(_header._status, Status_Dirty);
@@ -367,7 +357,10 @@ void rrdb_metric::delete_file(const boost::shared_ptr<rrdb> & rrdb)
     // mark as deleted
     my::bitmask_set<boost::uint16_t>(_header._status, Status_Deleted);
 
-    // TODO: drop blocks from cache
+    // drop blocks from cache
+    BOOST_FOREACH(const boost::shared_ptr<rrdb_metric_block> & block, _blocks) {
+      rrdb->get_tuples_cache()->erase(block.get());
+    }
 
     // delete
     rrdb->get_files_cache()->delete_file(_filename);
@@ -377,27 +370,27 @@ void rrdb_metric::delete_file(const boost::shared_ptr<rrdb> & rrdb)
   }
 }
 
-void rrdb_metric::write_header(std::fstream & ofs) const
+void rrdb_metric::write_header(std::fstream & fs) const
 {
   // should be locked
   CHECK_AND_THROW(_lock.is_locked());
 
   // write header
-  ofs.write((const char*)&_header, sizeof(_header));
+  fs.write((const char*)&_header, sizeof(_header));
 
   // write name
-  ofs.write((const char*)_name.get(), _header._name_size);
+  fs.write((const char*)_name.get(), _header._name_size);
 
   LOG(log::LEVEL_DEBUG, "RRDB metric header: wrote '%s'", _name.get());
 }
 
-void rrdb_metric::read_header(std::fstream & ifs)
+void rrdb_metric::read_header(std::fstream & fs)
 {
   // should be locked
   CHECK_AND_THROW(_lock.is_locked());
 
   // read header
-  ifs.read((char*)&_header, sizeof(_header));
+  fs.read((char*)&_header, sizeof(_header));
   if(_header._magic != RRDB_METRIC_MAGIC) {
       throw exception("Unexpected rrdb metric magic: %04x", _header._magic);
   }
@@ -407,7 +400,7 @@ void rrdb_metric::read_header(std::fstream & ifs)
 
   // name
   _name.reset(new char[_header._name_size]);
-  ifs.read((char*)_name.get(), _header._name_size);
+  fs.read((char*)_name.get(), _header._name_size);
 
   LOG(log::LEVEL_DEBUG, "RRDB metric: read header '%s'", _name.get());
 }
