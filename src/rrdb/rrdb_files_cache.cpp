@@ -123,7 +123,11 @@ void rrdb_files_cache::purge()
   }
 }
 
-rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const my::filename_t & filename, bool new_file)
+rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(
+    const my::filename_t & filename,
+    const my::time_t & ts,
+    bool new_file
+)
 {
   CHECK_AND_THROW(filename);
 
@@ -132,7 +136,6 @@ rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const my::filename_t &
   // don't perform IO operations under the lock
   LOG(log::LEVEL_DEBUG3, "Looking for file '%s'", filename->c_str());
   boost::shared_ptr<std::fstream> fs;
-  my::time_t ts(time(NULL));
   std::string base_folder;
 
   //

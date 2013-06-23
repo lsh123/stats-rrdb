@@ -228,7 +228,7 @@ void rrdb_metric::load_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
     boost::lock_guard<spinlock> guard(_lock);
     LOG(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", _filename->c_str());
 
-    boost::shared_ptr<std::fstream> fs(files_cache->open_file(_filename));
+    boost::shared_ptr<std::fstream> fs(files_cache->open_file(_filename, time(NULL)));
     fs->seekg(0, fs->beg);
     fs->sync();
 
@@ -264,7 +264,7 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
     }
 
     // open file
-    boost::shared_ptr<std::fstream> fs(files_cache->open_file(_filename, true));
+    boost::shared_ptr<std::fstream> fs(files_cache->open_file(_filename, time(NULL), true));
     fs->seekg(0, fs->beg);
 
     try {
@@ -311,7 +311,7 @@ void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb_files_cache> & 
     }
 
     // open file - we expect the file to exists
-    boost::shared_ptr<std::fstream> fs(files_cache->open_file(_filename));
+    boost::shared_ptr<std::fstream> fs(files_cache->open_file(_filename, time(NULL)));
     fs->seekg(0, fs->beg);
 
     try {

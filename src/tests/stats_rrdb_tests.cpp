@@ -29,6 +29,7 @@
 #include "tests/lru_tests.h"
 #include "tests/query_tests.h"
 #include "tests/update_tests.h"
+#include "tests/files_cache_tests.h"
 
 
 boost::shared_ptr<config> test_setup_config(const std::string & path, const t_test_config_data & data)
@@ -89,6 +90,13 @@ int main(int argc, char ** argv)
     TEST_START("lru_cache");
     lru_tests::run();
     TEST_END("lru_cache");
+
+    //
+    // files_cache_tests
+    //
+    TEST_START("files_cache_tests");
+    files_cache_tests::run(path);
+    TEST_END("files_cache_tests");
 
     //
     // query_tests

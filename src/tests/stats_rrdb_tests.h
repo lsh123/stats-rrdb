@@ -41,24 +41,27 @@
 #define TEST_CHECK( a ) \
     if( !( a ) ) { \
         test_ok = false; \
-        std::cerr << "TEST CHECK FAILURE: '" \
-          << (#a) \
+        std::cerr << "TEST CHECK FAILURE: " \
+          << "FILE " << __FILE__ << ":" << __LINE__ \
+          << " '" << (#a) << "'" \
           << std::endl; \
     }
 
 #define TEST_CHECK_EQUAL( a, b ) \
     if( (a) != (b) ) { \
         test_ok = false; \
-        std::cerr << "TEST CHECK EQUAL FAILURE: '" \
-          << (#a) << "' = " << (a) << " and '" << (#b) << "' = " << (b) \
+        std::cerr << "TEST CHECK EQUAL FAILURE: " \
+          << "FILE " << __FILE__ << ":" << __LINE__ \
+          << " '" << (#a) << "' = " << (a) << " and '" << (#b) << "' = " << (b) \
           << std::endl; \
     }
 
 #define TEST_CHECK_NOT_EQUAL( a, b ) \
     if( (a) == (b) ) { \
         test_ok = false; \
-        std::cerr << "TEST CHECK NOT EQUAL FAILURE: '" \
-          << (#a) << "' = " << (a) << " and '" << (#b) << "' = " << (b) \
+        std::cerr << "TEST CHECK NOT EQUAL FAILURE: " \
+          << "FILE " << __FILE__ << ":" << __LINE__ \
+          << " '" << (#a) << "' = " << (a) << " and '" << (#b) << "' = " << (b) \
           << std::endl; \
     }
 

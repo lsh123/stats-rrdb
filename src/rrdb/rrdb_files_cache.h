@@ -13,7 +13,6 @@
 
 #include <boost/shared_ptr.hpp>
 
-#include "rrdb/rrdb.h"
 
 #include "common/types.h"
 #include "common/spinlock.h"
@@ -44,7 +43,7 @@ public:
   my::size_t get_cache_hits() const;
   my::size_t get_cache_misses() const;
 
-  fstream_ptr open_file(const my::filename_t & filename, bool new_file = false);
+  fstream_ptr open_file(const my::filename_t & filename, const my::time_t & ts, bool new_file = false);
   void delete_file(const my::filename_t & filename);
 
 private:

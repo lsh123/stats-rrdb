@@ -58,7 +58,7 @@ rrdb_metric_tuples_t rrdb_metric_block::get_tuples(
 
   // hard case: load data from disk
   const boost::shared_ptr<rrdb_files_cache> & files_cache(tuples_cache->get_files_cache());
-  boost::shared_ptr<std::fstream> ifs(files_cache->open_file(filename));
+  boost::shared_ptr<std::fstream> ifs(files_cache->open_file(filename, ts));
   ifs->seekg(this->get_offset_to_data(), ifs->beg);
   tuples = this->read_block_data(*ifs);
   CHECK_AND_THROW(tuples);
