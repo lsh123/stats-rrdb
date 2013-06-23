@@ -75,13 +75,17 @@ void parsers_tests::test_retention_policy(const int & n)
 void parsers_tests::test_memory_size(const int & n)
 {
   TEST_SUBTEST_START(n, "memory_size parser/serializer");
+
   // parser
   TEST_CHECK_EQUAL(memory_size_parse("100"),     100 * MEMORY_SIZE_BYTE);
   TEST_CHECK_EQUAL(memory_size_parse("1 byte"),  1 * MEMORY_SIZE_BYTE);
   TEST_CHECK_EQUAL(memory_size_parse("5 bytes"), 5 * MEMORY_SIZE_BYTE);
   TEST_CHECK_EQUAL(memory_size_parse("4 KB"),    4 * MEMORY_SIZE_KILOBYTE);
+  TEST_CHECK_EQUAL(memory_size_parse("4KB"),     4 * MEMORY_SIZE_KILOBYTE);
   TEST_CHECK_EQUAL(memory_size_parse("3 MB"),    3 * MEMORY_SIZE_MEGABYTE);
+  TEST_CHECK_EQUAL(memory_size_parse("3MB"),     3 * MEMORY_SIZE_MEGABYTE);
   TEST_CHECK_EQUAL(memory_size_parse("2 GB"),    2 * MEMORY_SIZE_GIGABYTE);
+  TEST_CHECK_EQUAL(memory_size_parse("2GB"),     2 * MEMORY_SIZE_GIGABYTE);
 
   // serializer
   // TODO: add serializer memory_size tests

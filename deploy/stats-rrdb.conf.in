@@ -2,6 +2,7 @@
 default_policy=1 sec FOR 30 min, 10 sec FOR 1 day, 1 min FOR 1 month, 10 min FOR 1 year, 1 hour FOR 10 years
 path=@localstatedir@/@PACKAGE_NAME@
 flush_interval=1 min
+blocks_cache_memory_used=500MB
 open_files_cache_size=1024
 
 [server]

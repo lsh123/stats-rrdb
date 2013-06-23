@@ -6,6 +6,8 @@
  */
 #include <boost/foreach.hpp>
 
+#include "parser/memory_size.h"
+
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric.h"
 #include "rrdb/rrdb_metric_block.h"
@@ -53,7 +55,7 @@ class rrdb_metric_tuples_cache_impl :
 rrdb_metric_tuples_cache::rrdb_metric_tuples_cache(
     const boost::shared_ptr<rrdb_files_cache> & files_cache
 ):
-  _max_used_memory(1024*1024*1024), // 1GB
+  _max_used_memory(1 * MEMORY_SIZE_GIGABYTE), // 1GB
   _purge_threshold(0.8),
   _used_memory(0),
   _files_cache(files_cache),
@@ -71,7 +73,12 @@ void rrdb_metric_tuples_cache::initialize(boost::shared_ptr<config> config)
   // set cache size
   // TODO: use memory_use parsers here
   // TODO: put these params into config
-  this->set_max_used_memory(config->get<my::memory_size_t>("rrdb.blocks_cache_memory_used", this->get_max_used_memory()));
+
+  this->set_max_used_memory(memory_size_parse(
+      config->get<std::string>("rrdb.blocks_cache_memory_used", memory_size_write(
+          this->get_max_used_memory()
+      ))
+  ));
 
   // simple - under lock
   {
