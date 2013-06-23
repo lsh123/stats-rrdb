@@ -13,7 +13,6 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
-#include <boost/enable_shared_from_this.hpp>
 
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric_tuple.h"
@@ -50,8 +49,7 @@ typedef struct t_rrdb_metric_header_ {
 //
 //
 //
-class rrdb_metric:
-    public boost::enable_shared_from_this<rrdb_metric>
+class rrdb_metric
 {
   friend class rrdb_metric_block;
 
@@ -62,7 +60,7 @@ class rrdb_metric:
 
 
 public:
-  rrdb_metric(const std::string & filename = std::string());
+  rrdb_metric(const my::filename_t & filename = my::filename_t());
   virtual ~rrdb_metric();
 
   std::string get_name() const ;
@@ -78,7 +76,7 @@ public:
   //
   // File operations
   //
-  std::string get_filename() const;
+  my::filename_t get_filename() const;
 
   void load_file(
       const boost::shared_ptr<rrdb_files_cache> & files_cache
@@ -99,7 +97,7 @@ public:
       const std::string & path,
       rrdb::t_metrics_map & metrics
   );
-  static std::string construct_filename(
+  static my::filename_t construct_filename(
       const std::string & metric_name
   );
 
@@ -123,11 +121,6 @@ public:
 private:
   static my::size_t get_padded_name_len(const my::size_t & name_len);
 
-
-  boost::shared_ptr<std::fstream> open_file(
-      const boost::shared_ptr<rrdb_files_cache> & file_cache,
-      bool is_new_file = false
-  );
   void write_header(std::fstream & ofs) const;
   void read_header(std::fstream & ifs);
 
@@ -135,7 +128,7 @@ private:
   mutable spinlock               _lock;
   t_rrdb_metric_header           _header;
   boost::shared_array<char>      _name;
-  std::string                    _filename;
+  my::filename_t                 _filename;
 
   std::vector< boost::shared_ptr<rrdb_metric_block> > _blocks;
 }; // class rrdb_metric

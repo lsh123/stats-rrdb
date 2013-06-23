@@ -43,12 +43,11 @@ rrdb_metric_block::~rrdb_metric_block()
 
 
 rrdb_metric_tuples_t rrdb_metric_block::get_tuples(
-    const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
-    const boost::shared_ptr<rrdb_metric> & rrdb_metric
+    const my::filename_t & filename,
+    const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache
 )
 {
   CHECK_AND_THROW(tuples_cache);
-  CHECK_AND_THROW(rrdb_metric);
 
   // easy case?
   time_t ts(time(NULL));
@@ -58,8 +57,8 @@ rrdb_metric_tuples_t rrdb_metric_block::get_tuples(
   }
 
   // hard case: load data from disk
-  const boost::shared_ptr<rrdb_files_cache> & file_cache(tuples_cache->get_files_cache());
-  boost::shared_ptr<std::fstream> ifs(rrdb_metric->open_file(file_cache));
+  const boost::shared_ptr<rrdb_files_cache> & files_cache(tuples_cache->get_files_cache());
+  boost::shared_ptr<std::fstream> ifs(files_cache->open_file(filename));
   ifs->seekg(this->get_offset_to_data(), ifs->beg);
   tuples = this->read_block_data(*ifs);
   CHECK_AND_THROW(tuples);
@@ -155,13 +154,13 @@ t_rrdb_metric_tuple * rrdb_metric_block::find_tuple(
 }
 
 void rrdb_metric_block::update(
+    const my::filename_t & filename,
     const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
-    const boost::shared_ptr<rrdb_metric> & rrdb_metric,
     const t_update_ctx & in,
     t_update_ctx & out
 )
 {
-  rrdb_metric_tuples_t the_tuples(this->get_tuples(tuples_cache, rrdb_metric));
+  rrdb_metric_tuples_t the_tuples(this->get_tuples(filename, tuples_cache));
   CHECK_AND_THROW(the_tuples.get());
   CHECK_AND_THROW(this->get_cur_ts() == the_tuples[_header._pos]._ts);
 
@@ -192,8 +191,8 @@ void rrdb_metric_block::update(
 }
 
 void rrdb_metric_block::select(
+    const my::filename_t & filename,
     const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
-    const boost::shared_ptr<rrdb_metric> & rrdb_metric,
     const my::time_t & ts1,
     const my::time_t & ts2,
     rrdb::data_walker & walker
@@ -201,7 +200,7 @@ void rrdb_metric_block::select(
 {
   CHECK_AND_THROW(_header._pos < _header._count);
 
-  rrdb_metric_tuples_t the_tuples(this->get_tuples(tuples_cache, rrdb_metric));
+  rrdb_metric_tuples_t the_tuples(this->get_tuples(filename, tuples_cache));
   CHECK_AND_THROW(the_tuples.get());
 
   // walk through all the tuples until we hit the end or the time stops

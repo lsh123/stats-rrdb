@@ -14,7 +14,6 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
-#include <boost/enable_shared_from_this.hpp>
 #include <boost/cstdint.hpp>
 
 #include "rrdb/rrdb.h"
@@ -57,10 +56,8 @@ typedef struct t_rrdb_metric_block_header_ {
 //
 // Metrics block of data for a single policy
 //
-class rrdb_metric_block:
-    public boost::enable_shared_from_this<rrdb_metric_block>
+class rrdb_metric_block
 {
-
 public:
   enum update_state {
     UpdateState_Stop  = 0,
@@ -141,17 +138,19 @@ public:
     return _header._pos_ts + _header._duration;
   }
 
-  // SELECT or UPDATE - main operations
+  //
+  // SELECT or UPDATE - main operations: should be called by the rrdb_metric only
+  //
   void select(
+      const my::filename_t & filename,
       const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
-      const boost::shared_ptr<rrdb_metric> & rrdb_metric,
       const my::time_t & ts1,
       const my::time_t & ts2,
       rrdb::data_walker & walker
   );
   void update(
+      const my::filename_t & filename,
       const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
-      const boost::shared_ptr<rrdb_metric> & rrdb_metric,
       const t_update_ctx & in,
       t_update_ctx & out
   );
@@ -162,8 +161,8 @@ public:
 
 private:
   rrdb_metric_tuples_t get_tuples(
-      const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache,
-      const boost::shared_ptr<rrdb_metric> & rrdb_metric
+      const my::filename_t & filename,
+      const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache
   );
 
   t_rrdb_metric_tuple * find_tuple(

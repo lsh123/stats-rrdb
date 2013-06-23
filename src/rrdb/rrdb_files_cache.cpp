@@ -104,10 +104,11 @@ my::size_t rrdb_files_cache::get_cache_misses() const
   return _files_cache_impl->get_cache_misses();
 }
 
-std::string rrdb_files_cache::get_full_path(const std::string & filename) const
+std::string rrdb_files_cache::get_full_path(const my::filename_t & filename) const
 {
+  CHECK_AND_THROW(filename);
   boost::lock_guard<spinlock> guard(_lock);
-  return _path + filename;
+  return _path + (*filename);
 }
 
 void rrdb_files_cache::purge()
@@ -122,12 +123,14 @@ void rrdb_files_cache::purge()
   }
 }
 
-rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const std::string & filename, bool new_file)
+rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const my::filename_t & filename, bool new_file)
 {
+  CHECK_AND_THROW(filename);
+
   // we break this function into three pieces: find (under lock),
   // open file (no lock) and insert (under lock) to make sure we
   // don't perform IO operations under the lock
-  LOG(log::LEVEL_DEBUG3, "Looking for file '%s'", filename.c_str());
+  LOG(log::LEVEL_DEBUG3, "Looking for file '%s'", filename->c_str());
   boost::shared_ptr<std::fstream> fs;
   my::time_t ts(time(NULL));
   std::string base_folder;
@@ -137,7 +140,7 @@ rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const std::string & fi
   //
   {
     boost::lock_guard<spinlock> guard(_lock);
-    fs = _files_cache_impl->find(filename, ts);
+    fs = _files_cache_impl->find(*filename, ts);
     if(fs) {
         return fs;
     }
@@ -149,13 +152,13 @@ rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const std::string & fi
   //
   // open a new fstream - OUTSIDE of the lock!
   //
-  std::string full_path = base_folder + filename;
+  std::string full_path = base_folder + (*filename);
   std::ios_base::openmode mode = std::ios_base::binary | std::ios_base::out | std::ios_base::in;
   if(new_file) {
       mode |= std::ios_base::trunc;
   }
 
-  LOG(log::LEVEL_DEBUG3, "Opening file '%s', full path '%s', new: %s", filename.c_str(), full_path.c_str(), new_file ? "yes" : "no");
+  LOG(log::LEVEL_DEBUG3, "Opening file '%s', full path '%s', new: %s", filename->c_str(), full_path.c_str(), new_file ? "yes" : "no");
   fs.reset(new std::fstream(full_path.c_str(), mode));
   fs->exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
 
@@ -171,7 +174,7 @@ rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const std::string & fi
     }
 
     // put it in the cache
-    _files_cache_impl->insert(filename, fs, ts);
+    _files_cache_impl->insert(*filename, fs, ts);
   }
 
   //
@@ -180,15 +183,17 @@ rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const std::string & fi
   return fs;
 }
 
-void rrdb_files_cache::delete_file(const std::string & filename)
+void rrdb_files_cache::delete_file(const my::filename_t & filename)
 {
+  CHECK_AND_THROW(filename);
+
   std::string full_path = this->get_full_path(filename);
-  LOG(log::LEVEL_DEBUG3, "Deleting file '%s', full path '%s'", filename.c_str(), full_path.c_str());
+  LOG(log::LEVEL_DEBUG3, "Deleting file '%s', full path '%s'", filename->c_str(), full_path.c_str());
 
   // don't forget to cleanup any open file handles
   {
     boost::lock_guard<spinlock> guard(_lock);
-    _files_cache_impl->erase(filename);
+    _files_cache_impl->erase(*filename);
   }
 
   // delete

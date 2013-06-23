@@ -9,6 +9,7 @@
 #define COMMON_TYPES_H_
 
 #include <boost/cstdint.hpp>
+#include <boost/shared_ptr.hpp>
 
 namespace my {
 
@@ -72,6 +73,11 @@ inline bool bitmask_check(const T & v, const T & mask) { return (v & mask); }
 
 template<typename T>
 inline bool bitmask_check_all(const T & v, const T & mask) { return (v & mask) == mask; }
+
+//
+// Filename - shared_ptr to save space
+//
+typedef boost::shared_ptr<std::string> filename_t;
 
 } // namespace my
 

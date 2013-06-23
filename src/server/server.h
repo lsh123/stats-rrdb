@@ -11,7 +11,6 @@
 #include <cstddef>
 
 #include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
 #include <boost/thread.hpp>
 
 #include <boost/asio.hpp>
@@ -29,8 +28,7 @@ class rrdb;
 class server_udp;
 class server_tcp;
 
-class server :
-    public boost::enable_shared_from_this<server>
+class server
 {
 public:
   server();

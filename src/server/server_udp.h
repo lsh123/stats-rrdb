@@ -14,7 +14,6 @@
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
 
 #include "common/types.h"
 
@@ -23,8 +22,7 @@ class thread_pool;
 class rrdb;
 class connection_udp;
 
-class server_udp :
-    public boost::enable_shared_from_this<server_udp>
+class server_udp
 {
   friend class connection_udp;
 

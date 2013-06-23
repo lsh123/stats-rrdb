@@ -76,15 +76,15 @@ public:
     }
     res.flush();
 
-    /*
-    // add default OK
+    // do we bother to send 'OK' UDP responses?
+    if(_output_buffer.empty() && !_send_success_response) {
+      return;
+    }
+
+    // add default OK if needed
     if(_output_buffer.empty()) {
-        // do we bother to send 'OK' UDP responses?
-        if(!_send_success_response) {
-            return;
-        }
-        res << "OK";
-        res.flush();
+      res << "OK";
+      res.flush();
     }
 
     // clear input data
@@ -102,7 +102,6 @@ public:
           boost::asio::placeholders::bytes_transferred
         )
     );
-    */
   }
 
   void handle_send(

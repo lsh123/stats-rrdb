@@ -12,7 +12,6 @@
 #include <fstream>
 
 #include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
 
 #include "rrdb/rrdb.h"
 
@@ -23,8 +22,7 @@ class rrdb;
 class config;
 class rrdb_files_cache_impl;
 
-class rrdb_files_cache :
-    public boost::enable_shared_from_this<rrdb_files_cache>
+class rrdb_files_cache
 {
 public:
   typedef boost::shared_ptr<std::fstream> fstream_ptr;
@@ -46,14 +44,12 @@ public:
   my::size_t get_cache_hits() const;
   my::size_t get_cache_misses() const;
 
-  fstream_ptr open_file(const std::string & filename, bool new_file = false);
-  void delete_file(const std::string & filename);
-
-  std::string get_filename(const std::string & metric_name) const;
+  fstream_ptr open_file(const my::filename_t & filename, bool new_file = false);
+  void delete_file(const my::filename_t & filename);
 
 private:
   void purge();
-  std::string get_full_path(const std::string & filename) const;
+  std::string get_full_path(const my::filename_t & filename) const;
 
 private:
   mutable spinlock _lock;

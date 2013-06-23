@@ -35,7 +35,7 @@
 
 
 
-rrdb_metric::rrdb_metric(const std::string & filename) :
+rrdb_metric::rrdb_metric(const my::filename_t & filename) :
   _filename(filename)
 {
   // setup empty header
@@ -155,7 +155,7 @@ void rrdb_metric::update(
       if(ii == 1) {
           LOG(log::LEVEL_DEBUG3, "Updating block with 'one' at ts %lld with ctx state %d", one.get_ts(), one._state);
 
-          block->update(tuples_cache, shared_from_this(), one, two);
+          block->update(_filename, tuples_cache, one, two);
           if(two._state == rrdb_metric_block::UpdateState_Stop) {
               break;
           }
@@ -163,7 +163,7 @@ void rrdb_metric::update(
       } else {
           LOG(log::LEVEL_DEBUG3, "Updating block with 'two' at ts %lld with ctx state %d", two.get_ts(), two._state);
 
-          block->update(tuples_cache, shared_from_this(), two, one);
+          block->update(_filename, tuples_cache, two, one);
           if(one._state == rrdb_metric_block::UpdateState_Stop) {
               break;
           }
@@ -197,7 +197,7 @@ void rrdb_metric::select(
     }
     if(res ==  0) {
         // res == 0 => block and interval intersect!
-        block->select(tuples_cache, shared_from_this(), ts1, ts2, walker);
+        block->select(_filename, tuples_cache, ts1, ts2, walker);
     }
   }
 
@@ -212,21 +212,12 @@ my::size_t rrdb_metric::get_padded_name_len(const my::size_t & name_len)
 }
 
 
-std::string rrdb_metric::get_filename() const
+my::filename_t rrdb_metric::get_filename() const
 {
   boost::lock_guard<spinlock> guard(_lock);
   return _filename;
 }
 
-boost::shared_ptr<std::fstream> rrdb_metric::open_file(
-    const boost::shared_ptr<rrdb_files_cache> & files_cache,
-    bool is_new_file
-) {
-  // should be locked already
-  CHECK_AND_THROW(_lock.is_locked());
-
-  return files_cache->open_file(_filename, is_new_file);
-}
 
 void rrdb_metric::load_file(const boost::shared_ptr<rrdb_files_cache> & files_cache)
 {
@@ -235,9 +226,9 @@ void rrdb_metric::load_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
   // operate on the file under lock: one at a time!
   {
     boost::lock_guard<spinlock> guard(_lock);
-    LOG(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", _filename.c_str());
+    LOG(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", _filename->c_str());
 
-    boost::shared_ptr<std::fstream> fs(this->open_file(files_cache));
+    boost::shared_ptr<std::fstream> fs(files_cache->open_file(_filename));
     fs->seekg(0, fs->beg);
     fs->sync();
 
@@ -254,7 +245,7 @@ void rrdb_metric::load_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
     }
 
     // done
-    LOG(log::LEVEL_DEBUG2, "RRDB metric loaded from file '%s'", _filename.c_str());
+    LOG(log::LEVEL_DEBUG2, "RRDB metric loaded from file '%s'", _filename->c_str());
   }
 }
 
@@ -265,7 +256,7 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
   // operate on the file under lock: one at a time!
   {
     boost::lock_guard<spinlock> guard(_lock);
-    LOG(log::LEVEL_DEBUG, "RRDB metric saving file '%s'", _filename.c_str());
+    LOG(log::LEVEL_DEBUG, "RRDB metric saving file '%s'", _filename->c_str());
 
     // check if file was deleted?
     if(my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted)) {
@@ -273,7 +264,7 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
     }
 
     // open file
-    boost::shared_ptr<std::fstream> fs(this->open_file(files_cache, true));
+    boost::shared_ptr<std::fstream> fs(files_cache->open_file(_filename, true));
     fs->seekg(0, fs->beg);
 
     try {
@@ -298,7 +289,7 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
     }
 
     // done
-    LOG(log::LEVEL_DEBUG2, "RRDB metric saved file '%s'", _filename.c_str());
+    LOG(log::LEVEL_DEBUG2, "RRDB metric saved file '%s'", _filename->c_str());
   }
 }
 
@@ -312,7 +303,7 @@ void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb_files_cache> & 
   // operate on the file under lock: one at a time!
   {
     boost::lock_guard<spinlock> guard(_lock);
-    LOG(log::LEVEL_DEBUG, "RRDB metric saving dirty blocks to file '%s'", _filename.c_str());
+    LOG(log::LEVEL_DEBUG, "RRDB metric saving dirty blocks to file '%s'", _filename->c_str());
 
     // check if file was deleted?
     if(my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted)) {
@@ -320,7 +311,7 @@ void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb_files_cache> & 
     }
 
     // open file - we expect the file to exists
-    boost::shared_ptr<std::fstream> fs(this->open_file(files_cache));
+    boost::shared_ptr<std::fstream> fs(files_cache->open_file(_filename));
     fs->seekg(0, fs->beg);
 
     try {
@@ -348,7 +339,7 @@ void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb_files_cache> & 
     }
 
     // done
-    LOG(log::LEVEL_DEBUG2, "RRDB metric saved dirty blocks to file '%s'", _filename.c_str());
+    LOG(log::LEVEL_DEBUG2, "RRDB metric saved dirty blocks to file '%s'", _filename->c_str());
   }
 }
 
@@ -363,7 +354,7 @@ void rrdb_metric::delete_file(
   // mark as deleted in case the flush thread picks it up in the meantime
   {
     boost::lock_guard<spinlock> guard(_lock);
-    LOG(log::LEVEL_DEBUG, "RRDB metric deleting file '%s", _filename.c_str());
+    LOG(log::LEVEL_DEBUG, "RRDB metric deleting file '%s", _filename->c_str());
 
     // mark as deleted
     my::bitmask_set<boost::uint16_t>(_header._status, Status_Deleted);
@@ -377,7 +368,7 @@ void rrdb_metric::delete_file(
     files_cache->delete_file(_filename);
 
     // done
-    LOG(log::LEVEL_DEBUG2, "RRDB metric deleted file '%s'", _filename.c_str());
+    LOG(log::LEVEL_DEBUG2, "RRDB metric deleted file '%s'", _filename->c_str());
   }
 }
 
@@ -451,7 +442,7 @@ void rrdb_metric::load_metrics(
 
       // load metric
       LOG(log::LEVEL_DEBUG2, "Loading file %s", full_path.c_str());
-      std::string filename(full_path.substr(path_len));
+      my::filename_t filename(new std::string(full_path.substr(path_len)));
       boost::shared_ptr<rrdb_metric> metric(new rrdb_metric(filename));
       metric->load_file(files_cache);
 
@@ -465,7 +456,7 @@ void rrdb_metric::load_metrics(
   }
 }
 
-std::string rrdb_metric::construct_filename(const std::string & metric_name)
+my::filename_t rrdb_metric::construct_filename(const std::string & metric_name)
 {
   // calculate subfolder
   my::size_t name_hash = boost::hash<std::string>()(metric_name) % RRDB_METRIC_SUBFOLDERS_NUM;
@@ -474,7 +465,8 @@ std::string rrdb_metric::construct_filename(const std::string & metric_name)
 
   // the name should match the "a-zA-Z0-9._-" pattern so we can safely
   // use it as filename
-  return buf + metric_name + RRDB_METRIC_EXTENSION;
+  my::filename_t res(new std::string(buf + metric_name + RRDB_METRIC_EXTENSION));
+  return res;
 }
 
 

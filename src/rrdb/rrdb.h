@@ -14,7 +14,6 @@
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/unordered_map.hpp>
-#include <boost/enable_shared_from_this.hpp>
 #include <boost/thread.hpp>
 
 #include "common/types.h"
@@ -35,8 +34,7 @@ class config;
 class statement_select;
 class server;
 
-class rrdb :
-    public boost::enable_shared_from_this<rrdb>
+class rrdb
 {
 public:
   typedef boost::unordered_map< std::string, boost::shared_ptr<rrdb_metric> > t_metrics_map;

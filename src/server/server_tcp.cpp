@@ -25,8 +25,7 @@ using namespace boost::asio::ip;
  * One connection
  */
 class connection_tcp:
-    public thread_pool_task,
-    public boost::enable_shared_from_this<connection_tcp>
+    public thread_pool_task
 {
 public:
   connection_tcp(boost::asio::io_service& io_service, const boost::shared_ptr<rrdb> & rrdb, const my::size_t & buffer_size) :
