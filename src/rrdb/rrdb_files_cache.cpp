@@ -200,6 +200,7 @@ rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const std::string & fi
         ++_cache_hits;
         return _files_cache_impl->use(it, t);
     }
+    ++_cache_misses;
 
     // while we are under lock copy base folder...
     base_folder = _path;
@@ -220,13 +221,6 @@ rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const std::string & fi
   boost::shared_ptr<std::fstream> fs(new std::fstream(full_path.c_str(), mode));
   fs->exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
 
-  // TODO: remove
-  fs->seekg( 0, fs->end );
-  my::size_t sz = fs->tellg();
-  fs->seekg( 0, fs->beg );
-  sz -= fs->tellg();
-  LOG(log::LEVEL_DEBUG3, "Opened file '%s', full path '%s', size: %lu", filename.c_str(), full_path.c_str(), sz);
-
   //
   // Insert back into cache - under lock
   //
@@ -240,7 +234,6 @@ rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(const std::string & fi
 
     // put it in the cache
     _files_cache_impl->insert(filename, fs, t);
-    ++_cache_misses;
   }
 
   //

@@ -70,6 +70,7 @@ rrdb_metric_tuples_t rrdb_metric_tuples_cache::find_or_load_tuples(
         ++_cache_hits;
         return _tuples_cache_impl->use(it, t);
     }
+    ++_cache_misses;
   }
 
   //
@@ -90,7 +91,6 @@ rrdb_metric_tuples_t rrdb_metric_tuples_cache::find_or_load_tuples(
 
     // and put it in the cache
     _tuples_cache_impl->insert(rrdb_metric_block, tuples, t);
-    ++_cache_misses;
   }
 
   // done

@@ -300,14 +300,8 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb> & rrdb)
         throw;
     }
 
-    // TODO: remove
-    fs->seekg( 0, fs->end );
-    my::size_t sz = fs->tellg();
-    fs->seekg( 0, fs->beg );
-    sz -= fs->tellg();
-
     // done
-    LOG(log::LEVEL_DEBUG2, "RRDB metric saved file '%s', size %lu", _filename.c_str(), sz);
+    LOG(log::LEVEL_DEBUG2, "RRDB metric saved file '%s'", _filename.c_str());
   }
 }
 
