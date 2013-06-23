@@ -52,8 +52,8 @@ public:
   // stats
   my::memory_size_t get_cache_used_memory() const;
   my::size_t get_cache_size() const;
-  my::size_t get_cache_hits() const;
-  my::size_t get_cache_misses() const;
+  my::size_t get_cache_hits(bool reset = false);
+  my::size_t get_cache_misses(bool reset = false);
 
   // misc
   inline const boost::shared_ptr<rrdb_files_cache> & get_files_cache() const

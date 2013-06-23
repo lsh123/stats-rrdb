@@ -40,8 +40,8 @@ public:
   void set_path(const std::string & path);
 
   my::size_t get_cache_size() const;
-  my::size_t get_cache_hits() const;
-  my::size_t get_cache_misses() const;
+  my::size_t get_cache_hits(bool reset = false);
+  my::size_t get_cache_misses(bool reset = false);
 
   fstream_ptr open_file(const my::filename_t & filename, const my::time_t & ts, bool new_file = false);
   void delete_file(const my::filename_t & filename);

@@ -195,14 +195,22 @@ my::size_t rrdb_metric_tuples_cache::get_cache_size() const
   return _tuples_cache_impl->get_size();
 }
 
-my::size_t rrdb_metric_tuples_cache::get_cache_hits() const
+my::size_t rrdb_metric_tuples_cache::get_cache_hits(bool reset)
 {
   boost::lock_guard<spinlock> guard(_lock);
-  return _tuples_cache_impl->get_cache_hits();
+  my::size_t res(_tuples_cache_impl->get_cache_hits());
+  if(reset) {
+      _tuples_cache_impl->reset_cache_hits();
+  }
+  return res;
 }
 
-my::size_t rrdb_metric_tuples_cache::get_cache_misses() const
+my::size_t rrdb_metric_tuples_cache::get_cache_misses(bool reset)
 {
   boost::lock_guard<spinlock> guard(_lock);
-  return _tuples_cache_impl->get_cache_misses();
+  my::size_t res(_tuples_cache_impl->get_cache_misses());
+  if(reset) {
+      _tuples_cache_impl->reset_cache_misses();
+  }
+  return res;
 }

@@ -223,6 +223,8 @@ void rrdb_metric::load_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
 {
   CHECK_AND_THROW(files_cache);
 
+  // TODO: add better error handling to report exact problem with IO operation
+
   // operate on the file under lock: one at a time!
   {
     boost::lock_guard<spinlock> guard(_lock);
@@ -252,6 +254,8 @@ void rrdb_metric::load_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
 void rrdb_metric::save_file(const boost::shared_ptr<rrdb_files_cache> & files_cache)
 {
   CHECK_AND_THROW(files_cache);
+
+  // TODO: add better error handling to report exact problem with IO operation
 
   // operate on the file under lock: one at a time!
   {
@@ -298,6 +302,7 @@ void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb_files_cache> & 
 {
   CHECK_AND_THROW(files_cache);
 
+  // TODO: add better error handling to report exact problem with IO operation
   // TODO: implement journal file
 
   // operate on the file under lock: one at a time!
@@ -350,6 +355,8 @@ void rrdb_metric::delete_file(
 {
   CHECK_AND_THROW(tuples_cache);
   CHECK_AND_THROW(files_cache);
+
+  // TODO: add better error handling to report exact problem with IO operation
 
   // mark as deleted in case the flush thread picks it up in the meantime
   {

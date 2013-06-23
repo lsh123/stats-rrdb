@@ -160,9 +160,19 @@ public:
     return _cache_hits;
   }
 
+  inline void reset_cache_hits()
+  {
+    _cache_hits = 0;
+  }
+
   inline const size_type & get_cache_misses() const
   {
     return _cache_misses;
+  }
+
+  inline void reset_cache_misses()
+  {
+    _cache_misses = 0;
   }
 
 private:

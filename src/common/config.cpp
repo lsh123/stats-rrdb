@@ -51,7 +51,7 @@ bool config::init(int argc, const char ** argv)
           "how often do we flush to disk (default: '10 sec')"
       )
       ("rrdb.blocks_cache_memory_used",
-          value<my::size_t>(),
+          value<std::string>(),
           "the max memory size used for tuples data (default: 1GB)"
       )
       ("rrdb.blocks_cache_memory_used_purge_threshold",
