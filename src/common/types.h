@@ -63,10 +63,10 @@ typedef double value_t;
 //
 typedef boost::uint64_t memory_size_t;
 
-#define MEMORY_SIZE_BYTE        (1)
-#define MEMORY_SIZE_KILOBYTE    (1024 * MEMORY_SIZE_BYTE)
-#define MEMORY_SIZE_MEGABYTE    (1024 * MEMORY_SIZE_KILOBYTE)
-#define MEMORY_SIZE_GIGABYTE    (1024 * MEMORY_SIZE_MEGABYTE)
+#define MEMORY_SIZE_BYTE        (1L)
+#define MEMORY_SIZE_KILOBYTE    (1024L * MEMORY_SIZE_BYTE)
+#define MEMORY_SIZE_MEGABYTE    (1024L * MEMORY_SIZE_KILOBYTE)
+#define MEMORY_SIZE_GIGABYTE    (1024L * MEMORY_SIZE_MEGABYTE)
 
 //
 // Filename - shared_ptr to save space

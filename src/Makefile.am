@@ -38,6 +38,7 @@ EXTRA_DIST = \
 	server/thread_pool.h \
 	tests/files_cache_tests.h \
 	tests/lru_tests.h \
+	tests/parsers_tests.h \
 	tests/query_tests.h \
 	tests/update_tests.h \
 	tests/stats_rrdb_tests.h \
@@ -126,6 +127,7 @@ stats_rrdb_LDADD= \
 stats_rrdb_tests_SOURCES= \
 	tests/files_cache_tests.cpp \
 	tests/lru_tests.cpp \
+	tests/parsers_tests.cpp \
 	tests/query_tests.cpp \
 	tests/update_tests.cpp \
 	tests/stats_rrdb_tests.cpp \

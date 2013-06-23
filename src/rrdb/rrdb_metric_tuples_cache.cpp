@@ -69,6 +69,8 @@ rrdb_metric_tuples_cache::~rrdb_metric_tuples_cache()
 void rrdb_metric_tuples_cache::initialize(boost::shared_ptr<config> config)
 {
   // set cache size
+  // TODO: use memory_use parsers here
+  // TODO: put these params into config
   this->set_max_used_memory(config->get<my::memory_size_t>("rrdb.blocks_cache_memory_used", this->get_max_used_memory()));
 
   // simple - under lock

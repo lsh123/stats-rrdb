@@ -30,7 +30,7 @@
 #include "tests/query_tests.h"
 #include "tests/update_tests.h"
 #include "tests/files_cache_tests.h"
-
+#include "tests/parsers_tests.h"
 
 boost::shared_ptr<config> test_setup_config(const std::string & path, const t_test_config_data & data)
 {
@@ -97,6 +97,13 @@ int main(int argc, char ** argv)
     TEST_START("files_cache_tests");
     files_cache_tests::run(path);
     TEST_END("files_cache_tests");
+
+    //
+     // parsers_tests
+     //
+     TEST_START("parsers_tests");
+     parsers_tests::run();
+     TEST_END("parsers_tests");
 
     //
     // query_tests

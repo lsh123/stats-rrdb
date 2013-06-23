@@ -31,14 +31,11 @@ public:
           qi::uint_             [ qi::_val = qi::_1 ]
           >>
           (
-             nocaselit("byte")  [ qi::_val *= MEMORY_SIZE_BYTE ]
-           | nocaselit("bytes") [ qi::_val *= MEMORY_SIZE_BYTE ]
+             nocaselit("bytes") [ qi::_val *= MEMORY_SIZE_BYTE ]
+           | nocaselit("byte")  [ qi::_val *= MEMORY_SIZE_BYTE ]
            | nocaselit("KB")    [ qi::_val *= MEMORY_SIZE_KILOBYTE ]
-           | nocaselit("KBs")   [ qi::_val *= MEMORY_SIZE_KILOBYTE ]
            | nocaselit("MB")    [ qi::_val *= MEMORY_SIZE_MEGABYTE ]
-           | nocaselit("MBs")   [ qi::_val *= MEMORY_SIZE_MEGABYTE ]
            | nocaselit("GB")    [ qi::_val *= MEMORY_SIZE_GIGABYTE ]
-           | nocaselit("GBs")   [ qi::_val *= MEMORY_SIZE_GIGABYTE ]
            | qi::eps            [ qi::_val *= MEMORY_SIZE_BYTE ]
           )
      ;
