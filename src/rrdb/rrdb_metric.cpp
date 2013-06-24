@@ -10,6 +10,7 @@
 #include <boost/functional/hash.hpp>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "parser/statements.h"
 
@@ -31,8 +32,6 @@
 // make it configurable?
 #define RRDB_METRIC_SUBFOLDERS_NUM      512
 #define RRDB_METRIC_EXTENSION           ".rrdb"
-
-
 
 
 rrdb_metric::rrdb_metric(const my::filename_t & filename) :
@@ -476,5 +475,12 @@ my::filename_t rrdb_metric::construct_filename(const std::string & metric_name)
   return res;
 }
 
+std::string rrdb_metric::normalize_name(const std::string & str)
+{
+  // force lower case for names
+  std::string res(str);
+  boost::algorithm::to_lower(res);
+  return res;
+}
 
 

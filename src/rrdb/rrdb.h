@@ -98,10 +98,9 @@ public:
   }
 
 private:
-  boost::intrusive_ptr<rrdb_metric> find_metric_lc(const std::string & name_lc);
-
   void flush_to_disk_thread();
   void flush_to_disk();
+
   t_metrics_vector get_dirty_metrics();
 
 private:

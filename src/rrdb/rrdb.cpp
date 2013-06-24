@@ -8,7 +8,6 @@
 #include <sstream>
 
 #include <boost/thread/locks.hpp>
-#include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 
 
@@ -498,19 +497,13 @@ void rrdb::flush_to_disk()
 
 boost::intrusive_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)
 {
-  // force lower case for names
-  std::string name_lc(name);
-  boost::algorithm::to_lower(name_lc);
+  // normalize name
+  std::string name_normalized(rrdb_metric::normalize_name(name));
 
-  return this->find_metric_lc(name_lc);
-}
-
-boost::intrusive_ptr<rrdb_metric> rrdb::find_metric_lc(const std::string & name_lc)
-{
   // search in the map: lock access to _metrics
   {
     boost::lock_guard<spinlock> guard(_metrics_lock);
-    t_metrics_map::const_iterator it = _metrics.find(name_lc);
+    t_metrics_map::const_iterator it = _metrics.find(name_normalized);
     if(it != _metrics.end()) {
         return (*it).second;
     }
@@ -532,9 +525,8 @@ boost::intrusive_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, 
   // log
   LOG(log::LEVEL_DEBUG, "RRDB: creating metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
 
-  // force lower case for names
-  std::string name_lc(name);
-  boost::algorithm::to_lower(name_lc);
+  // normalize the name
+  std::string name_normalized(rrdb_metric::normalize_name(name));
 
   // TODO: check name
   // starts with a letter, doesn't contain anything but (a-zA-Z0-9._-), length
@@ -544,11 +536,11 @@ boost::intrusive_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, 
 
   // create new and try to insert into map, lock access to _metrics
   boost::intrusive_ptr<rrdb_metric> res(new rrdb_metric());
-  res->create(name_lc, policy);
+  res->create(name_normalized, policy);
   {
     // make sure there is always only one metric for the name
     boost::lock_guard<spinlock> guard(_metrics_lock);
-    t_metrics_map::const_iterator it = _metrics.find(name_lc);
+    t_metrics_map::const_iterator it = _metrics.find(name_normalized);
     if(it != _metrics.end()) {
         // someone inserted it in the meantime
         if(throw_if_exists) {
@@ -557,7 +549,7 @@ boost::intrusive_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, 
             return (*it).second;
         }
     }
-    _metrics[name_lc] = res;
+    _metrics[name_normalized] = res;
   }
 
   // write to disk
@@ -574,15 +566,14 @@ void rrdb::drop_metric(const std::string & name)
   // log
   LOG(log::LEVEL_DEBUG, "RRDB: dropping metric '%s'", name.c_str());
 
-  // force lower case for names
-  std::string name_lc(name);
-  boost::algorithm::to_lower(name_lc);
+  // normalize name
+  std::string name_normalized(rrdb_metric::normalize_name(name));
 
   // lock access to _metrics and  try to find the metric
   boost::intrusive_ptr<rrdb_metric> res;
   {
     boost::lock_guard<spinlock> guard(_metrics_lock);
-    t_metrics_map::const_iterator it = _metrics.find(name_lc);
+    t_metrics_map::const_iterator it = _metrics.find(name_normalized);
     if(it == _metrics.end()) {
         throw exception("The metric '%s' does not exists", name.c_str());
     }
@@ -600,17 +591,17 @@ void rrdb::drop_metric(const std::string & name)
 
 void rrdb::get_metrics(const boost::optional<std::string> & like, metrics_walker & walker)
 {
-  // force lower case for names
-  boost::optional<std::string> like_lc(like);
-  if(like_lc) {
-      boost::algorithm::to_lower(*like_lc);
+  // normalize the like (same as name)
+  boost::optional<std::string> like_normalized;
+  if(like) {
+      like_normalized = rrdb_metric::normalize_name(*like);
   }
 
   // lock access to _metrics
   {
     boost::lock_guard<spinlock> guard(_metrics_lock);
     BOOST_FOREACH(const t_metrics_map::value_type & v, _metrics) {
-      if(like_lc && v.first.find(*like_lc) == std::string::npos) {
+      if(like_normalized && v.first.find(*like_normalized) == std::string::npos) {
           continue;
       }
       walker.on_metric(v.first, v.second);
@@ -620,10 +611,10 @@ void rrdb::get_metrics(const boost::optional<std::string> & like, metrics_walker
 
 void rrdb::get_status_metrics(const boost::optional<std::string> & like, metrics_walker & walker)
 {
-  // force lower case for names
-  boost::optional<std::string> like_lc(like);
-  if(like_lc) {
-      boost::algorithm::to_lower(*like_lc);
+  // normalize the like (same as name)
+  boost::optional<std::string> like_normalized;
+  if(like) {
+      like_normalized = rrdb_metric::normalize_name(*like);
   }
 
   // lock access to _metrics
@@ -634,7 +625,7 @@ void rrdb::get_status_metrics(const boost::optional<std::string> & like, metrics
       if(v.first.find("self.") != 0) {
           continue;
       }
-      if(like_lc && v.first.find(*like_lc) == std::string::npos) {
+      if(like_normalized && v.first.find(*like_normalized) == std::string::npos) {
           continue;
       }
       walker.on_metric(v.first, v.second);

@@ -103,6 +103,10 @@ public:
       const std::string & metric_name
   );
 
+  static std::string normalize_name(
+      const std::string & str
+  );
+
   //
   // Operations: update/select
   //

@@ -81,7 +81,6 @@ t_rrdb_metric_tuples_ptr rrdb_metric_block::get_tuples(
   return the_tuples;
 }
 
-// TODO: don't use raw pointers
 t_rrdb_metric_tuple * rrdb_metric_block::find_tuple(
     t_rrdb_metric_tuples_ptr & the_tuples,
     const t_update_ctx & in,
