@@ -5,6 +5,8 @@
  *      Author: aleksey
  */
 
+#include <boost/foreach.hpp>
+
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric.h"
 
@@ -216,6 +218,51 @@ void query_tests::test_select_all_group_by_1_year(const int & n)
   TEST_DATA(buf, std::string(res_data.begin(), res_data.end()));
 }
 
+
+void query_tests::test_select_all_group_by_3_sec(const int & n)
+{
+  TEST_SUBTEST_START(n, "select all group by 3 sec");
+
+  char buf[1024];
+  snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu group by 3 secs; ",
+      _metric_name.c_str(),
+      _start_ts,
+      _end_ts
+  );
+
+  t_memory_buffer_data res_data;
+  t_memory_buffer res(res_data);
+  _rrdb->execute_query_statement(buf, res);
+
+  t_test_csv_data parsed_data;
+  test_parse_csv_data(res_data, parsed_data);
+
+  // count: 1 header row + 3 sec rows
+  TEST_CHECK_EQUAL(parsed_data.size(), (1 + _count / 3) );
+
+  // all should be 3 sec rows with 3 data points each
+  my::time_t ts = _end_ts;
+  BOOST_FOREACH(const std::vector<std::string> & row, parsed_data) {
+    // skip header row in a weird way
+    if(ts < _end_ts) {
+      TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(row[0]), ts); // ts
+      TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(row[1]), 3);  // count = 3
+      TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(row[2]), 3);  // sum = 3
+      TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(row[3]), 1);  // avg = 1
+      TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(row[4]), 0);  // stdev = 0
+      TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(row[5]), 1);  // min = 1
+      TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(row[6]), 1);  // max = 1
+    }
+    ts -= 3;
+  }
+
+
+  // done
+  TEST_SUBTEST_END();
+  TEST_DATA(buf, std::string(res_data.begin(), res_data.end()));
+}
+
+
 /*
 void query_tests::test_template(const int & n)
 {
@@ -242,6 +289,7 @@ void query_tests::run(const std::string & path)
   test.test_select_5_sec(2);
   test.test_select_all_group_by_30_sec(3);
   test.test_select_all_group_by_1_year(4);
+  test.test_select_all_group_by_3_sec(5);
 
   // cleanup
   test.cleanup();

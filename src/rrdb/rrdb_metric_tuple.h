@@ -110,7 +110,7 @@ typedef boost::intrusive_ptr< t_rrdb_metric_tuples > t_rrdb_metric_tuples_ptr;
 
 void rrdb_metric_tuple_update(t_rrdb_metric_tuple & tuple, const my::value_t & value);
 void rrdb_metric_tuple_update(t_rrdb_metric_tuple & tuple, const t_rrdb_metric_tuple & other);
-void rrdb_metric_tuple_normalize(t_rrdb_metric_tuple & tuple, const my::value_t & factor);
+void rrdb_metric_tuple_update(t_rrdb_metric_tuple & tuple, const t_rrdb_metric_tuple & other, const my::value_t & factor);
 
 void rrdb_metric_tuple_write_header(t_memory_buffer & res);
 void rrdb_metric_tuple_write(const t_rrdb_metric_tuple & tuple, t_memory_buffer & res);

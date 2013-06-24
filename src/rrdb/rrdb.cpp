@@ -207,16 +207,9 @@ class statement_execute_visitor : public boost::static_visitor<void>
             } else {
                 overlap = _ts - tuple._ts;
             }
-
-            /*
-            std::cerr
-              << "Overlap: " << overlap
-              << " interval: " << interval
-              << " beg: "   << _ts_beg
-              << " end: "   << _ts_end
-              << " ts: "    << _ts
-              << std::endl;
-           */
+            if(_group_by < overlap) {
+                overlap = _group_by;
+            }
 
             // check if tuple is "inside" the the current "group by" interval
             if(overlap >= interval) {
@@ -224,12 +217,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
             } else {
                 // calculate the contribution of the tuple based
                 // simple proportion
-                // TODO: hack for now: implement rrdb_metric_tuple_update_with_factor()
-                //
-                t_rrdb_metric_tuple t;
-                memcpy(&t, &tuple, sizeof(t));
-                rrdb_metric_tuple_normalize(t, overlap / (double)interval);
-                rrdb_metric_tuple_update(_cur_tuple, t);
+                rrdb_metric_tuple_update(_cur_tuple, tuple, overlap / (double)interval);
             }
 
             // are we done with this tuple?

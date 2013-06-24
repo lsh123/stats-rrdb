@@ -37,15 +37,22 @@ void rrdb_metric_tuple_update(t_rrdb_metric_tuple & tuple, const t_rrdb_metric_t
   tuple._count   += other._count;
 }
 
-void rrdb_metric_tuple_normalize(t_rrdb_metric_tuple & tuple, const my::value_t & factor)
+void rrdb_metric_tuple_update(t_rrdb_metric_tuple & tuple, const t_rrdb_metric_tuple & other, const my::value_t & factor)
 {
-  if(factor > 0) {
-      // leave alone min/max
-      tuple._sum     *= factor;
-      tuple._sum_sqr *= factor;
-      tuple._count   *= factor;
+  // leave alone min/max
+  if(tuple._min > other._min || tuple._count == 0) {
+      tuple._min = other._min;
   }
+  if(tuple._max < other._max || tuple._count == 0) {
+      tuple._max = other._max;
+  }
+
+  // but account for factor for sum/count/..
+  tuple._sum     += factor * other._sum;
+  tuple._sum_sqr += factor * other._sum_sqr;
+  tuple._count   += factor * other._count;
 }
+
 
 void rrdb_metric_tuple_write_header(t_memory_buffer & res)
 {
