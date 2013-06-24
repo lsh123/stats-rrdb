@@ -21,6 +21,7 @@
 
 #include "common/types.h"
 #include "common/spinlock.h"
+#include "common/enable_intrusive_ptr.h"
 #include "common/exception.h"
 
 
@@ -56,7 +57,8 @@ typedef struct t_rrdb_metric_block_header_ {
 //
 // Metrics block of data for a single policy
 //
-class rrdb_metric_block
+class rrdb_metric_block:
+    public enable_intrusive_ptr<rrdb_metric_block>
 {
 public:
   enum update_state {

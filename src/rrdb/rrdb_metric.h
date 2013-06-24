@@ -13,6 +13,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
+#include <boost/intrusive_ptr.hpp>
 
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric_tuple.h"
@@ -130,7 +131,7 @@ private:
   boost::shared_array<char>      _name;
   my::filename_t                 _filename;
 
-  std::vector< boost::shared_ptr<rrdb_metric_block> > _blocks;
+  std::vector< boost::intrusive_ptr<rrdb_metric_block> > _blocks;
 }; // class rrdb_metric
 
 #endif /* RRDB_METRIC_H_ */

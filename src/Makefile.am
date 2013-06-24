@@ -11,6 +11,7 @@ bin_PROGRAMS= \
 
 EXTRA_DIST = \
 	common/config.h \
+	common/enable_intrusive_ptr.h \
 	common/exception.h \
 	common/log.h \
 	common/memory_buffer.h \
