@@ -19,18 +19,6 @@
 // Value
 //
 typedef struct t_rrdb_metric_tuple_ {
-public:
-  t_rrdb_metric_tuple_() :
-    _ts(0),
-    _count(0),
-    _sum(0),
-    _sum_sqr(0),
-    _min(0),
-    _max(0)
-  {
-  }
-
-public:
   my::time_t    _ts;                // block timestamp
   my::value_t   _count;             // number of data points aggregated
   my::value_t   _sum;               // sum(data point value)
@@ -52,6 +40,7 @@ public:
   {
     if(size > 0) {
         this->reset(new t_rrdb_metric_tuple[size](), size);
+        this->zero();
     }
   }
   inline ~t_rrdb_metric_tuples_()
@@ -59,13 +48,15 @@ public:
     this->reset();
   }
 
+  inline void zero()
+  {
+    // shouldn't be doing it in C++ but it's the fastest way
+    if(_tuples) {
+        memset(this->get(), 0, this->get_memory_size());
+    }
+  }
+
   // access
-  size_type get_size() const { return _size; }
-  size_type get_memory_size() const { return get_size() * sizeof(t_rrdb_metric_tuple); }
-
-  t_rrdb_metric_tuple * get() { return _tuples; }
-  t_rrdb_metric_tuple const * get() const { return _tuples; }
-
   inline t_rrdb_metric_tuple & operator[] (const size_type & pos)
   {
     CHECK_AND_THROW(pos < _size);
@@ -75,6 +66,23 @@ public:
   {
     CHECK_AND_THROW(pos < _size);
     return _tuples[pos];
+  }
+
+  inline size_type get_size() const { return _size; }
+  inline size_type get_memory_size() const { return get_size() * sizeof(t_rrdb_metric_tuple); }
+
+  inline t_rrdb_metric_tuple * get() { return _tuples; }
+  inline t_rrdb_metric_tuple const * get() const { return _tuples; }
+
+  inline t_rrdb_metric_tuple * get_at(const size_type & pos)
+  {
+    CHECK_AND_THROW(pos < _size);
+    return &(_tuples[pos]);
+  }
+  inline t_rrdb_metric_tuple const * get_at(const size_type & pos) const
+  {
+    CHECK_AND_THROW(pos < _size);
+    return &(_tuples[pos]);
   }
 
 private:

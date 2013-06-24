@@ -159,7 +159,7 @@ public:
 
   // READ/WRITE FILES
   void write_block(std::fstream & ofs);
-  void read_block(std::fstream & ifs);
+  void read_block(std::fstream & ifs, bool skip_data = true);
 
 private:
   t_rrdb_metric_tuples_ptr get_tuples(
@@ -168,7 +168,7 @@ private:
   );
 
   t_rrdb_metric_tuple * find_tuple(
-      t_rrdb_metric_tuple * the_tuples,
+      t_rrdb_metric_tuples_ptr & the_tuples,
       const t_update_ctx & in,
       t_update_ctx & out
   );

@@ -83,31 +83,35 @@ t_rrdb_metric_tuples_ptr rrdb_metric_block::get_tuples(
 
 // TODO: don't use raw pointers
 t_rrdb_metric_tuple * rrdb_metric_block::find_tuple(
-    t_rrdb_metric_tuple * the_tuples,
+    t_rrdb_metric_tuples_ptr & the_tuples,
     const t_update_ctx & in,
     t_update_ctx & out
 ) {
   CHECK_AND_THROW(the_tuples);
+  CHECK_AND_THROW(the_tuples->get());
+  CHECK_AND_THROW(the_tuples->get_size() == _header._count);
+  CHECK_AND_THROW(the_tuples->get_memory_size() == _header._data_size);
   CHECK_AND_THROW(_header._pos < _header._count);
   CHECK_AND_THROW(_header._freq > 0);
 
   const my::time_t & ts(in.get_ts());
   if(this->get_latest_possible_ts() <= ts) {
       // complete shift forward, notify about rollup
+      // copy data here because we are going to destroy these tuples next
       out._state = UpdateState_Tuple;
-      out._tuple = the_tuples[_header._pos];
+      out._tuple = *(the_tuples->get_at(_header._pos));
 
-      // start from 0 and assume this ts is the latest
-      memset(the_tuples, 0, _header._data_size);
-      t_rrdb_metric_tuple & tuple = the_tuples[0];
+      // destroy tuples and start from 0 and assume this ts is the latest
+      the_tuples->zero();
+      t_rrdb_metric_tuple * tuple = the_tuples->get_at(0);
       _header._pos      = 0;
-      _header._pos_ts   = tuple._ts = this->normalize_ts(ts);
+      _header._pos_ts   = tuple->_ts = this->normalize_ts(ts);
 
       // done
-      return &tuple;
+      return tuple;
   } else if(this->get_cur_ts() <= ts) {
       // we are somewhere ahead but not too much
-      t_rrdb_metric_tuple * tuple = &the_tuples[_header._pos];
+      t_rrdb_metric_tuple * tuple = the_tuples->get_at(_header._pos);
       my::time_t next_tuple_ts = tuple->_ts + _header._freq;
       if(ts < next_tuple_ts) {
           // our current tuple will do
@@ -123,7 +127,7 @@ t_rrdb_metric_tuple * rrdb_metric_block::find_tuple(
       do {
           // move the pointer
           _header._pos = this->get_next_pos(_header._pos);
-          tuple = &the_tuples[_header._pos];
+          tuple = the_tuples->get_at(_header._pos);
 
           // reset values
           memset(tuple, 0, sizeof(*tuple));
@@ -147,7 +151,7 @@ t_rrdb_metric_tuple * rrdb_metric_block::find_tuple(
           tuple_ts -= _header._freq;
 
           // overwrite tuple ts just in case (it might not be initialized!)
-          t_rrdb_metric_tuple * tuple = &the_tuples[pos];
+          t_rrdb_metric_tuple * tuple = the_tuples->get_at(pos);
           tuple->_ts = tuple_ts;
           if(ts >= tuple->_ts) {
               CHECK_AND_THROW(ts < tuple->_ts + _header._freq);
@@ -177,9 +181,11 @@ void rrdb_metric_block::update(
   t_rrdb_metric_tuples_ptr the_tuples(this->get_tuples(filename, tuples_cache));
   CHECK_AND_THROW(the_tuples);
   CHECK_AND_THROW(the_tuples->get());
+  CHECK_AND_THROW(the_tuples->get_size() == _header._count);
+  CHECK_AND_THROW(the_tuples->get_memory_size() == _header._data_size);
   CHECK_AND_THROW(this->get_cur_ts() == (*the_tuples)[_header._pos]._ts);
 
-  t_rrdb_metric_tuple * tuple = this->find_tuple(the_tuples->get(), in, out);
+  t_rrdb_metric_tuple * tuple = this->find_tuple(the_tuples, in, out);
   if(!tuple) {
       LOG(log::LEVEL_DEBUG, "Can not find tuple ts: %ld (current block time: %ld, duration: %ld)", in.get_ts(), this->get_cur_ts(), this->get_duration());
       return;
@@ -218,6 +224,9 @@ void rrdb_metric_block::select(
   t_rrdb_metric_tuples_ptr the_tuples(this->get_tuples(filename, tuples_cache));
   CHECK_AND_THROW(the_tuples);
   CHECK_AND_THROW(the_tuples->get());
+  CHECK_AND_THROW(the_tuples->get_size() == _header._count);
+  CHECK_AND_THROW(the_tuples->get_memory_size() == _header._data_size);
+
 
   // walk through all the tuples until we hit the end or the time stops
   // note that logic for checking timestamps in rrdb_metric::select()
@@ -260,7 +269,7 @@ void rrdb_metric_block::write_block(std::fstream & ofs)
   _modified_tuples.reset();
 }
 
-void rrdb_metric_block::read_block(std::fstream & ifs)
+void rrdb_metric_block::read_block(std::fstream & ifs, bool skip_data)
 {
   // remember where are we
   my::size_t offset = ifs.tellg();
@@ -291,20 +300,31 @@ void rrdb_metric_block::read_block(std::fstream & ifs)
   }
 
   // skip data block - we load it async
-  LOG(log::LEVEL_DEBUG3, "RRDB metric block data: seek %ld", _header._data_size);
-  ifs.seekg(_header._data_size, ifs.cur);
+  if(skip_data) {
+      LOG(log::LEVEL_DEBUG3, "RRDB metric block data: seek %ld", _header._data_size);
+      ifs.seekg(_header._data_size, ifs.cur);
+      _modified_tuples.reset();
+  } else {
+      _modified_tuples = this->read_block_data(ifs);
+      CHECK_AND_THROW(_modified_tuples);
+      CHECK_AND_THROW(_modified_tuples->get());
+      CHECK_AND_THROW(_modified_tuples->get_size() == _header._count);
+      CHECK_AND_THROW(_modified_tuples->get_memory_size() == _header._data_size);
+  }
 }
 
 t_rrdb_metric_tuples_ptr rrdb_metric_block::read_block_data(std::fstream & ifs) const
 {
   LOG(log::LEVEL_DEBUG3, "RRDB metric block read data at offset %ld, size %ld", _header._offset, _header._data_size);
 
-  // read data
+  // create data
   t_rrdb_metric_tuples_ptr the_tuples(new t_rrdb_metric_tuples(_header._count));
   CHECK_AND_THROW(the_tuples);
   CHECK_AND_THROW(the_tuples->get());
   CHECK_AND_THROW(the_tuples->get_size() == _header._count);
   CHECK_AND_THROW(the_tuples->get_memory_size() == _header._data_size);
+
+  // read data
   ifs.read((char*)the_tuples->get(), the_tuples->get_memory_size());
 
   // check data
