@@ -10,7 +10,6 @@
 #include <iostream>
 #include <boost/array.hpp>
 #include <boost/bind.hpp>
-#include <boost/enable_shared_from_this.hpp>
 
 
 #include "server/thread_pool.h"
@@ -27,8 +26,7 @@ using namespace boost::asio::ip;
  * One connection
  */
 class connection_udp:
-    public thread_pool_task,
-    public boost::enable_shared_from_this<connection_udp>
+    public thread_pool_task
 {
 public:
   connection_udp(
@@ -98,7 +96,7 @@ public:
         _remote_endpoint,
         boost::bind(
           &connection_udp::handle_send,
-          shared_from_this(),
+          boost::intrusive_ptr<connection_udp>(this),
           boost::asio::placeholders::error,
           boost::asio::placeholders::bytes_transferred
         )
@@ -200,7 +198,7 @@ void server_udp::update_status(const time_t & now)
 
 void server_udp::receive()
 {
-  boost::shared_ptr<connection_udp> new_connection(
+  boost::intrusive_ptr<connection_udp> new_connection(
       new connection_udp(
           _socket,
           _rrdb,
@@ -226,7 +224,7 @@ void server_udp::receive()
 }
 
 void server_udp::handle_receive(
-    boost::shared_ptr<connection_udp> new_connection,
+    const boost::intrusive_ptr<connection_udp> & new_connection,
     const boost::system::error_code& error,
     my::size_t bytes_transferred
 ) {

@@ -10,7 +10,6 @@
 #include <iostream>
 #include <boost/array.hpp>
 #include <boost/bind.hpp>
-#include <boost/enable_shared_from_this.hpp>
 
 #include "common/exception.h"
 #include "common/log.h"
@@ -26,8 +25,7 @@ using namespace boost::asio::ip;
  * One connection
  */
 class connection_tcp:
-    public thread_pool_task,
-    public boost::enable_shared_from_this<connection_tcp>
+    public thread_pool_task
 {
 public:
   connection_tcp(boost::asio::io_service& io_service, const boost::shared_ptr<rrdb> & rrdb, const my::size_t & buffer_size) :
@@ -89,7 +87,7 @@ public:
         boost::asio::buffer(_output_buffer),
         boost::bind(
             &connection_tcp::handle_write,
-            shared_from_this(),
+            boost::intrusive_ptr<connection_tcp>(this),
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred
         )
@@ -182,7 +180,7 @@ void server_tcp::update_status(const time_t & now)
 
 void server_tcp::accept()
 {
-  boost::shared_ptr<connection_tcp> new_connection(
+  boost::intrusive_ptr<connection_tcp> new_connection(
       new connection_tcp(
           _acceptor->get_io_service(),
           _rrdb,
@@ -201,7 +199,7 @@ void server_tcp::accept()
 }
 
 void server_tcp::handle_accept(
-    boost::shared_ptr<connection_tcp> new_connection,
+    const boost::intrusive_ptr<connection_tcp> & new_connection,
     const boost::system::error_code& error
 ) {
   try {
@@ -238,7 +236,7 @@ void server_tcp::handle_accept(
 }
 
 void server_tcp::handle_read(
-    boost::shared_ptr<connection_tcp> new_connection,
+    const boost::intrusive_ptr<connection_tcp> & new_connection,
     const boost::system::error_code& error,
     my::size_t bytes_transferred
 ) {

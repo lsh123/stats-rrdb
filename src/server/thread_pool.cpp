@@ -44,7 +44,7 @@ thread_pool::~thread_pool()
   LOG(log::LEVEL_INFO, "Stopped thread pool");
 }
 
-my::size_t thread_pool::run(boost::shared_ptr<thread_pool_task> task)
+my::size_t thread_pool::run(const boost::intrusive_ptr<thread_pool_task> & task)
 {
   // ready to execute?
   my::size_t used_threads = _used_threads.fetch_add(1, boost::memory_order_release);
@@ -61,7 +61,7 @@ my::size_t thread_pool::run(boost::shared_ptr<thread_pool_task> task)
   return used_threads;
 }
 
-void thread_pool::wrap_task_run(boost::shared_ptr<thread_pool_task> task)
+void thread_pool::wrap_task_run(const boost::intrusive_ptr<thread_pool_task> & task)
 {
   // run the task, ignore all exception
   try {

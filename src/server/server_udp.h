@@ -14,6 +14,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
 
 #include "common/types.h"
 
@@ -41,7 +42,7 @@ protected:
   void receive();
 
   void handle_receive(
-    boost::shared_ptr<connection_udp> new_connection,
+    const boost::intrusive_ptr<connection_udp> & new_connection,
     const boost::system::error_code & error,
     my::size_t bytes_transferred
   );

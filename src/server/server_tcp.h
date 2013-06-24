@@ -12,6 +12,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
 
 #include "common/types.h"
 
@@ -39,11 +40,11 @@ protected:
   void accept();
 
   void handle_accept(
-      boost::shared_ptr<connection_tcp> new_connection,
+      const boost::intrusive_ptr<connection_tcp> & new_connection,
       const boost::system::error_code& error
   );
   void handle_read(
-      boost::shared_ptr<connection_tcp> new_connection,
+      const boost::intrusive_ptr<connection_tcp> & new_connection,
       const boost::system::error_code& error,
       my::size_t bytes_transferred
   );

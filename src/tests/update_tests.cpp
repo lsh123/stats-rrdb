@@ -112,7 +112,7 @@ void update_tests::load_test(const int & n,
           ts + ii
       );
 
-      boost::shared_ptr<load_test_task> task(new load_test_task(_rrdb, buf));
+      boost::intrusive_ptr<load_test_task> task(new load_test_task(_rrdb, buf));
       threads->run(task);
 
       // wait if load factor is bigger than 2.0

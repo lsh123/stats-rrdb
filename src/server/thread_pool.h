@@ -12,13 +12,18 @@
 
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/atomic.hpp>
 
 #include "common/types.h"
+#include "common/enable_intrusive_ptr.h"
 
-class thread_pool_task
+class thread_pool_task:
+    public enable_intrusive_ptr<thread_pool_task>
 {
+public:
+  thread_pool_task() { }
+  virtual ~thread_pool_task() { }
+
 public:
   virtual void run() = 0;
 }; // thread_pool_task
@@ -29,7 +34,7 @@ public:
   thread_pool(my::size_t pool_size);
   virtual ~thread_pool();
 
-  my::size_t run(boost::shared_ptr<thread_pool_task> task);
+  my::size_t run(const boost::intrusive_ptr<thread_pool_task> & task);
 
   inline double get_load_factor() const
   {
@@ -47,7 +52,7 @@ public:
   }
 
 private:
-  void wrap_task_run(boost::shared_ptr<thread_pool_task> task);
+  void wrap_task_run(const boost::intrusive_ptr<thread_pool_task> & task);
 
 private:
   my::size_t                    _pool_size;
