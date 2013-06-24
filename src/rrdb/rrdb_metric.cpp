@@ -76,7 +76,7 @@ t_retention_policy rrdb_metric::get_policy() const
 void rrdb_metric::create(const std::string & name, const t_retention_policy & policy)
 {
   // check the name
-  if(statement_check_metric_name(name, false)) {
+  if(!statement_check_metric_name(name, false)) {
       throw exception("Invalid name '%s'", name.c_str());
   }
 
