@@ -101,7 +101,8 @@ t_rrdb_metric_tuple * rrdb_metric_block::find_tuple(
       out._state = UpdateState_Tuple;
       out._tuple = *(the_tuples->get_at(_header._pos));
 
-      // destroy tuples and start from 0 and assume this ts is the latest
+      // destroy tuples and start from 0, we assume this ts is
+      // the latest
       the_tuples->zero();
       t_rrdb_metric_tuple * tuple = the_tuples->get_at(0);
       _header._pos      = 0;
