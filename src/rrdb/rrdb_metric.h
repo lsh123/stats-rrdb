@@ -21,7 +21,7 @@
 #include "common/types.h"
 #include "common/spinlock.h"
 #include "parser/retention_policy.h"
-
+#include "common/enable_intrusive_ptr.h"
 
 // forward
 class rrdb;
@@ -50,7 +50,8 @@ typedef struct t_rrdb_metric_header_ {
 //
 //
 //
-class rrdb_metric
+class rrdb_metric :
+    public enable_intrusive_ptr<rrdb_metric>
 {
   friend class rrdb_metric_block;
 

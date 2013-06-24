@@ -11,8 +11,6 @@
 #include <string>
 #include <stdarg.h>
 
-#include <boost/shared_ptr.hpp>
-
 #include "common/types.h"
 #include "common/exception.h"
 

@@ -57,7 +57,7 @@ void query_tests::test_create(const int & n)
 {
   TEST_SUBTEST_START(n, "create()");
 
-  boost::shared_ptr<rrdb_metric> metric;
+  boost::intrusive_ptr<rrdb_metric> metric;
 
   // check it doesn't exits
   metric = _rrdb->find_metric(_metric_name);

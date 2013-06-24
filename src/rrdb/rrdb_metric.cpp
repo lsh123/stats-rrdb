@@ -450,7 +450,7 @@ void rrdb_metric::load_metrics(
       // load metric
       LOG(log::LEVEL_DEBUG2, "Loading file %s", full_path.c_str());
       my::filename_t filename(new std::string(full_path.substr(path_len)));
-      boost::shared_ptr<rrdb_metric> metric(new rrdb_metric(filename));
+      boost::intrusive_ptr<rrdb_metric> metric(new rrdb_metric(filename));
       metric->load_file(files_cache);
 
       // insert into the output map

@@ -37,15 +37,15 @@ class server;
 class rrdb
 {
 public:
-  typedef boost::unordered_map< std::string, boost::shared_ptr<rrdb_metric> > t_metrics_map;
-  typedef std::vector< boost::shared_ptr<rrdb_metric> > t_metrics_vector;
+  typedef boost::unordered_map< std::string, boost::intrusive_ptr<rrdb_metric> > t_metrics_map;
+  typedef std::vector< boost::intrusive_ptr<rrdb_metric> > t_metrics_vector;
 
   //
   // Walks through metrics
   //
   class metrics_walker {
   public:
-    virtual void on_metric(const std::string & name, const boost::shared_ptr<rrdb_metric> & metric) = 0;
+    virtual void on_metric(const std::string & name, const boost::intrusive_ptr<rrdb_metric> & metric) = 0;
   }; // class metrics_walker
 
   //
@@ -70,10 +70,10 @@ public:
   void update_status(const time_t & now);
 
   // metrics map operations
-  boost::shared_ptr<rrdb_metric> get_metric(const std::string & name);
-  boost::shared_ptr<rrdb_metric> find_metric(const std::string & name);
+  boost::intrusive_ptr<rrdb_metric> get_metric(const std::string & name);
+  boost::intrusive_ptr<rrdb_metric> find_metric(const std::string & name);
 
-  boost::shared_ptr<rrdb_metric> create_metric(const std::string & name, const t_retention_policy & policy, bool throw_if_exists = true);
+  boost::intrusive_ptr<rrdb_metric> create_metric(const std::string & name, const t_retention_policy & policy, bool throw_if_exists = true);
   void drop_metric(const std::string & name);
 
   void get_metrics(const boost::optional<std::string> & like, metrics_walker & walker);
@@ -98,7 +98,7 @@ public:
   }
 
 private:
-  boost::shared_ptr<rrdb_metric> find_metric_lc(const std::string & name_lc);
+  boost::intrusive_ptr<rrdb_metric> find_metric_lc(const std::string & name_lc);
 
   void flush_to_disk_thread();
   void flush_to_disk();

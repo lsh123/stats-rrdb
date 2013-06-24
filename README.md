@@ -12,7 +12,12 @@ stats-rrdb provides simple out-of-the box configuration; [query language](LANGUA
 (UDP connections), support for current and historical data; and, of course, high-performance of C++ code.
 
 stats-rrdb is focused on data and data only. It *does not* provide any graphical interface 
-(though there are examples of how to build one quickly). 
+(though there are examples of how to build one quickly). However, it has a lot of advanced DB features
+to make it run fast and efficient:
+- TCP and UDP servers for queries returning data and fast updates
+- Data blocks cache: only frequently accessed data blocks are loaded in memory
+- Open file handles cache: set open files limit high in the OS and save time on re-opening files all the time
+- (Yet to be implemented) Journal file for data files: never lose your data
 
 
 Why do we need yet another statsd? 
@@ -46,7 +51,7 @@ Roadmap
 
 * 	1.0.0 - memory usage controls, dynamic blocks loading, journal file, graphing examples 
 
-* 	1.x.0 - more metric types (e.g. 95 percentile, etc.), "select min, avg, max from ..." 
-	(instead of "select * from ..."), query multiple metrics in the same time, multiple
-	updates in one UDP packet, multiple queries in one TCP request
+* 	1.x.0 - query language updates: "select min, avg, max from ..." (instead of "select * from ..."), 
+	query multiple metrics in the same time, multipl updates in one UDP packet, multiple queries in 
+	one TCP request
 

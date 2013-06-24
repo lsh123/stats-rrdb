@@ -50,7 +50,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
 
    public:
      //rrdb::metrics_walker
-     void on_metric(const std::string & name, const boost::shared_ptr<rrdb_metric> & metric)
+     void on_metric(const std::string & name, const boost::intrusive_ptr<rrdb_metric> & metric)
      {
        _res << name  << std::endl;
      }
@@ -78,7 +78,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
 
    public:
      //rrdb::metrics_walker
-     void on_metric(const std::string & name, const boost::shared_ptr<rrdb_metric> & metric)
+     void on_metric(const std::string & name, const boost::intrusive_ptr<rrdb_metric> & metric)
      {
 
        metric->get_last_value(_value, _value_ts);
@@ -320,7 +320,7 @@ public:
 
   void operator()(const statement_show_policy & st) const
   {
-    boost::shared_ptr<rrdb_metric> metric = _rrdb.get_metric(st._name);
+    boost::intrusive_ptr<rrdb_metric> metric = _rrdb.get_metric(st._name);
     _res << retention_policy_write(metric->get_policy());
 
   }
@@ -482,7 +482,7 @@ void rrdb::flush_to_disk()
   LOG(log::LEVEL_DEBUG2, "Flushing to disk");
 
   t_metrics_vector dirty_metrics = this->get_dirty_metrics();
-  BOOST_FOREACH(boost::shared_ptr<rrdb_metric> metric, dirty_metrics) {
+  BOOST_FOREACH(boost::intrusive_ptr<rrdb_metric> metric, dirty_metrics) {
     try {
         // we expect metric file already exists
         metric->save_dirty_blocks(this->get_files_cache());
@@ -496,7 +496,7 @@ void rrdb::flush_to_disk()
   LOG(log::LEVEL_INFO, "Flushed to disk");
 }
 
-boost::shared_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)
+boost::intrusive_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)
 {
   // force lower case for names
   std::string name_lc(name);
@@ -505,7 +505,7 @@ boost::shared_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)
   return this->find_metric_lc(name_lc);
 }
 
-boost::shared_ptr<rrdb_metric> rrdb::find_metric_lc(const std::string & name_lc)
+boost::intrusive_ptr<rrdb_metric> rrdb::find_metric_lc(const std::string & name_lc)
 {
   // search in the map: lock access to _metrics
   {
@@ -515,19 +515,19 @@ boost::shared_ptr<rrdb_metric> rrdb::find_metric_lc(const std::string & name_lc)
         return (*it).second;
     }
   }
-  return boost::shared_ptr<rrdb_metric>();
+  return boost::intrusive_ptr<rrdb_metric>();
 }
 
-boost::shared_ptr<rrdb_metric> rrdb::get_metric(const std::string & name)
+boost::intrusive_ptr<rrdb_metric> rrdb::get_metric(const std::string & name)
 {
-  boost::shared_ptr<rrdb_metric> res = this->find_metric(name);
+  boost::intrusive_ptr<rrdb_metric> res = this->find_metric(name);
   if(!res) {
       throw exception("The metric '%s' does not exist", name.c_str());
   }
   return res;
 }
 
-boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, const t_retention_policy & policy, bool throw_if_exists)
+boost::intrusive_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, const t_retention_policy & policy, bool throw_if_exists)
 {
   // log
   LOG(log::LEVEL_DEBUG, "RRDB: creating metric '%s' with policy '%s'", name.c_str(), retention_policy_write(policy).c_str());
@@ -543,7 +543,7 @@ boost::shared_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, con
   retention_policy_validate(policy);
 
   // create new and try to insert into map, lock access to _metrics
-  boost::shared_ptr<rrdb_metric> res(new rrdb_metric());
+  boost::intrusive_ptr<rrdb_metric> res(new rrdb_metric());
   res->create(name_lc, policy);
   {
     // make sure there is always only one metric for the name
@@ -579,7 +579,7 @@ void rrdb::drop_metric(const std::string & name)
   boost::algorithm::to_lower(name_lc);
 
   // lock access to _metrics and  try to find the metric
-  boost::shared_ptr<rrdb_metric> res;
+  boost::intrusive_ptr<rrdb_metric> res;
   {
     boost::lock_guard<spinlock> guard(_metrics_lock);
     t_metrics_map::const_iterator it = _metrics.find(name_lc);
@@ -662,7 +662,7 @@ rrdb::t_metrics_vector rrdb::get_dirty_metrics()
 // values
 void rrdb::update_metric(const std::string & name, const my::time_t & ts, const my::value_t & value)
 {
-  boost::shared_ptr<rrdb_metric> metric = this->find_metric(name);
+  boost::intrusive_ptr<rrdb_metric> metric = this->find_metric(name);
   if(!metric) {
       metric = this->create_metric(name, _default_policy, false);
   }
@@ -672,7 +672,7 @@ void rrdb::update_metric(const std::string & name, const my::time_t & ts, const 
 
 void rrdb::select_from_metric(const std::string & name, const my::time_t & ts1, const my::time_t & ts2, data_walker & walker)
 {
-  boost::shared_ptr<rrdb_metric> metric = this->find_metric(name);
+  boost::intrusive_ptr<rrdb_metric> metric = this->find_metric(name);
   if(!metric) {
       throw exception("The metric '%s' does not exist", name.c_str());
   }
