@@ -162,7 +162,7 @@ public:
   void read_block(std::fstream & ifs);
 
 private:
-  rrdb_metric_tuples_t get_tuples(
+  t_rrdb_metric_tuples_ptr get_tuples(
       const my::filename_t & filename,
       const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache
   );
@@ -173,7 +173,7 @@ private:
       t_update_ctx & out
   );
 
-  rrdb_metric_tuples_t read_block_data(
+  t_rrdb_metric_tuples_ptr read_block_data(
       std::fstream & ifs
   ) const;
 
@@ -191,7 +191,7 @@ private:
 
 private:
   t_rrdb_metric_block_header  _header;
-  rrdb_metric_tuples_t        _modified_tuples;
+  t_rrdb_metric_tuples_ptr    _modified_tuples;
 }; // rrdb_metric_block
 
 #endif /* RRDB_METRIC_BLOCK_H_ */

@@ -29,14 +29,13 @@ public:
   void initialize(boost::shared_ptr<config> config);
 
   // basic operations
-  rrdb_metric_tuples_t find(
+  t_rrdb_metric_tuples_ptr find(
       const rrdb_metric_block * const block,
       const my::time_t & ts
   );
   void insert(
       const rrdb_metric_block * const block,
-      const rrdb_metric_tuples_t & tuples,
-      const my::memory_size_t & tuples_size,
+      const t_rrdb_metric_tuples_ptr & tuples,
       const my::time_t & ts
   );
   void erase(

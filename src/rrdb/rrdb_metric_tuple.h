@@ -9,15 +9,28 @@
 #define RRDB_METRIC_TUPLE_H_
 
 #include <boost/cstdint.hpp>
-#include <boost/shared_array.hpp>
 
 #include "common/types.h"
+#include "common/exception.h"
 #include "common/memory_buffer.h"
+#include "common/enable_intrusive_ptr.h"
 
 //
 // Value
 //
 typedef struct t_rrdb_metric_tuple_ {
+public:
+  t_rrdb_metric_tuple_() :
+    _ts(0),
+    _count(0),
+    _sum(0),
+    _sum_sqr(0),
+    _min(0),
+    _max(0)
+  {
+  }
+
+public:
   my::time_t    _ts;                // block timestamp
   my::value_t   _count;             // number of data points aggregated
   my::value_t   _sum;               // sum(data point value)
@@ -26,7 +39,66 @@ typedef struct t_rrdb_metric_tuple_ {
   my::value_t   _max;               // max(data point value)
 } t_rrdb_metric_tuple;
 
-typedef boost::shared_array< t_rrdb_metric_tuple > rrdb_metric_tuples_t;
+typedef struct t_rrdb_metric_tuples_ :
+    public enable_intrusive_ptr<t_rrdb_metric_tuples_>
+{
+  typedef my::size_t size_type;
+
+public:
+  // constuctor/destructor
+  inline t_rrdb_metric_tuples_(const size_type & size = 0) :
+    _tuples(NULL),
+    _size(0)
+  {
+    if(size > 0) {
+        this->reset(new t_rrdb_metric_tuple[size](), size);
+    }
+  }
+  inline ~t_rrdb_metric_tuples_()
+  {
+    this->reset();
+  }
+
+  // access
+  size_type get_size() const { return _size; }
+  size_type get_memory_size() const { return get_size() * sizeof(t_rrdb_metric_tuple); }
+
+  t_rrdb_metric_tuple * get() { return _tuples; }
+  t_rrdb_metric_tuple const * get() const { return _tuples; }
+
+  inline t_rrdb_metric_tuple & operator[] (const size_type & pos)
+  {
+    CHECK_AND_THROW(pos < _size);
+    return _tuples[pos];
+  }
+  inline const t_rrdb_metric_tuple& operator[] (const size_type & pos) const
+  {
+    CHECK_AND_THROW(pos < _size);
+    return _tuples[pos];
+  }
+
+private:
+  // disable copy constructor and assignment operator
+  t_rrdb_metric_tuples_(t_rrdb_metric_tuples_ const &);
+  t_rrdb_metric_tuples_ &operator =(t_rrdb_metric_tuples_ const &);
+
+  // assign tuples
+  inline void reset(t_rrdb_metric_tuple * tuples = NULL, const size_type & size = 0)
+  {
+    if(_tuples) {
+        delete[] _tuples;
+    }
+    _tuples = tuples;
+    _size = size;
+  }
+
+private:
+  t_rrdb_metric_tuple * _tuples;
+  size_type             _size;
+} t_rrdb_metric_tuples;
+
+// and the actual thing we are going to use
+typedef boost::intrusive_ptr< t_rrdb_metric_tuples > t_rrdb_metric_tuples_ptr;
 
 void rrdb_metric_tuple_update(t_rrdb_metric_tuple & tuple, const my::value_t & value);
 void rrdb_metric_tuple_update(t_rrdb_metric_tuple & tuple, const t_rrdb_metric_tuple & other);
