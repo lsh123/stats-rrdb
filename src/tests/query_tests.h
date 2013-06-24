@@ -31,9 +31,9 @@ private:
   void test_create(const int & n);
   void test_select_all(const int & n);
   void test_select_5_sec(const int & n);
-  void test_select_all_group_by_30_sec(const int & n);
-  void test_select_all_group_by_1_year(const int & n);
-  void test_select_all_group_by_3_sec(const int & n);
+  void test_select_all_group_by(const int & n, const my::size_t & group_by, const std::string & msg);
+
+
 
 private:
   boost::shared_ptr<rrdb> _rrdb;

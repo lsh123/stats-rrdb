@@ -154,17 +154,19 @@ void query_tests::test_select_5_sec(const int & n)
   TEST_DATA(buf, std::string(res_data.begin(), res_data.end()));
 }
 
-void query_tests::test_select_all_group_by_30_sec(const int & n)
+void query_tests::test_select_all_group_by(const int & n, const my::size_t & group_by, const std::string & msg)
 {
-  TEST_SUBTEST_START(n, "select all group by 30 sec");
+  TEST_SUBTEST_START(n, msg);
 
   char buf[1024];
-  snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu group by 30 secs; ",
-      _metric_name.c_str(),
-      _start_ts,
-      _end_ts
-  );
+  snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu group by %lu secs; ",
+       _metric_name.c_str(),
+       _start_ts,
+       _end_ts,
+       group_by
+   );
 
+  // query
   t_memory_buffer_data res_data;
   t_memory_buffer res(res_data);
   _rrdb->execute_query_statement(buf, res);
@@ -172,90 +174,34 @@ void query_tests::test_select_all_group_by_30_sec(const int & n)
   t_test_csv_data parsed_data;
   test_parse_csv_data(res_data, parsed_data);
 
-  // count: 1 header row + 30 sec rows
-  TEST_CHECK_EQUAL(parsed_data.size(), (1 + _count / 30) );
+  // count: 1 header row + "group_by" sec rows
+  my::size_t data_rows_count = _count / group_by;
+  if(_count % group_by > 0) {
+      ++data_rows_count;
+  }
+  TEST_CHECK_EQUAL(parsed_data.size(), (1 + data_rows_count));
 
-  // first line is the latest: latest ts + count = 1
-  TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data[1][0]), (my::time_t)(_end_ts - 30));
-  TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data[1][1]), 30);
+  // all should be "group_by" sec rows with "group_by" data points each
+  // except the first row which is weird
+  my::time_t ts = _start_ts;
+  for(my::size_t ii = parsed_data.size() - 1; ii > 0; --ii, ts += group_by) {
+      const std::vector<std::string> & row(parsed_data[ii]);
 
-  // last line is the oldest: oldest ts + full 30 sec interval data
-  TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data.back()[0]), _start_ts);
-  TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data.back()[1]), 30);
+      // the first data row is weird
+      my::size_t row_count = group_by;
+      if(ii == 1 && _count % group_by > 0) {
+          row_count = _count % group_by;
+      }
+      // std::cerr << "ROW: " << ii << " TS: " << ts << " expected: " << row_count << std::endl;
 
-  // done
-  TEST_SUBTEST_END();
-  TEST_DATA(buf, std::string(res_data.begin(), res_data.end()));
-}
-
-void query_tests::test_select_all_group_by_1_year(const int & n)
-{
-  TEST_SUBTEST_START(n, "select all group by 1 year");
-
-  char buf[1024];
-  snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu group by 1 year; ",
-      _metric_name.c_str(),
-      _start_ts,
-      _end_ts
-  );
-
-  t_memory_buffer_data res_data;
-  t_memory_buffer res(res_data);
-  _rrdb->execute_query_statement(buf, res);
-
-  t_test_csv_data parsed_data;
-  test_parse_csv_data(res_data, parsed_data);
-
-  // count: 1 header row + 1 data row
-  TEST_CHECK_EQUAL(parsed_data.size(), 2);
-
-  // first and only line: start ts, count
-  TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(parsed_data[1][0]), _start_ts);
-  TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(parsed_data[1][1]), _count);
-
-  // done
-  TEST_SUBTEST_END();
-  TEST_DATA(buf, std::string(res_data.begin(), res_data.end()));
-}
-
-
-void query_tests::test_select_all_group_by_3_sec(const int & n)
-{
-  TEST_SUBTEST_START(n, "select all group by 3 sec");
-
-  char buf[1024];
-  snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu group by 3 secs; ",
-      _metric_name.c_str(),
-      _start_ts,
-      _end_ts
-  );
-
-  t_memory_buffer_data res_data;
-  t_memory_buffer res(res_data);
-  _rrdb->execute_query_statement(buf, res);
-
-  t_test_csv_data parsed_data;
-  test_parse_csv_data(res_data, parsed_data);
-
-  // count: 1 header row + 3 sec rows
-  TEST_CHECK_EQUAL(parsed_data.size(), (1 + _count / 3) );
-
-  // all should be 3 sec rows with 3 data points each
-  my::time_t ts = _end_ts;
-  BOOST_FOREACH(const std::vector<std::string> & row, parsed_data) {
-    // skip header row in a weird way
-    if(ts < _end_ts) {
       TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(row[0]), ts); // ts
-      TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(row[1]), 3);  // count = 3
-      TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(row[2]), 3);  // sum = 3
+      TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(row[1]), row_count);  // count = "group_by"
+      TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(row[2]), row_count);  // sum = "group_by"
       TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(row[3]), 1);  // avg = 1
       TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(row[4]), 0);  // stdev = 0
       TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(row[5]), 1);  // min = 1
       TEST_CHECK_EQUAL(boost::lexical_cast<my::size_t>(row[6]), 1);  // max = 1
-    }
-    ts -= 3;
   }
-
 
   // done
   TEST_SUBTEST_END();
@@ -284,12 +230,18 @@ void query_tests::run(const std::string & path)
   test.cleanup();
 
   // tests
-  test.test_create(0);
-  test.test_select_all(1);
-  test.test_select_5_sec(2);
-  test.test_select_all_group_by_30_sec(3);
-  test.test_select_all_group_by_1_year(4);
-  test.test_select_all_group_by_3_sec(5);
+  int ii = 0;
+  test.test_create(ii++);
+  test.test_select_all(ii++);
+  test.test_select_5_sec(ii++);
+  test.test_select_all_group_by(ii++, 1,  "select all group by 1 sec");
+  test.test_select_all_group_by(ii++, 2,  "select all group by 2 secs");
+  test.test_select_all_group_by(ii++, 3,  "select all group by 3 secs");
+  test.test_select_all_group_by(ii++, 13, "select all group by 13 secs");
+  test.test_select_all_group_by(ii++, 30, "select all group by 30 secs");
+  test.test_select_all_group_by(ii++, 67, "select all group by 67 secs");
+  test.test_select_all_group_by(ii++, 24*60*60, "select all group by 1 day");
+  test.test_select_all_group_by(ii++, 365*24*60*60, "select all group by 1 year");
 
   // cleanup
   test.cleanup();
