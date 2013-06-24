@@ -75,32 +75,36 @@ t_retention_policy rrdb_metric::get_policy() const
 
 void rrdb_metric::create(const std::string & name, const t_retention_policy & policy)
 {
-  {
-    boost::lock_guard<spinlock> guard(_lock);
-
-    // copy name
-    _header._name_len   = name.length();
-    _header._name_size  = rrdb_metric::get_padded_name_len(_header._name_len);
-    _name.reset(new char[_header._name_size]);
-    memset(_name.get(), 0, _header._name_size);
-    std::copy(name.begin(), name.end(), _name.get());
-
-    // copy policy
-    _header._blocks_size  = policy.size();
-    _blocks.clear();
-    _blocks.reserve(_header._blocks_size);
-    my::size_t offset = sizeof(_header) + _header._name_size;
-    BOOST_FOREACH(const t_retention_policy_elem & elem, policy) {
-      boost::intrusive_ptr<rrdb_metric_block> block(
-          new rrdb_metric_block(elem._freq, elem._duration / elem._freq, offset)
-      );
-      _blocks.push_back(block);
-      offset += block->get_size();
-    }
-
-    // set filename
-    _filename = rrdb_metric::construct_filename(name);
+  // check the name
+  if(statement_check_metric_name(name, false)) {
+      throw exception("Invalid name '%s'", name.c_str());
   }
+
+  // good, let's do it!
+  boost::lock_guard<spinlock> guard(_lock);
+
+  // copy name
+  _header._name_len   = name.length();
+  _header._name_size  = rrdb_metric::get_padded_name_len(_header._name_len);
+  _name.reset(new char[_header._name_size]);
+  memset(_name.get(), 0, _header._name_size);
+  std::copy(name.begin(), name.end(), _name.get());
+
+  // copy policy
+  _header._blocks_size  = policy.size();
+  _blocks.clear();
+  _blocks.reserve(_header._blocks_size);
+  my::size_t offset = sizeof(_header) + _header._name_size;
+  BOOST_FOREACH(const t_retention_policy_elem & elem, policy) {
+    boost::intrusive_ptr<rrdb_metric_block> block(
+        new rrdb_metric_block(elem._freq, elem._duration / elem._freq, offset)
+    );
+    _blocks.push_back(block);
+    offset += block->get_size();
+  }
+
+  // set filename
+  _filename = rrdb_metric::construct_filename(name);
 }
 
 void rrdb_metric::get_last_value(my::value_t & value, my::time_t & value_ts) const
@@ -479,6 +483,7 @@ std::string rrdb_metric::normalize_name(const std::string & str)
 {
   // force lower case for names
   std::string res(str);
+  boost::algorithm::trim(res);
   boost::algorithm::to_lower(res);
   return res;
 }

@@ -54,17 +54,39 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 
 template<typename Iterator>
+class metric_name_grammar:
+    public qi::grammar < Iterator, std::string(), ascii::space_type >
+{
+  typedef qi::grammar < Iterator, std::string(), ascii::space_type > base_type;
+
+private:
+  qi::rule < Iterator, std::string(), ascii::space_type >      _start;
+
+public:
+  metric_name_grammar(bool enable_upper_case):
+    base_type(_start)
+  {
+    if(enable_upper_case) {
+        _start %= +qi::char_("a-zA-Z0-9._-");
+    } else {
+        _start %= +qi::char_("a-z0-9._-");
+    }
+  }
+}; // metric_name_grammar
+
+
+template<typename Iterator>
 class statement_grammar:
     public qi::grammar < Iterator, t_statement(), ascii::space_type >
 {
   typedef qi::grammar < Iterator, t_statement(), ascii::space_type > base_type;
 
 private:
-  qi::rule < Iterator, t_statement(), ascii::space_type >        _start;
+  qi::rule < Iterator, t_statement(), ascii::space_type >      _start;
 
-  qi::rule < Iterator, std::string(), ascii::space_type >      _name;
+  metric_name_grammar< Iterator >                              _name;
   qi::rule < Iterator, std::string(), ascii::space_type >      _quoted_name;
-  t_retention_policy_grammar<Iterator>                           _policy;
+  t_retention_policy_grammar<Iterator>                         _policy;
   interval_grammar< Iterator >                                 _interval;
 
   qi::rule < Iterator, t_statement(),            ascii::space_type > _statement;
@@ -78,11 +100,9 @@ private:
 
 public:
   statement_grammar():
-    base_type(_start)
+    base_type(_start),
+    _name(true) // enable upper case in metric names
   {
-     _name %=
-         +qi::char_("a-zA-Z0-9._-")
-     ;
      _quoted_name %=
          '"' >> _name >> '"' | "'" >> _name >> "'"
      ;
@@ -172,5 +192,6 @@ public:
 
   }
 }; // statement_grammar
+
 
 #endif /* STATEMENTS_GRAMMAR_H_ */

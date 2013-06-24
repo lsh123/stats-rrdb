@@ -528,9 +528,6 @@ boost::intrusive_ptr<rrdb_metric> rrdb::create_metric(const std::string & name, 
   // normalize the name
   std::string name_normalized(rrdb_metric::normalize_name(name));
 
-  // TODO: check name
-  // starts with a letter, doesn't contain anything but (a-zA-Z0-9._-), length
-
   // check the policy
   retention_policy_validate(policy);
 

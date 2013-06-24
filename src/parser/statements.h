@@ -129,4 +129,8 @@ t_statement statement_query_parse(const std::string & str);
 // <command>|<param1>|<param2>|....
 t_statement statement_update_parse(const std::string & str);
 
+// check the metric name
+bool statement_check_metric_name(const std::string & str, bool allow_upper_case = false);
+
+
 #endif /* STATEMENTS_H_ */
