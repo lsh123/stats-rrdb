@@ -158,8 +158,8 @@ public:
   );
 
   // READ/WRITE FILES
-  void write_block(std::fstream & ofs);
-  void read_block(std::fstream & ifs, bool skip_data = true);
+  void write_block(std::ostream & os);
+  void read_block(std::istream & is, bool skip_data = true);
 
 private:
   t_rrdb_metric_tuples_ptr get_tuples(
@@ -174,7 +174,7 @@ private:
   );
 
   t_rrdb_metric_tuples_ptr read_block_data(
-      std::fstream & ifs
+      std::istream & is
   ) const;
 
   inline my::time_t normalize_ts(const my::time_t & ts) const {

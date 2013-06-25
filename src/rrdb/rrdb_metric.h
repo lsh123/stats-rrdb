@@ -127,8 +127,8 @@ public:
 private:
   static my::size_t get_padded_name_len(const my::size_t & name_len);
 
-  void write_header(std::fstream & ofs) const;
-  void read_header(std::fstream & ifs);
+  void write_header(std::ostream & ofs) const;
+  void read_header(std::istream & ifs);
 
 private:
   mutable spinlock               _lock;

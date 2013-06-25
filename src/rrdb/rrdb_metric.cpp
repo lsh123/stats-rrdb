@@ -402,27 +402,27 @@ void rrdb_metric::delete_file(
   }
 }
 
-void rrdb_metric::write_header(std::fstream & fs) const
+void rrdb_metric::write_header(std::ostream & os) const
 {
   // should be locked
   CHECK_AND_THROW(_lock.is_locked());
 
   // write header
-  fs.write((const char*)&_header, sizeof(_header));
+  os.write((const char*)&_header, sizeof(_header));
 
   // write name
-  fs.write((const char*)_name.get(), _header._name_size);
+  os.write((const char*)_name.get(), _header._name_size);
 
   LOG(log::LEVEL_DEBUG, "RRDB metric header: wrote '%s'", _name.get());
 }
 
-void rrdb_metric::read_header(std::fstream & fs)
+void rrdb_metric::read_header(std::istream & is)
 {
   // should be locked
   CHECK_AND_THROW(_lock.is_locked());
 
   // read header
-  fs.read((char*)&_header, sizeof(_header));
+  is.read((char*)&_header, sizeof(_header));
   if(_header._magic != RRDB_METRIC_MAGIC) {
       throw exception("Unexpected rrdb metric magic: %04x", _header._magic);
   }
@@ -432,7 +432,7 @@ void rrdb_metric::read_header(std::fstream & fs)
 
   // name
   _name.reset(new char[_header._name_size]);
-  fs.read((char*)_name.get(), _header._name_size);
+  is.read((char*)_name.get(), _header._name_size);
 
   LOG(log::LEVEL_DEBUG, "RRDB metric: read header '%s'", _name.get());
 }

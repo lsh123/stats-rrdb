@@ -250,7 +250,7 @@ void rrdb_metric_block::select(
   } while(pos != _header._pos);
 }
 
-void rrdb_metric_block::write_block(std::fstream & ofs)
+void rrdb_metric_block::write_block(std::ostream & os)
 {
   CHECK_AND_THROW(_modified_tuples);
   CHECK_AND_THROW(_modified_tuples->get());
@@ -260,23 +260,23 @@ void rrdb_metric_block::write_block(std::fstream & ofs)
   LOG(log::LEVEL_DEBUG3, "RRDB writing block at offset %ld, size %ld", _header._offset, _header._data_size);
 
   // write header
-  ofs.write((const char*)&_header, sizeof(_header));
+  os.write((const char*)&_header, sizeof(_header));
 
   // write data
-  ofs.write((const char*)_modified_tuples->get(), _modified_tuples->get_memory_size());
+  os.write((const char*)_modified_tuples->get(), _modified_tuples->get_memory_size());
 
   // modified tuples no longer needed
   _modified_tuples.reset();
 }
 
-void rrdb_metric_block::read_block(std::fstream & ifs, bool skip_data)
+void rrdb_metric_block::read_block(std::istream & is, bool skip_data)
 {
   // remember where are we
-  my::size_t offset = ifs.tellg();
+  my::size_t offset = is.tellg();
   LOG(log::LEVEL_DEBUG3, "RRDB metric block data: reading at pos %lu", offset);
 
   // read header
-  ifs.read((char*)&_header, sizeof(_header));
+  is.read((char*)&_header, sizeof(_header));
   if(_header._magic != RRDB_METRIC_BLOCK_MAGIC) {
       throw exception("Unexpected rrdb metric block magic: %04x", _header._magic);
   }
@@ -302,10 +302,10 @@ void rrdb_metric_block::read_block(std::fstream & ifs, bool skip_data)
   // skip data block - we load it async
   if(skip_data) {
       LOG(log::LEVEL_DEBUG3, "RRDB metric block data: seek %ld", _header._data_size);
-      ifs.seekg(_header._data_size, ifs.cur);
+      is.seekg(_header._data_size, is.cur);
       _modified_tuples.reset();
   } else {
-      _modified_tuples = this->read_block_data(ifs);
+      _modified_tuples = this->read_block_data(is);
       CHECK_AND_THROW(_modified_tuples);
       CHECK_AND_THROW(_modified_tuples->get());
       CHECK_AND_THROW(_modified_tuples->get_size() == _header._count);
@@ -313,7 +313,7 @@ void rrdb_metric_block::read_block(std::fstream & ifs, bool skip_data)
   }
 }
 
-t_rrdb_metric_tuples_ptr rrdb_metric_block::read_block_data(std::fstream & ifs) const
+t_rrdb_metric_tuples_ptr rrdb_metric_block::read_block_data(std::istream & is) const
 {
   LOG(log::LEVEL_DEBUG3, "RRDB metric block read data at offset %ld, size %ld", _header._offset, _header._data_size);
 
@@ -325,7 +325,7 @@ t_rrdb_metric_tuples_ptr rrdb_metric_block::read_block_data(std::fstream & ifs) 
   CHECK_AND_THROW(the_tuples->get_memory_size() == _header._data_size);
 
   // read data
-  ifs.read((char*)the_tuples->get(), the_tuples->get_memory_size());
+  is.read((char*)the_tuples->get(), the_tuples->get_memory_size());
 
   // check data
   if((*the_tuples)[_header._pos]._ts != _header._pos_ts) {
