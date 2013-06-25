@@ -27,9 +27,10 @@
 #include "tests/stats_rrdb_tests.h"
 
 #include "tests/lru_tests.h"
+#include "tests/files_cache_tests.h"
+#include "tests/journal_file_tests.h"
 #include "tests/query_tests.h"
 #include "tests/update_tests.h"
-#include "tests/files_cache_tests.h"
 #include "tests/parsers_tests.h"
 
 boost::shared_ptr<config> test_setup_config(const std::string & path, const t_test_config_data & data)
@@ -85,6 +86,15 @@ int main(int argc, char ** argv)
     srand(time(NULL));
 
     //
+    // setup log
+    //
+    t_test_config_data config_data;
+    config_data["log.level"] = "info";
+    config_data["log.destination"] = path + "./unit_tests.log";
+    boost::shared_ptr<config> cfg = test_setup_config(path, config_data);
+    log::init(*cfg);
+
+    //
     // lru_cache
     //
     TEST_START("lru_cache");
@@ -99,11 +109,18 @@ int main(int argc, char ** argv)
     TEST_END("files_cache_tests");
 
     //
-     // parsers_tests
-     //
-     TEST_START("parsers_tests");
-     parsers_tests::run();
-     TEST_END("parsers_tests");
+    // journal_file_tests
+    //
+    TEST_START("journal_file_tests");
+    journal_file_tests::run(path);
+    TEST_END("journal_file_tests");
+
+    //
+    // parsers_tests
+    //
+    TEST_START("parsers_tests");
+    parsers_tests::run();
+    TEST_END("parsers_tests");
 
     //
     // query_tests

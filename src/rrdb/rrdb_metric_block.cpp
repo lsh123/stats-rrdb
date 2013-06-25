@@ -250,7 +250,7 @@ void rrdb_metric_block::select(
   } while(pos != _header._pos);
 }
 
-void rrdb_metric_block::write_block(std::ostream & os)
+my::size_t rrdb_metric_block::write_block(std::ostream & os)
 {
   CHECK_AND_THROW(_modified_tuples);
   CHECK_AND_THROW(_modified_tuples->get());
@@ -258,15 +258,21 @@ void rrdb_metric_block::write_block(std::ostream & os)
   CHECK_AND_THROW(_modified_tuples->get_memory_size() == _header._data_size);
 
   LOG(log::LEVEL_DEBUG3, "RRDB writing block at offset %ld, size %ld", _header._offset, _header._data_size);
+  my::size_t written_bytes(0);
 
   // write header
   os.write((const char*)&_header, sizeof(_header));
+  written_bytes += sizeof(_header);
 
   // write data
   os.write((const char*)_modified_tuples->get(), _modified_tuples->get_memory_size());
+  written_bytes += _modified_tuples->get_memory_size();
 
   // modified tuples no longer needed
   _modified_tuples.reset();
+
+  // how many bytes we wrote
+  return written_bytes;
 }
 
 void rrdb_metric_block::read_block(std::istream & is, bool skip_data)

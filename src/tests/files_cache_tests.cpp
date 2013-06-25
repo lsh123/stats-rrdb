@@ -35,8 +35,6 @@ void files_cache_tests::initialize(const std::string & path)
   config_data["rrdb.path"]                  = path;
   config_data["rrdb.open_files_cache_size"] = "2";
   config_data["rrdb.open_files_cache_purge_threshold"] = "1.0"; // make sure we kick out at most one
-  config_data["log.level"]                  = "debug3";
-  config_data["log.destination"]            = path + "./files_cache_tests.log";
 
   //
   boost::shared_ptr<config> cfg = test_setup_config(path, config_data);

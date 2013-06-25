@@ -228,7 +228,11 @@ void rrdb_metric::load_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
   CHECK_AND_THROW(files_cache);
 
   // open file and seek to the start of the file
-  boost::shared_ptr<std::fstream> fs(files_cache->open_file(this->get_filename(), time(NULL)));
+  my::filename_t filename(this->get_filename());
+  my::time_t ts(time(NULL));
+  CHECK_AND_THROW(filename);
+
+  boost::shared_ptr<std::fstream> fs(files_cache->open_file(filename, ts));
   fs->seekg(0, fs->beg);
   fs->sync();
 
@@ -359,15 +363,17 @@ void rrdb_metric::save_dirty_blocks(
   CHECK_AND_THROW(files_cache);
   CHECK_AND_THROW(journal_file);
 
+  // start writing to the journal file
+  std::string full_path = files_cache->get_full_path(this->get_filename());
+  std::ostream & os = journal_file->begin_file(full_path);
 
   // TODO: add better error handling to report exact problem with IO operation
-  // TODO: implement journal file
-
   // operate on the file under lock: one at a time!
   {
     boost::lock_guard<spinlock> guard(_lock);
     LOG(log::LEVEL_DEBUG, "RRDB metric saving dirty blocks to file '%s'", _filename->c_str());
 
+    // TODO: figure out a better model with journal,
     // check if file was deleted?
     if(my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted)) {
         files_cache->delete_file(_filename);
@@ -379,14 +385,14 @@ void rrdb_metric::save_dirty_blocks(
       my::bitmask_clear<boost::uint16_t>(_header._status, Status_Dirty);
 
       // always write header at offset 0
-      my::size_t offset = 0;
-      this->write_header(journal_file->begin_file_block(offset));
+      my::size_t written_bytes = this->write_header(os);
+      journal_file->add_block(0, written_bytes);
 
       // write data
       BOOST_FOREACH(boost::intrusive_ptr<rrdb_metric_block> & block, _blocks) {
         if(block->is_dirty()) {
-            offset = block->get_offset();
-            block->write_block(journal_file->begin_file_block(offset));
+            written_bytes = block->write_block(os);
+            journal_file->add_block(block->get_offset(), written_bytes);
         }
       }
     } catch(...) {
@@ -398,20 +404,29 @@ void rrdb_metric::save_dirty_blocks(
     // done
     LOG(log::LEVEL_DEBUG2, "RRDB metric saved dirty blocks to file '%s'", _filename->c_str());
   }
+  // done with this file
+  journal_file->end_file();
 }
 
-void rrdb_metric::write_header(std::ostream & os) const
+my::size_t rrdb_metric::write_header(std::ostream & os) const
 {
   // should be locked
   CHECK_AND_THROW(_lock.is_locked());
 
+  my::size_t written_bytes(0);
+
   // write header
   os.write((const char*)&_header, sizeof(_header));
+  written_bytes += sizeof(_header);
 
   // write name
   os.write((const char*)_name.get(), _header._name_size);
+  written_bytes += _header._name_size;
 
   LOG(log::LEVEL_DEBUG, "RRDB metric header: wrote '%s'", _name.get());
+
+  // how many bytes we wrote
+  return written_bytes;
 }
 
 void rrdb_metric::read_header(std::istream & is)

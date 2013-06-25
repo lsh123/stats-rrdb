@@ -130,8 +130,8 @@ public:
 private:
   static my::size_t get_padded_name_len(const my::size_t & name_len);
 
-  void write_header(std::ostream & ofs) const;
-  void read_header(std::istream & ifs);
+  my::size_t write_header(std::ostream & os) const;
+  void read_header(std::istream & is);
 
 private:
   mutable spinlock               _lock;

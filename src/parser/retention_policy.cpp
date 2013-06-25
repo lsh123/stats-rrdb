@@ -7,8 +7,8 @@
 
 #include <sstream>
 
-#include "retention_policy.h"
-#include "retention_policy_grammar.h"
+#include "parser/retention_policy.h"
+#include "parser/retention_policy_grammar.h"
 
 
 #include "common/exception.h"

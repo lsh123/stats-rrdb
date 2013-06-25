@@ -158,7 +158,7 @@ public:
   );
 
   // READ/WRITE FILES
-  void write_block(std::ostream & os);
+  my::size_t write_block(std::ostream & os);
   void read_block(std::istream & is, bool skip_data = true);
 
 private:

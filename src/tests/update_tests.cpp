@@ -66,10 +66,6 @@ void update_tests::initialize(const std::string & path)
   // create config
   t_test_config_data config_data;
   config_data["rrdb.path"] = path;
-  config_data["log.level"] = "info";
-  config_data["log.destination"] = path + "./query_tests.log";
-
-  //
   boost::shared_ptr<config> cfg = test_setup_config(path, config_data);
 
   // initiliaze

@@ -473,21 +473,21 @@ void rrdb::flush_to_disk()
   t_metrics_vector dirty_metrics = this->get_dirty_metrics();
   BOOST_FOREACH(boost::intrusive_ptr<rrdb_metric> metric, dirty_metrics) {
     try {
-        // open file and seek to the start of the file
-        _journal_file->begin_file(metric->get_filename());
-
-        // we expect metric file already exists
+        // write metric data into the journal's internal buffer
         metric->save_dirty_blocks(_files_cache, _journal_file);
 
-        // done
-        _journal_file->end_file();
+        // write data to the journal file
+        _journal_file->save_journal_file();
+
+        // write data to the metric's file - we expect the metric file to already exist
+        _journal_file->apply_journal(metric->get_filename());
     } catch(std::exception & e) {
         LOG(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
     } catch(...) {
         LOG(log::LEVEL_ERROR, "Unknown exception saving metric '%s'", metric->get_name().c_str());
     }
 
-    // just in case
+    // always reset journal
     _journal_file->reset();
   }
 
