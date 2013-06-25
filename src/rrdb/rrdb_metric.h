@@ -28,6 +28,7 @@ class rrdb;
 class rrdb_metric_block;
 class statement_select;
 class rrdb_files_cache;
+class rrdb_journal_file;
 
 //
 // RRDB Metric file header format:
@@ -86,12 +87,14 @@ public:
   void save_file(
       const boost::shared_ptr<rrdb_files_cache> & files_cache
   );
-  void save_dirty_blocks(
-      const boost::shared_ptr<rrdb_files_cache> & files_cache
-  );
   void delete_file(
       const boost::shared_ptr<rrdb_files_cache> & files_cache,
       const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache
+  );
+
+  void save_dirty_blocks(
+      const boost::shared_ptr<rrdb_files_cache> & files_cache,
+      const boost::shared_ptr<rrdb_journal_file> & journal_file
   );
 
   static void load_metrics(

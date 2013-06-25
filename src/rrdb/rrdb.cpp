@@ -14,6 +14,7 @@
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric.h"
 #include "rrdb/rrdb_files_cache.h"
+#include "rrdb/rrdb_journal_file.h"
 #include "rrdb/rrdb_metric_tuples_cache.h"
 
 #include "parser/interval.h"
@@ -341,6 +342,7 @@ rrdb::rrdb() :
 {
   _files_cache.reset(new rrdb_files_cache());
   _tuples_cache.reset(new rrdb_metric_tuples_cache(_files_cache));
+  _journal_file.reset(new rrdb_journal_file(_files_cache));
 }
 
 rrdb::~rrdb()
@@ -471,13 +473,22 @@ void rrdb::flush_to_disk()
   t_metrics_vector dirty_metrics = this->get_dirty_metrics();
   BOOST_FOREACH(boost::intrusive_ptr<rrdb_metric> metric, dirty_metrics) {
     try {
+        // open file and seek to the start of the file
+        _journal_file->begin_file(metric->get_filename());
+
         // we expect metric file already exists
-        metric->save_dirty_blocks(this->get_files_cache());
+        metric->save_dirty_blocks(_files_cache, _journal_file);
+
+        // done
+        _journal_file->end_file();
     } catch(std::exception & e) {
-      LOG(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
+        LOG(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
     } catch(...) {
         LOG(log::LEVEL_ERROR, "Unknown exception saving metric '%s'", metric->get_name().c_str());
     }
+
+    // just in case
+    _journal_file->reset();
   }
 
   LOG(log::LEVEL_INFO, "Flushed to disk");

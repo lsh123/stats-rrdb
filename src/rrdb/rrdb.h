@@ -28,6 +28,7 @@
 // forward
 class rrdb_metric;
 class rrdb_files_cache;
+class rrdb_journal_file;
 class rrdb_metric_tuples_cache;
 
 class config;
@@ -113,6 +114,7 @@ private:
 
   boost::shared_ptr<rrdb_files_cache>         _files_cache;
   boost::shared_ptr<rrdb_metric_tuples_cache> _tuples_cache;
+  boost::shared_ptr<rrdb_journal_file>        _journal_file;
   boost::shared_ptr< boost::thread >          _flush_to_disk_thread;
 }; // class rrdb
 

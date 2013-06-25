@@ -15,6 +15,7 @@
 #include "parser/statements.h"
 
 #include "rrdb/rrdb.h"
+#include "rrdb/rrdb_journal_file.h"
 #include "rrdb/rrdb_files_cache.h"
 #include "rrdb/rrdb_metric.h"
 #include "rrdb/rrdb_metric_block.h"
@@ -318,59 +319,6 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
   }
 }
 
-
-void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb_files_cache> & files_cache)
-{
-  CHECK_AND_THROW(files_cache);
-
-  // open file and seek to the start of the file
-  boost::shared_ptr<std::fstream> fs(files_cache->open_file(this->get_filename(), time(NULL)));
-  fs->seekg(0, fs->beg);
-  fs->sync();
-
-  // TODO: add better error handling to report exact problem with IO operation
-  // TODO: implement journal file
-
-  // operate on the file under lock: one at a time!
-  {
-    boost::lock_guard<spinlock> guard(_lock);
-    LOG(log::LEVEL_DEBUG, "RRDB metric saving dirty blocks to file '%s'", _filename->c_str());
-
-    // check if file was deleted?
-    if(my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted)) {
-        files_cache->delete_file(_filename);
-        return;
-    }
-
-    try {
-      // not dirty (clear before writing header)
-      my::bitmask_clear<boost::uint16_t>(_header._status, Status_Dirty);
-
-      // always write header
-      this->write_header(*fs);
-
-      // write data
-      BOOST_FOREACH(boost::intrusive_ptr<rrdb_metric_block> & block, _blocks) {
-        if(block->is_dirty()) {
-            fs->seekg(block->get_offset(), fs->beg);
-            block->write_block(*fs);
-        }
-      }
-
-      // flush, don't close
-      fs->flush();
-      fs->sync();
-    } catch(...) {
-        // well, still dirty
-        my::bitmask_set<boost::uint16_t>(_header._status, Status_Dirty);
-        throw;
-    }
-
-    // done
-    LOG(log::LEVEL_DEBUG2, "RRDB metric saved dirty blocks to file '%s'", _filename->c_str());
-  }
-}
-
 void rrdb_metric::delete_file(
     const boost::shared_ptr<rrdb_files_cache> & files_cache,
     const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache
@@ -399,6 +347,56 @@ void rrdb_metric::delete_file(
 
     // done
     LOG(log::LEVEL_DEBUG2, "RRDB metric deleted file '%s'", _filename->c_str());
+  }
+}
+
+
+void rrdb_metric::save_dirty_blocks(
+    const boost::shared_ptr<rrdb_files_cache> & files_cache,
+    const boost::shared_ptr<rrdb_journal_file> & journal_file
+)
+{
+  CHECK_AND_THROW(files_cache);
+  CHECK_AND_THROW(journal_file);
+
+
+  // TODO: add better error handling to report exact problem with IO operation
+  // TODO: implement journal file
+
+  // operate on the file under lock: one at a time!
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+    LOG(log::LEVEL_DEBUG, "RRDB metric saving dirty blocks to file '%s'", _filename->c_str());
+
+    // check if file was deleted?
+    if(my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted)) {
+        files_cache->delete_file(_filename);
+        return;
+    }
+
+    try {
+      // not dirty (clear before writing header)
+      my::bitmask_clear<boost::uint16_t>(_header._status, Status_Dirty);
+
+      // always write header at offset 0
+      my::size_t offset = 0;
+      this->write_header(journal_file->begin_file_block(offset));
+
+      // write data
+      BOOST_FOREACH(boost::intrusive_ptr<rrdb_metric_block> & block, _blocks) {
+        if(block->is_dirty()) {
+            offset = block->get_offset();
+            block->write_block(journal_file->begin_file_block(offset));
+        }
+      }
+    } catch(...) {
+        // well, still dirty
+        my::bitmask_set<boost::uint16_t>(_header._status, Status_Dirty);
+        throw;
+    }
+
+    // done
+    LOG(log::LEVEL_DEBUG2, "RRDB metric saved dirty blocks to file '%s'", _filename->c_str());
   }
 }
 
