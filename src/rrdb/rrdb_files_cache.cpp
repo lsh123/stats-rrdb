@@ -143,9 +143,23 @@ void rrdb_files_cache::purge()
 }
 
 rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(
+    const std::string & full_path,
+    const std::ios_base::openmode & mode
+) {
+  try {
+      fstream_ptr fs(new std::fstream(full_path.c_str(), std::ios_base::binary | std::ios_base::out | std::ios_base::in | mode));
+      fs->exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
+      return fs;
+  } catch(const std::exception & e) {
+      throw exception("Unable to open file '%s': %s", full_path.c_str(), e.what());
+  } catch(...) {
+      throw exception("Unable to open file '%s': unknown exception", full_path.c_str());
+  }
+}
+
+rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(
     const my::filename_t & filename,
-    const my::time_t & ts,
-    bool new_file
+    const my::time_t & ts
 )
 {
   CHECK_AND_THROW(filename);
@@ -175,14 +189,9 @@ rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(
   // open a new fstream - OUTSIDE of the lock!
   //
   std::string full_path = base_folder + (*filename);
-  std::ios_base::openmode mode = std::ios_base::binary | std::ios_base::out | std::ios_base::in;
-  if(new_file) {
-      mode |= std::ios_base::trunc;
-  }
 
-  LOG(log::LEVEL_DEBUG3, "Opening file '%s', full path '%s', new: %s", filename->c_str(), full_path.c_str(), new_file ? "yes" : "no");
-  fs.reset(new std::fstream(full_path.c_str(), mode));
-  fs->exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
+  LOG(log::LEVEL_DEBUG3, "Opening file cache file '%s', full path '%s'", filename->c_str(), full_path.c_str());
+  fs = rrdb_files_cache::open_file(full_path);
 
   //
   // Insert back into cache - under lock
@@ -213,9 +222,17 @@ void rrdb_files_cache::delete_file(const my::filename_t & filename)
   LOG(log::LEVEL_DEBUG3, "Deleting file '%s', full path '%s'", filename->c_str(), full_path.c_str());
 
   // don't forget to cleanup any open file handles
+  fstream_ptr fs;
   {
     boost::lock_guard<spinlock> guard(_lock);
-    _files_cache_impl->erase(*filename);
+    fs = _files_cache_impl->erase(*filename);
+  }
+
+  // close it manually here, if any other thread has a handle then it will
+  // get IO failure
+  if(fs) {
+      fs->close();
+      fs.reset();
   }
 
   // delete

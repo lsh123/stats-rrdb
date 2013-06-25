@@ -43,12 +43,22 @@ public:
   my::size_t get_cache_hits(bool reset = false);
   my::size_t get_cache_misses(bool reset = false);
 
-  fstream_ptr open_file(const my::filename_t & filename, const my::time_t & ts, bool new_file = false);
+  fstream_ptr open_file(
+      const my::filename_t & filename,
+      const my::time_t & ts
+  );
   void delete_file(const my::filename_t & filename);
+
+public:
+  std::string get_full_path(const my::filename_t & filename) const;
+
+  static fstream_ptr open_file(
+      const std::string & full_path,
+      const std::ios_base::openmode & mode = std::ios_base::openmode()
+  );
 
 private:
   void purge();
-  std::string get_full_path(const my::filename_t & filename) const;
 
 private:
   mutable spinlock _lock;

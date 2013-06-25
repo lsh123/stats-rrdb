@@ -67,17 +67,27 @@ void files_cache_tests::test_open_file(const int & n)
 {
   TEST_SUBTEST_START(n, "open_file");
 
+  // "touch" all the files
+  for(int ii = 0; ii < FILENAME_MAX_NUM; ++ii) {
+      my::filename_t filename = files_cache_tests::get_filename(ii);
+      rrdb_files_cache::fstream_ptr fs = rrdb_files_cache::open_file(
+          _files_cache->get_full_path(filename),
+          std::ios_base::trunc
+      );
+      fs->close();
+  }
+
   my::time_t ts = time(NULL);
   my::size_t size = 2; // this is what we set in init
   my::size_t hits = 0;
   my::size_t misses = 0;
 
   // insert two files, both should be misses
-  _files_cache->open_file(files_cache_tests::get_filename(1), ts + 0, true);
+  _files_cache->open_file(files_cache_tests::get_filename(1), ts + 0);
   ++misses;
-  _files_cache->open_file(files_cache_tests::get_filename(2), ts + 1, true);
+  _files_cache->open_file(files_cache_tests::get_filename(2), ts + 1);
   ++misses;
-  _files_cache->open_file(files_cache_tests::get_filename(3), ts + 2, true);
+  _files_cache->open_file(files_cache_tests::get_filename(3), ts + 2);
   ++misses;
   TEST_CHECK_EQUAL(_files_cache->get_cache_size(),   size);
   TEST_CHECK_EQUAL(_files_cache->get_cache_hits(),   hits);
@@ -85,30 +95,30 @@ void files_cache_tests::test_open_file(const int & n)
 
   // insert the file #2 and #3 again: both should be in the cache... this time
   // we put later timestamp on #2
-  _files_cache->open_file(files_cache_tests::get_filename(3), ts + 3, true);
+  _files_cache->open_file(files_cache_tests::get_filename(3), ts + 3);
   ++hits;
-  _files_cache->open_file(files_cache_tests::get_filename(2), ts + 4, true);
+  _files_cache->open_file(files_cache_tests::get_filename(2), ts + 4);
   ++hits;
   TEST_CHECK_EQUAL(_files_cache->get_cache_size(),   size);
   TEST_CHECK_EQUAL(_files_cache->get_cache_hits(),   hits);
   TEST_CHECK_EQUAL(_files_cache->get_cache_misses(), misses);
 
   // now if we insert another one, then it should kick out #3 since we "used" #2 more recently
-  _files_cache->open_file(files_cache_tests::get_filename(4), ts + 5, true);
+  _files_cache->open_file(files_cache_tests::get_filename(4), ts + 5);
   ++misses;
   TEST_CHECK_EQUAL(_files_cache->get_cache_size(),   size);
   TEST_CHECK_EQUAL(_files_cache->get_cache_hits(),   hits);
   TEST_CHECK_EQUAL(_files_cache->get_cache_misses(), misses);
 
   // #2 should be in the cache
-  _files_cache->open_file(files_cache_tests::get_filename(2), ts + 6, true);
+  _files_cache->open_file(files_cache_tests::get_filename(2), ts + 6);
   ++hits;
   TEST_CHECK_EQUAL(_files_cache->get_cache_size(),   size);
   TEST_CHECK_EQUAL(_files_cache->get_cache_hits(),   hits);
   TEST_CHECK_EQUAL(_files_cache->get_cache_misses(), misses);
 
   // #3 should've been kicked from the cache
-  _files_cache->open_file(files_cache_tests::get_filename(3), ts + 7, true);
+  _files_cache->open_file(files_cache_tests::get_filename(3), ts + 7);
   ++misses;
   TEST_CHECK_EQUAL(_files_cache->get_cache_size(),   size);
   TEST_CHECK_EQUAL(_files_cache->get_cache_hits(),   hits);

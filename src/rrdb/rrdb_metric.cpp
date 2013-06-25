@@ -226,16 +226,22 @@ void rrdb_metric::load_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
 {
   CHECK_AND_THROW(files_cache);
 
-  // TODO: add better error handling to report exact problem with IO operation
+  // open file and seek to the start of the file
+  boost::shared_ptr<std::fstream> fs(files_cache->open_file(this->get_filename(), time(NULL)));
+  fs->seekg(0, fs->beg);
+  fs->sync();
 
+  // TODO: add better error handling to report exact problem with IO operation
   // operate on the file under lock: one at a time!
   {
     boost::lock_guard<spinlock> guard(_lock);
     LOG(log::LEVEL_DEBUG, "RRDB metric loading file '%s'", _filename->c_str());
 
-    boost::shared_ptr<std::fstream> fs(files_cache->open_file(_filename, time(NULL)));
-    fs->seekg(0, fs->beg);
-    fs->sync();
+    // check if file was deleted?
+    if(my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted)) {
+        files_cache->delete_file(_filename);
+        return;
+    }
 
     // read header
     this->read_header(*fs);
@@ -258,6 +264,16 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
 {
   CHECK_AND_THROW(files_cache);
 
+  // construct the full paths for tmp and real files
+  std::string full_path     = files_cache->get_full_path(this->get_filename());
+  std::string tmp_full_path = full_path + ".tmp";
+
+  // open tmp file: do NOT use cache here since this is a temp file
+  boost::shared_ptr<std::fstream> fs = rrdb_files_cache::open_file(
+      tmp_full_path,
+      std::ios_base::trunc      // force new file creation
+  );
+
   // TODO: add better error handling to report exact problem with IO operation
 
   // operate on the file under lock: one at a time!
@@ -267,12 +283,9 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
 
     // check if file was deleted?
     if(my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted)) {
+        files_cache->delete_file(_filename);
         return;
     }
-
-    // open file
-    boost::shared_ptr<std::fstream> fs(files_cache->open_file(_filename, time(NULL), true));
-    fs->seekg(0, fs->beg);
 
     try {
       // not dirty (clear before writing header)
@@ -295,6 +308,11 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
         throw;
     }
 
+    // move file UNDER LOCK and delete the old file first (this will also
+    // purge the open file handle from the cache)
+    files_cache->delete_file(_filename);
+    boost::filesystem::rename(tmp_full_path, full_path);
+
     // done
     LOG(log::LEVEL_DEBUG2, "RRDB metric saved file '%s'", _filename->c_str());
   }
@@ -304,6 +322,11 @@ void rrdb_metric::save_file(const boost::shared_ptr<rrdb_files_cache> & files_ca
 void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb_files_cache> & files_cache)
 {
   CHECK_AND_THROW(files_cache);
+
+  // open file and seek to the start of the file
+  boost::shared_ptr<std::fstream> fs(files_cache->open_file(this->get_filename(), time(NULL)));
+  fs->seekg(0, fs->beg);
+  fs->sync();
 
   // TODO: add better error handling to report exact problem with IO operation
   // TODO: implement journal file
@@ -315,12 +338,9 @@ void rrdb_metric::save_dirty_blocks(const boost::shared_ptr<rrdb_files_cache> & 
 
     // check if file was deleted?
     if(my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted)) {
+        files_cache->delete_file(_filename);
         return;
     }
-
-    // open file - we expect the file to exists
-    boost::shared_ptr<std::fstream> fs(files_cache->open_file(_filename, time(NULL)));
-    fs->seekg(0, fs->beg);
 
     try {
       // not dirty (clear before writing header)
