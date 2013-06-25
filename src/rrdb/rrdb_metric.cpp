@@ -99,7 +99,7 @@ void rrdb_metric::create(const std::string & name, const t_retention_policy & po
   boost::lock_guard<spinlock> guard(_lock);
 
   // set name/filename
-  _name = padded_string(name);
+  _name     = name;
   _filename = rrdb_metric::construct_filename(name);
 
   // copy policy
@@ -359,8 +359,7 @@ my::size_t rrdb_metric::save_dirty_blocks(
   CHECK_AND_THROW(journal_file);
 
   // start writing to the journal file
-  std::string full_path = files_cache->get_full_path(this->get_filename());
-  std::ostream & os = journal_file->begin_file(full_path);
+  std::ostream & os = journal_file->begin_file(*(this->get_filename()));
   my::size_t dirty_blocks_count = 0;
 
   // TODO: add better error handling to report exact problem with IO operation

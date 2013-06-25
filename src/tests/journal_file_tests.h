@@ -30,6 +30,7 @@ private:
   void cleanup();
 
   void test_apply_journal(const int & n);
+  void test_save_and_load_journal(const int & n);
 
 private:
   boost::shared_ptr<rrdb_files_cache>  _files_cache;

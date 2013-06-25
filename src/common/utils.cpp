@@ -16,16 +16,23 @@
 #define PADDED_STRING_PAD_BYTES 8
 
 padded_string::padded_string(const std::string & str) :
-    _size(str.length())
+    _size(0)
 {
-  if(!str.empty()) {
-    // add \0 at the end up to padded_size
-    my::size_t padded_size = _size + (PADDED_STRING_PAD_BYTES - (_size % PADDED_STRING_PAD_BYTES)); // ALWAYS GREATER THAN _size
-    _buf.resize(padded_size, 0);
+  this->reset(str);
+}
 
-    // copy
-    std::copy(str.begin(), str.end(), _buf.begin());
-  }
+void padded_string::reset(const std::string & str)
+{
+  // set size
+  _size = str.length();
+
+  // add \0 at the end up to padded_size
+  my::size_t padded_size = _size + (PADDED_STRING_PAD_BYTES - (_size % PADDED_STRING_PAD_BYTES)); // ALWAYS GREATER THAN _size
+  _buf.resize(padded_size);
+  std::fill(_buf.begin(), _buf.end(), 0);
+
+  // copy
+  std::copy(str.begin(), str.end(), _buf.begin());
 }
 
 // I/O

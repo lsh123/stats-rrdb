@@ -26,6 +26,7 @@ class padded_string {
 
 public:
   padded_string(const std::string & str = std::string());
+  void reset(const std::string & str);
 
   // I/O
   void read(std::istream & is);
@@ -48,6 +49,25 @@ public:
   {
     return sizeof(t_string_header) + this->get_padded_size();
   }
+
+  inline bool empty() const
+  {
+    return _size == 0;
+  }
+
+  inline void clear()
+  {
+    _buf.clear();
+    _size = 0;
+  }
+
+  inline padded_string & operator=(const std::string & str)
+  {
+    this->reset(str);
+    return (*this);
+  }
+
+
 
 private:
   std::vector<char> _buf;

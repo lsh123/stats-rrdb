@@ -488,10 +488,13 @@ void rrdb::flush_to_disk()
     }
 
     // always reset journal
-    _journal_file->reset();
+    _journal_file->clear();
   }
 
-  LOG(log::LEVEL_INFO, "Flushed to disk");
+  // we are don - journal file no more
+  _journal_file->delete_journal_file();
+
+  LOG(log::LEVEL_DEBUG2, "Flushed to disk");
 }
 
 boost::intrusive_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)
