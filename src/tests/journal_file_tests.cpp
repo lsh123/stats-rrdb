@@ -81,8 +81,9 @@ void journal_file_tests::test_apply_journal(const int & n)
   TEST_CHECK_EQUAL(last_value_ts, ts);
 
   // save
-  metric->save_dirty_blocks(_files_cache, _journal_file);
+  my::size_t dbc = metric->save_dirty_blocks(_files_cache, _journal_file);
   TEST_CHECK_EQUAL(metric->is_dirty(), false);
+  TEST_CHECK_EQUAL(dbc + 1, _journal_file->get_blocks_count()); // +1 for the metric's header
 
   // write data to the metric file
   _journal_file->apply_journal(metric->get_filename());

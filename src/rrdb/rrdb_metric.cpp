@@ -35,6 +35,14 @@
 #define RRDB_METRIC_EXTENSION           ".rrdb"
 
 
+//
+// file format:
+//    <header>            t_rrdb_metric_header
+//    <name>              padded_string
+//    <block1>            rrdb_metric_block
+//    <block2>            rrdb_metric_block
+//    ...
+
 rrdb_metric::rrdb_metric(const my::filename_t & filename) :
   _filename(filename)
 {
@@ -52,7 +60,13 @@ rrdb_metric::~rrdb_metric()
 std::string rrdb_metric::get_name() const
 {
   boost::lock_guard<spinlock> guard(_lock);
-  return std::string(_name.get(), _header._name_len);
+  return std::string(_name.get(), _name.get_size());
+}
+
+my::filename_t rrdb_metric::get_filename() const
+{
+  boost::lock_guard<spinlock> guard(_lock);
+  return _filename;
 }
 
 // use copy here to avoid problems with MT
@@ -84,18 +98,15 @@ void rrdb_metric::create(const std::string & name, const t_retention_policy & po
   // good, let's do it!
   boost::lock_guard<spinlock> guard(_lock);
 
-  // copy name
-  _header._name_len   = name.length();
-  _header._name_size  = rrdb_metric::get_padded_name_len(_header._name_len);
-  _name.reset(new char[_header._name_size]);
-  memset(_name.get(), 0, _header._name_size);
-  std::copy(name.begin(), name.end(), _name.get());
+  // set name/filename
+  _name = padded_string(name);
+  _filename = rrdb_metric::construct_filename(name);
 
   // copy policy
   _header._blocks_size  = policy.size();
   _blocks.clear();
   _blocks.reserve(_header._blocks_size);
-  my::size_t offset = sizeof(_header) + _header._name_size;
+  my::size_t offset = sizeof(_header) + _name.get_file_size();
   BOOST_FOREACH(const t_retention_policy_elem & elem, policy) {
     boost::intrusive_ptr<rrdb_metric_block> block(
         new rrdb_metric_block(elem._freq, elem._duration / elem._freq, offset)
@@ -103,9 +114,6 @@ void rrdb_metric::create(const std::string & name, const t_retention_policy & po
     _blocks.push_back(block);
     offset += block->get_size();
   }
-
-  // set filename
-  _filename = rrdb_metric::construct_filename(name);
 }
 
 void rrdb_metric::get_last_value(my::value_t & value, my::time_t & value_ts) const
@@ -209,18 +217,6 @@ void rrdb_metric::select(
   walker.flush();
 }
 
-// align by 64 bits = 8 bytes
-my::size_t rrdb_metric::get_padded_name_len(const my::size_t & name_len)
-{
-  return name_len + (8 - (name_len % 8));
-}
-
-
-my::filename_t rrdb_metric::get_filename() const
-{
-  boost::lock_guard<spinlock> guard(_lock);
-  return _filename;
-}
 
 
 void rrdb_metric::load_file(const boost::shared_ptr<rrdb_files_cache> & files_cache)
@@ -354,8 +350,7 @@ void rrdb_metric::delete_file(
   }
 }
 
-
-void rrdb_metric::save_dirty_blocks(
+my::size_t rrdb_metric::save_dirty_blocks(
     const boost::shared_ptr<rrdb_files_cache> & files_cache,
     const boost::shared_ptr<rrdb_journal_file> & journal_file
 )
@@ -366,6 +361,7 @@ void rrdb_metric::save_dirty_blocks(
   // start writing to the journal file
   std::string full_path = files_cache->get_full_path(this->get_filename());
   std::ostream & os = journal_file->begin_file(full_path);
+  my::size_t dirty_blocks_count = 0;
 
   // TODO: add better error handling to report exact problem with IO operation
   // operate on the file under lock: one at a time!
@@ -377,7 +373,7 @@ void rrdb_metric::save_dirty_blocks(
     // check if file was deleted?
     if(my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted)) {
         files_cache->delete_file(_filename);
-        return;
+        return dirty_blocks_count;
     }
 
     try {
@@ -393,6 +389,8 @@ void rrdb_metric::save_dirty_blocks(
         if(block->is_dirty()) {
             written_bytes = block->write_block(os);
             journal_file->add_block(block->get_offset(), written_bytes);
+
+            ++dirty_blocks_count;
         }
       }
     } catch(...) {
@@ -404,8 +402,11 @@ void rrdb_metric::save_dirty_blocks(
     // done
     LOG(log::LEVEL_DEBUG2, "RRDB metric saved dirty blocks to file '%s'", _filename->c_str());
   }
+
   // done with this file
   journal_file->end_file();
+
+  return dirty_blocks_count;
 }
 
 my::size_t rrdb_metric::write_header(std::ostream & os) const
@@ -420,12 +421,10 @@ my::size_t rrdb_metric::write_header(std::ostream & os) const
   written_bytes += sizeof(_header);
 
   // write name
-  os.write((const char*)_name.get(), _header._name_size);
-  written_bytes += _header._name_size;
+  written_bytes += _name.write(os);
 
+  // done
   LOG(log::LEVEL_DEBUG, "RRDB metric header: wrote '%s'", _name.get());
-
-  // how many bytes we wrote
   return written_bytes;
 }
 
@@ -444,9 +443,9 @@ void rrdb_metric::read_header(std::istream & is)
   }
 
   // name
-  _name.reset(new char[_header._name_size]);
-  is.read((char*)_name.get(), _header._name_size);
+  _name.read(is);
 
+  // done
   LOG(log::LEVEL_DEBUG, "RRDB metric: read header '%s'", _name.get());
 }
 

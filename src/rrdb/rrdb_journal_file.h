@@ -50,6 +50,11 @@ public:
   // clean state
   void reset();
 
+  inline my::size_t get_blocks_count() const
+  {
+    return _cur_data_blocks.size();
+  }
+
 private:
   void apply_journal(std::fstream & os);
 

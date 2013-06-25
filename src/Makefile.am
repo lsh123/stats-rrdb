@@ -18,6 +18,7 @@ EXTRA_DIST = \
 	common/spinlock.h \
 	common/lru_cache.h \
 	common/types.h \
+	common/utils.h \
 	parser/grammar.h \
 	parser/interval.h \
 	parser/interval_grammar.h \
@@ -79,6 +80,7 @@ libstats_rrdb_la_SOURCES= \
 	common/config.cpp \
 	common/exception.cpp \
 	common/log.cpp \
+	common/utils.cpp \
 	parser/grammar.cpp \
 	parser/interval.cpp \
 	parser/memory_size.cpp \

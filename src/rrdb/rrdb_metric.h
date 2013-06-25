@@ -19,6 +19,7 @@
 #include "rrdb/rrdb_metric_tuple.h"
 
 #include "common/types.h"
+#include "common/utils.h"
 #include "common/spinlock.h"
 #include "parser/retention_policy.h"
 #include "common/enable_intrusive_ptr.h"
@@ -41,11 +42,6 @@ typedef struct t_rrdb_metric_header_ {
 
   my::value_t       _last_value;        // the latest value
   my::time_t        _last_value_ts;     // the ts of the latest value
-
-  boost::uint16_t   _name_len;          // actual length of the name
-  boost::uint16_t   _name_size;         // 64-bit padded size of the name array
-  boost::uint16_t   _unused1;
-  boost::uint16_t   _unused2;
 } t_rrdb_metric_header;
 
 //
@@ -92,7 +88,7 @@ public:
       const boost::shared_ptr<rrdb_metric_tuples_cache> & tuples_cache
   );
 
-  void save_dirty_blocks(
+  my::size_t save_dirty_blocks(
       const boost::shared_ptr<rrdb_files_cache> & files_cache,
       const boost::shared_ptr<rrdb_journal_file> & journal_file
   );
@@ -128,15 +124,13 @@ public:
   void get_last_value(my::value_t & value, my::time_t & value_ts) const;
 
 private:
-  static my::size_t get_padded_name_len(const my::size_t & name_len);
-
   my::size_t write_header(std::ostream & os) const;
   void read_header(std::istream & is);
 
 private:
   mutable spinlock               _lock;
   t_rrdb_metric_header           _header;
-  boost::shared_array<char>      _name;
+  padded_string                  _name;
   my::filename_t                 _filename;
 
   std::vector< boost::intrusive_ptr<rrdb_metric_block> > _blocks;
