@@ -18,8 +18,8 @@
 
 #define RRDB_JOURNAL_FILE_HEADER_MAGIC               0xDA99
 #define RRDB_JOURNAL_BLOCK_HEADER_MAGIC              0xDA66
-
 #define RRDB_JOURNAL_FILE_VERSION                    1
+#define RRDB_JOURNAL_FILENAME                        "rrdb-statsd.jnl"
 
 // journal file format:
 // <header>              t_journal_file_header
@@ -38,6 +38,11 @@ rrdb_journal_file::rrdb_journal_file(const boost::shared_ptr<rrdb_files_cache> &
 
 rrdb_journal_file::~rrdb_journal_file()
 {
+}
+
+void rrdb_journal_file::initialize()
+{
+  _jnl_full_path = _files_cache->get_full_path(RRDB_JOURNAL_FILENAME);
 }
 
 // clean state
@@ -118,10 +123,9 @@ void rrdb_journal_file::apply_journal(const my::filename_t & filename)
   LOG(log::LEVEL_DEBUG2, "Applyed journal file for filename '%s' to file '%s'", _cur_filename.get(), filename->c_str());
 }
 
-std::string rrdb_journal_file::get_journal_path() const
+bool rrdb_journal_file::is_journal_file_present()
 {
-  // TODO: fix jnl file name
-  return std::string("/tmp/rrdb_journal.jnl");
+  return boost::filesystem::is_regular_file(_jnl_full_path);
 }
 
 // read/write internal journal buffer from/to the file
@@ -131,10 +135,9 @@ void rrdb_journal_file::load_journal_file()
   CHECK_AND_THROW(_cur_data_blocks.empty());
 
   // open jnl file
-  std::string full_path(this->get_journal_path());
-  LOG(log::LEVEL_DEBUG2, "Loading journal file at '%s'", full_path.c_str());
+  LOG(log::LEVEL_DEBUG2, "Loading journal file at '%s'", _jnl_full_path.c_str());
 
-  rrdb_files_cache::fstream_ptr fs = rrdb_files_cache::open_file(full_path);
+  rrdb_files_cache::fstream_ptr fs = rrdb_files_cache::open_file(_jnl_full_path);
 
   // read header
   t_journal_file_header header;
@@ -166,7 +169,7 @@ void rrdb_journal_file::load_journal_file()
       journal_offset += block_header._size;
   }
 
-  LOG(log::LEVEL_DEBUG, "Loaded journal file at '%s' for filename '%s'", full_path.c_str(), _cur_filename.get());
+  LOG(log::LEVEL_DEBUG, "Loaded journal file at '%s' for filename '%s'", _jnl_full_path.c_str(), _cur_filename.get());
 }
 
 void rrdb_journal_file::save_journal_file()
@@ -178,8 +181,7 @@ void rrdb_journal_file::save_journal_file()
 
   // ensure _jnl_ofs open
   if(!_jnl_ofs) {
-       std::string full_path(this->get_journal_path());
-       _jnl_ofs = rrdb_files_cache::open_file(full_path, std::ios_base::trunc);
+       _jnl_ofs = rrdb_files_cache::open_file(_jnl_full_path, std::ios_base::trunc);
   }
   _jnl_ofs->seekg(0, _jnl_ofs->beg);
 
@@ -222,8 +224,8 @@ void rrdb_journal_file::delete_journal_file()
       _jnl_ofs.reset();
   }
 
-  std::string full_path(this->get_journal_path());
-  boost::filesystem::remove(full_path);
+  // delete the file itself
+  boost::filesystem::remove(_jnl_full_path);
 
-  LOG(log::LEVEL_DEBUG, "Deleted journal file '%s'", full_path.c_str());
+  LOG(log::LEVEL_DEBUG, "Deleted journal file '%s'", _jnl_full_path.c_str());
 }

@@ -50,6 +50,7 @@ public:
   void delete_file(const my::filename_t & filename);
 
 public:
+  std::string get_full_path(const std::string & filename) const;
   std::string get_full_path(const my::filename_t & filename) const;
 
   static fstream_ptr open_file(

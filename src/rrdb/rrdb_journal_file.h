@@ -49,16 +49,18 @@ public:
   rrdb_journal_file(const boost::shared_ptr<rrdb_files_cache> & files_cache);
   virtual ~rrdb_journal_file();
 
+  void initialize();
+
   // writing data to the journal;s internal buffer
   std::ostream & begin_file(const std::string & filename);
   void add_block(const my::size_t & offset, const my::size_t & size);
   void end_file();
 
   // read/write internal journal buffer from/to the file
+  bool is_journal_file_present();
   void load_journal_file();
   void save_journal_file();
   void delete_journal_file();
-  std::string get_journal_path() const;
 
   // apply current journal buffer data to the output file
   void apply_journal(const my::filename_t & filename);
@@ -76,19 +78,24 @@ public:
     return _cur_filename.get();
   }
 
+  inline const std::string & get_jnl_full_path() const
+  {
+    return _jnl_full_path;
+  }
+
+private:
   void apply_journal(std::fstream & os);
 
 private:
-
-
   boost::shared_ptr<rrdb_files_cache>  _files_cache;
+  std::string                          _jnl_full_path;
+  boost::shared_ptr<std::fstream>      _jnl_ofs;
 
   padded_string                        _cur_filename;
   t_memory_buffer_data                 _cur_data;
   t_memory_buffer                      _cur_data_stream;
   std::vector<t_journal_block_header>  _cur_data_blocks;
 
-  boost::shared_ptr<std::fstream>      _jnl_ofs;
 };
 
 #endif /* RRDB_JOURNAL_FILE_H_ */

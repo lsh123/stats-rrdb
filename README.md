@@ -17,7 +17,7 @@ to make it run fast and efficient:
 - TCP and UDP servers for queries returning data and fast updates
 - Data blocks cache: only frequently accessed data blocks are loaded in memory
 - Open file handles cache: set open files limit high in the OS and save time on re-opening files all the time
-- (Yet to be implemented) Journal file for data files: never lose your data
+- Journal file: never lose your data
 
 
 Why do we need yet another statsd? 
@@ -47,10 +47,6 @@ For installation instructions see [Install](INSTALL.md).
 
 Roadmap
 ---------
-* 	0.5.0 - complete language, storage, TCP/UDP servers, tests, rpms
-
-* 	1.0.0 - memory usage controls, dynamic blocks loading, journal file, graphing examples 
-
 * 	1.x.0 - query language updates: "select min, avg, max from ..." (instead of "select * from ..."), 
 	query multiple metrics in the same time, multipl updates in one UDP packet, multiple queries in 
 	one TCP request

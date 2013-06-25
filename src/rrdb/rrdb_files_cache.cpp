@@ -122,11 +122,17 @@ my::size_t rrdb_files_cache::get_cache_misses(bool reset)
   return res;
 }
 
+std::string rrdb_files_cache::get_full_path(const std::string & filename) const
+{
+  CHECK_AND_THROW(!filename.empty());
+  boost::lock_guard<spinlock> guard(_lock);
+  return _path + filename;
+}
+
 std::string rrdb_files_cache::get_full_path(const my::filename_t & filename) const
 {
   CHECK_AND_THROW(filename);
-  boost::lock_guard<spinlock> guard(_lock);
-  return _path + (*filename);
+  return this->get_full_path(*filename);
 }
 
 void rrdb_files_cache::purge()

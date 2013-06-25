@@ -359,10 +359,10 @@ void rrdb::initialize(boost::shared_ptr<config> config)
       config->get<std::string>("rrdb.default_policy", retention_policy_write(_default_policy))
   );
 
-
   LOG(log::LEVEL_DEBUG, "Loading RRDB data files");
   _files_cache->initialize(config);
   _tuples_cache->initialize(config);
+  _journal_file->initialize();
 
   LOG(log::LEVEL_INFO, "Loaded RRDB data files");
 }
@@ -378,12 +378,27 @@ void rrdb::start()
       return;
   }
 
-  LOG(log::LEVEL_DEBUG, "Starting RRDB server");
+  LOG(log::LEVEL_INFO, "Starting RRDB server");
+
+  // check if there was a crash
+  if(_journal_file->is_journal_file_present()) {
+      LOG(log::LEVEL_INFO, "Found journal file '%s', starting recovery", _journal_file->get_jnl_full_path().c_str());
+
+      _journal_file->load_journal_file();
+      LOG(log::LEVEL_INFO, "Loaded journal file '%s'", _journal_file->get_jnl_full_path().c_str());
+
+      // write data to the metric file
+      my::filename_t filename(new std::string(_journal_file->get_filename()));
+      _journal_file->apply_journal(filename);
+      LOG(log::LEVEL_INFO, "Applied journal file '%s' to file '%s'", _journal_file->get_jnl_full_path().c_str(), filename->c_str());
+  }
 
   // load metrics from disk - we do it under lock though it doesn't matter
   {
+    LOG(log::LEVEL_INFO, "Loading metrics");
     boost::lock_guard<spinlock> guard(_metrics_lock);
     rrdb_metric::load_metrics(_files_cache, _files_cache->get_path(), _metrics);
+    LOG(log::LEVEL_INFO, "Loaded metrics");
   }
 
   // start flush thread

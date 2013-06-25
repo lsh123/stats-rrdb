@@ -42,6 +42,7 @@ void journal_file_tests::initialize(const std::string & path)
 
   // initiliaze
   _files_cache->initialize(cfg);
+  _journal_file->initialize();
 }
 
 void journal_file_tests::cleanup()
@@ -153,6 +154,7 @@ void journal_file_tests::test_save_and_load_journal(const int & n)
   _journal_file->clear();
 
   // and then load back again
+  TEST_CHECK_EQUAL(_journal_file->is_journal_file_present(), true);
   _journal_file->load_journal_file();
   TEST_CHECK(strcmp(metric->get_filename()->c_str(), _journal_file->get_filename()) == 0);
   TEST_CHECK_EQUAL(dbc + 1, _journal_file->get_blocks_count()); // +1 for the metric's header
