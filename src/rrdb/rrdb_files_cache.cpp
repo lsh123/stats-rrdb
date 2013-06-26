@@ -40,6 +40,8 @@ rrdb_files_cache::~rrdb_files_cache()
 
 void rrdb_files_cache::initialize(boost::shared_ptr<config> config)
 {
+  CHECK_AND_THROW(config);
+
   // set path
   this->set_path(config->get<std::string>("rrdb.path", this->get_path()));
 
@@ -54,6 +56,11 @@ void rrdb_files_cache::initialize(boost::shared_ptr<config> config)
         throw exception("The rrdb.open_files_cache_purge_threshold should not exceed 1.0");
     }
   }
+
+  LOG(log::LEVEL_INFO, "Initialized open files cache: %lu open files with %f purge threshold",
+      this->get_max_size(),
+      _purge_threshold
+  );
 }
 
 my::size_t rrdb_files_cache::get_max_size() const
@@ -64,6 +71,8 @@ my::size_t rrdb_files_cache::get_max_size() const
 
 void rrdb_files_cache::set_max_size(const my::size_t & max_size)
 {
+  CHECK_AND_THROW(max_size > 0);
+
   boost::lock_guard<spinlock> guard(_lock);
   if(_max_size < max_size) {
       _max_size = max_size;
@@ -71,6 +80,8 @@ void rrdb_files_cache::set_max_size(const my::size_t & max_size)
   } else {
       _max_size = max_size;
   }
+
+  LOG(log::LEVEL_DEBUG, "Set max size to %ld", max_size);
 }
 
 std::string rrdb_files_cache::get_path() const
@@ -81,17 +92,21 @@ std::string rrdb_files_cache::get_path() const
 
 void rrdb_files_cache::set_path(const std::string & path)
 {
+  CHECK_AND_THROW(!path.empty());
+
   boost::lock_guard<spinlock> guard(_lock);
   _path = path;
   if((*_path.rbegin()) != '/') {
       _path += "/";
   }
-  LOG(log::LEVEL_INFO, "Using base folder '%s'", _path.c_str());
+  LOG(log::LEVEL_DEBUG, "Using base folder '%s'", _path.c_str());
 }
 
 
 void rrdb_files_cache::clear()
 {
+  LOG(log::LEVEL_INFO, "Clearing open files cache");
+
   boost::lock_guard<spinlock> guard(_lock);
   _files_cache_impl->clear();
 }
@@ -137,6 +152,8 @@ std::string rrdb_files_cache::get_full_path(const my::filename_t & filename) con
 
 void rrdb_files_cache::purge()
 {
+  LOG(log::LEVEL_DEBUG3, "Purging open files cache: %lu files before", _files_cache_impl->get_size());
+
   // should be locked
   CHECK_AND_THROW(_lock.is_locked());
 
@@ -146,12 +163,16 @@ void rrdb_files_cache::purge()
   while(it != it_end && _files_cache_impl->get_size() >= purge_limit) {
       it = _files_cache_impl->lru_erase(it);
   }
+
+  LOG(log::LEVEL_DEBUG3, "Purged open files cache: %lu files after", _files_cache_impl->get_size());
 }
 
 rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(
     const std::string & full_path,
     const std::ios_base::openmode & mode
 ) {
+  LOG(log::LEVEL_DEBUG3, "Opening file '%s'", full_path.c_str());
+
   try {
       fstream_ptr fs(new std::fstream(full_path.c_str(), std::ios_base::binary | std::ios_base::out | std::ios_base::in | mode));
       fs->exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs

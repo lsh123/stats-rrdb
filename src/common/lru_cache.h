@@ -105,6 +105,16 @@ public:
     return V();
   }
 
+  inline void use(const K & k, const T & t)
+  {
+    key_index_t & key_index = _container.get<K>();
+    t_iterator it = key_index.find(k);
+    if(it != key_index.end()) {
+        // update time to mark as recently used
+        key_index.modify(it, change_time_type(t));
+    }
+  }
+
   inline V erase(const K & k)
   {
     key_index_t & key_index = _container.get<K>();

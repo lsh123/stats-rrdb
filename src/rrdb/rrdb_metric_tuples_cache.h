@@ -29,6 +29,10 @@ public:
   void initialize(boost::shared_ptr<config> config);
 
   // basic operations
+  void notify_used(
+      const rrdb_metric_block * const block,
+      const my::time_t & ts
+  );
   t_rrdb_metric_tuples_ptr find(
       const rrdb_metric_block * const block,
       const my::time_t & ts

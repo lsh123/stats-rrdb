@@ -368,7 +368,9 @@ my::size_t rrdb_metric::save_dirty_blocks(
     boost::lock_guard<spinlock> guard(_lock);
     LOG(log::LEVEL_DEBUG, "RRDB metric saving dirty blocks to file '%s'", _filename->c_str());
 
-    // TODO: figure out a better model with journal,
+    // TODO: figure out a better model with journal: right now it is possible
+    // to have file deleted while we are processing journal and this will result
+    // in an ugly error
     // check if file was deleted?
     if(my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted)) {
         files_cache->delete_file(_filename);

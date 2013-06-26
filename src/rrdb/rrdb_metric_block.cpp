@@ -51,17 +51,19 @@ t_rrdb_metric_tuples_ptr rrdb_metric_block::get_tuples(
 )
 {
   CHECK_AND_THROW(tuples_cache);
+  time_t ts(time(NULL));
 
   // very easy case: if we have _modified_tuples then we MUST use
   // them since cache could have purged the data already
   if(_modified_tuples) {
-      // TODO: notify cache about usage
       CHECK_AND_THROW(_modified_tuples->get());
+
+      // notify cache about usage
+      tuples_cache->notify_used(this, ts);
       return _modified_tuples;
   }
 
   // easy case
-  time_t ts(time(NULL));
   t_rrdb_metric_tuples_ptr the_tuples = tuples_cache->find(this, ts);
   if(the_tuples) {
       CHECK_AND_THROW(the_tuples->get());

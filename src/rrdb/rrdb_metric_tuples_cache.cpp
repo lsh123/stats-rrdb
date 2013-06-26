@@ -63,6 +63,21 @@ void rrdb_metric_tuples_cache::initialize(boost::shared_ptr<config> config)
         throw exception("The rrdb.open_files_cache_purge_threshold should not exceed 1.0");
     }
   }
+
+  LOG(log::LEVEL_INFO, "Initialized data tuples cache: %s with %f purge threshold",
+      memory_size_write(this->get_max_used_memory()).c_str(),
+      _purge_threshold
+  );
+}
+
+void rrdb_metric_tuples_cache::notify_used(
+      const rrdb_metric_block * const block,
+      const my::time_t & ts
+) {
+  LOG(log::LEVEL_DEBUG3, "Using for block '%p'", block);
+
+  boost::lock_guard<spinlock> guard(_lock);
+  _tuples_cache_impl->use(block, ts);
 }
 
 t_rrdb_metric_tuples_ptr rrdb_metric_tuples_cache::find(

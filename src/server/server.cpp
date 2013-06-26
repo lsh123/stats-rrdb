@@ -230,6 +230,7 @@ void server::stop()
 
 void server::update_status()
 {
+  // TODO: add more stats (e.g. uptime)
   time_t now = time(NULL);
   _server_udp->update_status(now);
   _server_tcp->update_status(now);
