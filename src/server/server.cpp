@@ -14,7 +14,7 @@
 
 #include "common/log.h"
 #include "common/config.h"
-#include "server/thread_pool.h"
+#include "common/thread_pool.h"
 
 #include "rrdb/rrdb.h"
 

@@ -4,6 +4,8 @@
  *  Created on: Jun 8, 2013
  *      Author: aleksey
  */
+#include "rrdb/rrdb_metric.h"
+
 #include <stdio.h>
 
 #include <boost/thread/locks.hpp>
@@ -17,13 +19,13 @@
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_journal_file.h"
 #include "rrdb/rrdb_files_cache.h"
-#include "rrdb/rrdb_metric.h"
 #include "rrdb/rrdb_metric_block.h"
 #include "rrdb/rrdb_metric_tuple.h"
 #include "rrdb/rrdb_metric_tuples_cache.h"
 
 
 #include "common/log.h"
+#include "common/types.h"
 #include "common/exception.h"
 
 #define RRDB_METRIC_MAGIC               0xDB99
@@ -168,10 +170,10 @@ void rrdb_metric::update(
   boost::lock_guard<spinlock> guard(_lock);
 
   // check we are good
-  // CHECK_AND_THROW(!_name.empty());
-  // CHECK_AND_THROW(!_blocks.empty());
-  // CHECK_AND_THROW(_blocks.size() == _header._blocks_size);
-  // LOG(log::LEVEL_DEBUG3, "Updating from metric '%s' with %f at timestamp %ld", _name.c_str(), value, ts);
+  CHECK_AND_THROW(!_name.empty());
+  CHECK_AND_THROW(!_blocks.empty());
+  CHECK_AND_THROW(_blocks.size() == _header._blocks_size);
+  LOG(log::LEVEL_DEBUG3, "Updating from metric '%s' with %f at timestamp %ld", _name.c_str(), value, ts);
 
   // mark dirty
   my::bitmask_set<boost::uint16_t>(_header._status, Status_Dirty);
@@ -219,7 +221,7 @@ void rrdb_metric::update(
       }
   }
 
-  // LOG(log::LEVEL_DEBUG3, "Updated from metric '%s' with %f at timestamp %ld", _name.c_str(), value, ts);
+  LOG(log::LEVEL_DEBUG3, "Updated from metric '%s' with %f at timestamp %ld", _name.c_str(), value, ts);
 }
 
 /**

@@ -10,6 +10,9 @@
 
 #include <boost/atomic.hpp>
 #include <boost/thread/locks.hpp>
+#include <boost/thread.hpp>
+
+#define BUSY_SPIN_COUNT 3
 
 class spinlock
 {
@@ -26,8 +29,14 @@ public:
 
   inline void lock()
   {
-    // busy wait
-    while (_state.exchange(State_Locked, boost::memory_order_acquire) == State_Locked) { }
+    // semi-busy wait
+    register int ii = 0;
+    while(_state.exchange(State_Locked, boost::memory_order_acquire) == State_Locked) {
+        if((++ii) > BUSY_SPIN_COUNT) {
+            boost::this_thread::yield();
+            ii = 0;
+        }
+    }
   }
 
   inline void unlock()

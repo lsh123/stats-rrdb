@@ -11,7 +11,7 @@
 #include "rrdb/rrdb.h"
 #include "rrdb/rrdb_metric.h"
 
-#include "server/thread_pool.h"
+#include "common/thread_pool.h"
 
 #include "common/log.h"
 #include "common/config.h"
@@ -112,12 +112,11 @@ void update_tests::load_test(const int & n,
       boost::intrusive_ptr<load_test_task> task(new load_test_task(_rrdb, buf));
       threads->run(task);
 
-      // wait if load factor is bigger than 2.0
-      while(threads->get_load_factor() > 2.0) {
-          LOG(log::LEVEL_DEBUG, "Load factor > 2.0, sleeping\n");
-          boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+      if(ii % 10000 == 0) {
+          std::cout << "Processed " << ii << " tasks ..." << std::endl;
       }
   }
+  std::cout << "Waiting for all tasks to complete" << std::endl;
 
   // wait until done
   while(threads->get_load_factor() > 0) {
@@ -147,10 +146,10 @@ void update_tests::run(const std::string & path)
   test.cleanup(10);
 
   // tests
-  test.load_test(0,   1, 5, 20000);
-  test.load_test(1,   5, 5, 20000);
-  test.load_test(2, 10,  5, 20000);
-  test.load_test(3, 10, 50, 20000);
+  test.load_test(0,   1, 5, 50000);
+  test.load_test(1,   5, 5, 50000);
+  test.load_test(2, 10,  5, 50000);
+  test.load_test(3, 10, 50, 50000);
 
   // cleanup
   test.cleanup();

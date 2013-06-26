@@ -17,6 +17,7 @@ EXTRA_DIST = \
 	common/memory_buffer.h \
 	common/spinlock.h \
 	common/lru_cache.h \
+	common/thread_pool.h \
 	common/types.h \
 	common/utils.h \
 	parser/grammar.h \
@@ -38,7 +39,6 @@ EXTRA_DIST = \
 	server/server.h \
 	server/server_tcp.h \
 	server/server_udp.h \
-	server/thread_pool.h \
 	tests/files_cache_tests.h \
 	tests/journal_file_tests.h \
 	tests/lru_tests.h \
@@ -80,6 +80,7 @@ libstats_rrdb_la_SOURCES= \
 	common/config.cpp \
 	common/exception.cpp \
 	common/log.cpp \
+	common/thread_pool.cpp \
 	common/utils.cpp \
 	parser/grammar.cpp \
 	parser/interval.cpp \
@@ -96,7 +97,6 @@ libstats_rrdb_la_SOURCES= \
 	server/server.cpp \
 	server/server_tcp.cpp \
 	server/server_udp.cpp \
-	server/thread_pool.cpp \
 	$(NULL)
 libstats_rrdb_la_CPPFLAGS= \
 	$(CUSTOM_CPPFLAGS) \

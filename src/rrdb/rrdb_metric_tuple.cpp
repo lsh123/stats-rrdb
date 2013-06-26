@@ -7,7 +7,7 @@
 #include <ostream>
 #include <cmath>
 
-#include "rrdb_metric_tuple.h"
+#include "rrdb/rrdb_metric_tuple.h"
 
 #include "common/log.h"
 

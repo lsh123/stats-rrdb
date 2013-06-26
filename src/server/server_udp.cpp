@@ -12,7 +12,7 @@
 #include <boost/bind.hpp>
 
 
-#include "server/thread_pool.h"
+#include "common/thread_pool.h"
 
 #include "rrdb/rrdb.h"
 

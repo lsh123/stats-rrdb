@@ -7,7 +7,7 @@
 
 #include "common/exception.h"
 #include "common/log.h"
-#include "server/thread_pool.h"
+#include "common/thread_pool.h"
 
 thread_pool::thread_pool(my::size_t pool_size) :
   _pool_size(pool_size),
@@ -20,7 +20,10 @@ thread_pool::thread_pool(my::size_t pool_size) :
 
   // init
   for(my::size_t ii = 0; ii < _pool_size; ++ii) {
-      _threads.create_thread(boost::bind(&boost::asio::io_service::run, &_io_service));
+      _threads.create_thread(boost::bind(
+          static_cast<size_t (boost::asio::io_service::*)()>(&boost::asio::io_service::run),
+          &_io_service
+      ));
   }
 
   // done
@@ -47,13 +50,13 @@ thread_pool::~thread_pool()
 my::size_t thread_pool::run(const boost::intrusive_ptr<thread_pool_task> & task)
 {
   // ready to execute?
-  my::size_t used_threads = _used_threads.fetch_add(1, boost::memory_order_release);
+  my::size_t used_threads = _used_threads.fetch_add(1, boost::memory_order_acquire);
   if(_used_threads >= _pool_size) {
       LOG(log::LEVEL_DEBUG, "No available threads to execute the task right away: %ld out of %ld used", SIZE_T_CAST used_threads, SIZE_T_CAST _pool_size);
   }
 
   // go!
-  _started_jobs.fetch_add(1, boost::memory_order_release);
+  _started_jobs.fetch_add(1, boost::memory_order_acquire);
   _io_service.post(boost::bind( &thread_pool::wrap_task_run, this, task)) ;
 
   // done
@@ -74,5 +77,4 @@ void thread_pool::wrap_task_run(const boost::intrusive_ptr<thread_pool_task> & t
   // done!
   _used_threads.fetch_sub(1, boost::memory_order_relaxed);
   _finished_jobs.fetch_add(1, boost::memory_order_release);
-
 }
