@@ -66,12 +66,24 @@ public:
   t_retention_policy get_policy() const;
   void create(const std::string & name, const t_retention_policy & policy);
 
+  //
+  // status
+  //
   inline bool is_dirty() const
   {
     boost::lock_guard<spinlock> guard(_lock);
     return my::bitmask_check<boost::uint16_t>(_header._status, Status_Dirty);
   }
-
+  inline void set_dirty()
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+    my::bitmask_set<boost::uint16_t>(_header._status, Status_Dirty);
+  }
+  inline bool is_deleted() const
+  {
+    boost::lock_guard<spinlock> guard(_lock);
+    return my::bitmask_check<boost::uint16_t>(_header._status, Status_Deleted);
+  }
   //
   // File operations
   //

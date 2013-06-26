@@ -37,6 +37,10 @@ public:
   {
     return &(_buf[0]);
   }
+  inline const char * c_str() const
+  {
+    return &(_buf[0]);
+  }
   inline my::size_t get_size() const
   {
     return _size;

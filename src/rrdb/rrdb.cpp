@@ -496,6 +496,11 @@ void rrdb::flush_to_disk()
 
         // write data to the metric's file - we expect the metric file to already exist
         _journal_file->apply_journal(metric->get_filename());
+
+        // check if metric was deleted meantime and force delete it again
+        if(metric->is_deleted()) {
+            metric->delete_file(_files_cache, _tuples_cache);
+        }
     } catch(std::exception & e) {
         LOG(log::LEVEL_ERROR, "Exception saving metric '%s': %s", metric->get_name().c_str(), e.what());
     } catch(...) {
