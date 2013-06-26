@@ -56,7 +56,21 @@ void parsers_tests::test_interval(const int & n)
   TEST_CHECK_EQUAL(interval_parse("3 years"), 3 * INTERVAL_YEAR);
 
   // serializer
-  // TODO: add serializer tests
+  TEST_CHECK_EQUAL(interval_write(100 * INTERVAL_SEC), "100 secs");
+  TEST_CHECK_EQUAL(interval_write(1 * INTERVAL_SEC),   "1 sec");
+  TEST_CHECK_EQUAL(interval_write(5 * INTERVAL_SEC),   "5 secs");
+  TEST_CHECK_EQUAL(interval_write(1 * INTERVAL_MIN),   "1 min");
+  TEST_CHECK_EQUAL(interval_write(12 * INTERVAL_MIN),  "12 mins");
+  TEST_CHECK_EQUAL(interval_write(1 * INTERVAL_HOUR),  "1 hour");
+  TEST_CHECK_EQUAL(interval_write(3 * INTERVAL_HOUR),  "3 hours");
+  TEST_CHECK_EQUAL(interval_write(1 * INTERVAL_DAY),   "1 day");
+  TEST_CHECK_EQUAL(interval_write(2 * INTERVAL_DAY),   "2 days");
+  TEST_CHECK_EQUAL(interval_write(1 * INTERVAL_WEEK),  "1 week");
+  TEST_CHECK_EQUAL(interval_write(2 * INTERVAL_WEEK),  "2 weeks");
+  TEST_CHECK_EQUAL(interval_write(1 * INTERVAL_MONTH), "1 month");
+  TEST_CHECK_EQUAL(interval_write(5 * INTERVAL_MONTH), "5 months");
+  TEST_CHECK_EQUAL(interval_write(1 * INTERVAL_YEAR),  "1 year");
+  TEST_CHECK_EQUAL(interval_write(3 * INTERVAL_YEAR),  "3 years");
 
   // done
   TEST_SUBTEST_END();
