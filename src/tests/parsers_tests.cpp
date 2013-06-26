@@ -88,7 +88,12 @@ void parsers_tests::test_memory_size(const int & n)
   TEST_CHECK_EQUAL(memory_size_parse("2GB"),     2 * MEMORY_SIZE_GIGABYTE);
 
   // serializer
-  // TODO: add serializer memory_size tests
+  TEST_CHECK_EQUAL(memory_size_write(100 * MEMORY_SIZE_BYTE),   "100 bytes");
+  TEST_CHECK_EQUAL(memory_size_write(1 * MEMORY_SIZE_BYTE),     "1 byte");
+  TEST_CHECK_EQUAL(memory_size_write(5 * MEMORY_SIZE_BYTE),     "5 bytes");
+  TEST_CHECK_EQUAL(memory_size_write(4 * MEMORY_SIZE_KILOBYTE), "4KB");
+  TEST_CHECK_EQUAL(memory_size_write(3 * MEMORY_SIZE_MEGABYTE), "3MB");
+  TEST_CHECK_EQUAL(memory_size_write(2 * MEMORY_SIZE_GIGABYTE), "2GB");
 
   // done
   TEST_SUBTEST_END();

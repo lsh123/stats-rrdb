@@ -49,8 +49,7 @@ my::size_t thread_pool::run(const boost::intrusive_ptr<thread_pool_task> & task)
   // ready to execute?
   my::size_t used_threads = _used_threads.fetch_add(1, boost::memory_order_release);
   if(_used_threads >= _pool_size) {
-      // TODO: how to do not spam logs? throttle?
-      LOG(log::LEVEL_ERROR, "No available threads to execute the task right away: %ld out of %ld used", SIZE_T_CAST used_threads, SIZE_T_CAST _pool_size);
+      LOG(log::LEVEL_DEBUG, "No available threads to execute the task right away: %ld out of %ld used", SIZE_T_CAST used_threads, SIZE_T_CAST _pool_size);
   }
 
   // go!

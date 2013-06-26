@@ -103,7 +103,8 @@ void update_tests::load_test(const int & n,
   boost::shared_ptr<thread_pool> threads(new thread_pool(num_threads));
   boost::posix_time::ptime ts1 = boost::posix_time::microsec_clock::local_time();
   for(my::size_t ii = 0; ii < num_tasks; ii++) {
-      snprintf(buf, sizeof(buf),  "u|" METRIC_NAME_TEMPLATE "|1|%lu",
+      snprintf(buf, sizeof(buf),
+          "u|" METRIC_NAME_TEMPLATE "|1|%lu",
           rand() % num_metrics,
           ts + ii
       );

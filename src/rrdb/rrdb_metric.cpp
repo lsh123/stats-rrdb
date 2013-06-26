@@ -168,10 +168,10 @@ void rrdb_metric::update(
   boost::lock_guard<spinlock> guard(_lock);
 
   // check we are good
-  CHECK_AND_THROW(!_name.empty());
-  CHECK_AND_THROW(!_blocks.empty());
-  CHECK_AND_THROW(_blocks.size() == _header._blocks_size);
-  LOG(log::LEVEL_DEBUG3, "Updating from metric '%s' with %f at timestamp %ld", _name.c_str(), value, ts);
+  // CHECK_AND_THROW(!_name.empty());
+  // CHECK_AND_THROW(!_blocks.empty());
+  // CHECK_AND_THROW(_blocks.size() == _header._blocks_size);
+  // LOG(log::LEVEL_DEBUG3, "Updating from metric '%s' with %f at timestamp %ld", _name.c_str(), value, ts);
 
   // mark dirty
   my::bitmask_set<boost::uint16_t>(_header._status, Status_Dirty);
@@ -218,6 +218,8 @@ void rrdb_metric::update(
           ii = 1; // next block 1
       }
   }
+
+  // LOG(log::LEVEL_DEBUG3, "Updated from metric '%s' with %f at timestamp %ld", _name.c_str(), value, ts);
 }
 
 /**
