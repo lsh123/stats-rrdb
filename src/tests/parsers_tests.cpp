@@ -10,6 +10,7 @@
 #include "parser/interval.h"
 #include "parser/retention_policy.h"
 #include "parser/memory_size.h"
+#include "parser/statements.h"
 
 #include "tests/stats_rrdb_tests.h"
 
@@ -28,9 +29,49 @@ parsers_tests::~parsers_tests()
 void parsers_tests::run()
 {
   parsers_tests test;
-  test.test_interval(0);
-  test.test_retention_policy(1);
-  test.test_memory_size(2);
+  test.test_memory_size(0);
+  test.test_interval(1);
+  test.test_retention_policy(2);
+  test.test_statement_create(3);
+  test.test_statement_drop(4);
+  test.test_statement_update(5);
+  test.test_statement_select(6);
+  test.test_statement_show_policy(7);
+  test.test_statement_show_metrics(8);
+  test.test_statement_show_status(9);
+
+}
+
+void parsers_tests::test_memory_size(const int & n)
+{
+  TEST_SUBTEST_START(n, "memory_size parser/serializer", false);
+
+  // parser
+  TEST_CHECK_EQUAL(memory_size_parse("100"),     100 * MEMORY_SIZE_BYTE);
+  TEST_CHECK_EQUAL(memory_size_parse("1 byte"),  1 * MEMORY_SIZE_BYTE);
+  TEST_CHECK_EQUAL(memory_size_parse("5 bytes"), 5 * MEMORY_SIZE_BYTE);
+  TEST_CHECK_EQUAL(memory_size_parse("4 KB"),    4 * MEMORY_SIZE_KILOBYTE);
+  TEST_CHECK_EQUAL(memory_size_parse("4KB"),     4 * MEMORY_SIZE_KILOBYTE);
+  TEST_CHECK_EQUAL(memory_size_parse("3 MB"),    3 * MEMORY_SIZE_MEGABYTE);
+  TEST_CHECK_EQUAL(memory_size_parse("3MB"),     3 * MEMORY_SIZE_MEGABYTE);
+  TEST_CHECK_EQUAL(memory_size_parse("2 GB"),    2 * MEMORY_SIZE_GIGABYTE);
+  TEST_CHECK_EQUAL(memory_size_parse("2GB"),     2 * MEMORY_SIZE_GIGABYTE);
+
+  // parser bad strings
+  TEST_CHECK_THROW(memory_size_parse(""), "Parser error: expecting <memory size value> at \"\"");
+  TEST_CHECK_THROW(memory_size_parse("1 xyz"), "Parser error: 'memory size' unexpected 'xyz'");
+  TEST_CHECK_THROW(memory_size_parse("1MB 123"), "Parser error: 'memory size' unexpected '123'");
+
+  // serializer
+  TEST_CHECK_EQUAL(memory_size_write(100 * MEMORY_SIZE_BYTE),   "100 bytes");
+  TEST_CHECK_EQUAL(memory_size_write(1 * MEMORY_SIZE_BYTE),     "1 byte");
+  TEST_CHECK_EQUAL(memory_size_write(5 * MEMORY_SIZE_BYTE),     "5 bytes");
+  TEST_CHECK_EQUAL(memory_size_write(4 * MEMORY_SIZE_KILOBYTE), "4KB");
+  TEST_CHECK_EQUAL(memory_size_write(3 * MEMORY_SIZE_MEGABYTE), "3MB");
+  TEST_CHECK_EQUAL(memory_size_write(2 * MEMORY_SIZE_GIGABYTE), "2GB");
+
+  // done
+  TEST_SUBTEST_END();
 }
 
 // tests
@@ -92,6 +133,11 @@ void parsers_tests::test_retention_policy(const int & n)
   TEST_CHECK_EQUAL(rp[0]._freq,     1 * INTERVAL_SEC);
   TEST_CHECK_EQUAL(rp[0]._duration, 3 * INTERVAL_MIN);
 
+  rp = retention_policy_parse("1 sEc foR 3 MiN");
+  TEST_CHECK_EQUAL(rp.size(), 1);
+  TEST_CHECK_EQUAL(rp[0]._freq,     1 * INTERVAL_SEC);
+  TEST_CHECK_EQUAL(rp[0]._duration, 3 * INTERVAL_MIN);
+
   rp = retention_policy_parse("2 hours for 1 day, 6 hours for 3 months");
   TEST_CHECK_EQUAL(rp.size(), 2);
   TEST_CHECK_EQUAL(rp[0]._freq,     2 * INTERVAL_HOUR);
@@ -124,33 +170,175 @@ void parsers_tests::test_retention_policy(const int & n)
   TEST_SUBTEST_END();
 }
 
-void parsers_tests::test_memory_size(const int & n)
+void parsers_tests::test_statement_create(const int & n)
 {
-  TEST_SUBTEST_START(n, "memory_size parser/serializer", false);
+  TEST_SUBTEST_START(n, "statement CREATE METRIC", false);
+  t_statement vst;
+  statement_create st;
 
-  // parser
-  TEST_CHECK_EQUAL(memory_size_parse("100"),     100 * MEMORY_SIZE_BYTE);
-  TEST_CHECK_EQUAL(memory_size_parse("1 byte"),  1 * MEMORY_SIZE_BYTE);
-  TEST_CHECK_EQUAL(memory_size_parse("5 bytes"), 5 * MEMORY_SIZE_BYTE);
-  TEST_CHECK_EQUAL(memory_size_parse("4 KB"),    4 * MEMORY_SIZE_KILOBYTE);
-  TEST_CHECK_EQUAL(memory_size_parse("4KB"),     4 * MEMORY_SIZE_KILOBYTE);
-  TEST_CHECK_EQUAL(memory_size_parse("3 MB"),    3 * MEMORY_SIZE_MEGABYTE);
-  TEST_CHECK_EQUAL(memory_size_parse("3MB"),     3 * MEMORY_SIZE_MEGABYTE);
-  TEST_CHECK_EQUAL(memory_size_parse("2 GB"),    2 * MEMORY_SIZE_GIGABYTE);
-  TEST_CHECK_EQUAL(memory_size_parse("2GB"),     2 * MEMORY_SIZE_GIGABYTE);
+  // full
+  vst = statement_query_parse("CREATE METRIC 'test' KEEP 3 sec for 2 days; ");
+  st = boost::get<statement_create>(vst);
+  TEST_CHECK_EQUAL(st._name,  "test");
+  TEST_CHECK_EQUAL(st._policy.size(), 1);
+  TEST_CHECK_EQUAL(st._policy[0]._freq,     3 * INTERVAL_SEC);
+  TEST_CHECK_EQUAL(st._policy[0]._duration, 2 * INTERVAL_DAY);
 
-  // parser bad strings
-  TEST_CHECK_THROW(memory_size_parse(""), "Parser error: expecting <memory size value> at \"\"");
-  TEST_CHECK_THROW(memory_size_parse("1 xyz"), "Parser error: 'memory size' unexpected 'xyz'");
-  TEST_CHECK_THROW(memory_size_parse("1MB 123"), "Parser error: 'memory size' unexpected '123'");
+  // different quotes
+  vst = statement_query_parse("CREATE METRIC \"test\" KEEP 3 sec for 2 days; ");
+  st = boost::get<statement_create>(vst);
+  TEST_CHECK_EQUAL(st._name,  "test");
+  TEST_CHECK_EQUAL(st._policy.size(), 1);
+  TEST_CHECK_EQUAL(st._policy[0]._freq,     3 * INTERVAL_SEC);
+  TEST_CHECK_EQUAL(st._policy[0]._duration, 2 * INTERVAL_DAY);
 
-  // serializer
-  TEST_CHECK_EQUAL(memory_size_write(100 * MEMORY_SIZE_BYTE),   "100 bytes");
-  TEST_CHECK_EQUAL(memory_size_write(1 * MEMORY_SIZE_BYTE),     "1 byte");
-  TEST_CHECK_EQUAL(memory_size_write(5 * MEMORY_SIZE_BYTE),     "5 bytes");
-  TEST_CHECK_EQUAL(memory_size_write(4 * MEMORY_SIZE_KILOBYTE), "4KB");
-  TEST_CHECK_EQUAL(memory_size_write(3 * MEMORY_SIZE_MEGABYTE), "3MB");
-  TEST_CHECK_EQUAL(memory_size_write(2 * MEMORY_SIZE_GIGABYTE), "2GB");
+  // mixed case
+  vst = statement_query_parse("cReate meTrIc 'test' kEEp 3 SEC fOr 2 DaYs; ");
+  st = boost::get<statement_create>(vst);
+  TEST_CHECK_EQUAL(st._name,  "test");
+  TEST_CHECK_EQUAL(st._policy.size(), 1);
+  TEST_CHECK_EQUAL(st._policy[0]._freq,     3 * INTERVAL_SEC);
+  TEST_CHECK_EQUAL(st._policy[0]._duration, 2 * INTERVAL_DAY);
+
+  // done
+  TEST_SUBTEST_END();
+}
+
+void parsers_tests::test_statement_drop(const int & n)
+{
+  TEST_SUBTEST_START(n, "statement DROP METRIC", false);
+  t_statement vst;
+  statement_drop st;
+
+  // full
+  vst = statement_query_parse("DROP METRIC 'test' ; ");
+  st = boost::get<statement_drop>(vst);
+  TEST_CHECK_EQUAL(st._name,  "test");
+
+  // mixed case
+  vst = statement_query_parse("Drop mETric 'test';");
+  st = boost::get<statement_drop>(vst);
+  TEST_CHECK_EQUAL(st._name,  "test");
+
+  // done
+  TEST_SUBTEST_END();
+}
+
+void parsers_tests::test_statement_update(const int & n)
+{
+  TEST_SUBTEST_START(n, "statement UPDATE METRIC", false);
+  t_statement vst;
+  statement_update st;
+
+  // full
+  vst = statement_query_parse("UPDATE METRIC 'test' ADD 1.0 AT 123456789; ");
+  st = boost::get<statement_update>(vst);
+  TEST_CHECK_EQUAL(st._name,     "test");
+  TEST_CHECK_EQUAL(st._value,     1.0);
+  TEST_CHECK(st._ts);
+  TEST_CHECK_EQUAL(st._ts.get(),  123456789);
+
+  // mixed case
+  vst = statement_query_parse("uPDatE MeTRiC 'test' add 1.0 at 123456789; ");
+  st = boost::get<statement_update>(vst);
+  TEST_CHECK_EQUAL(st._name,     "test");
+  TEST_CHECK_EQUAL(st._value,     1.0);
+  TEST_CHECK(st._ts);
+  TEST_CHECK_EQUAL(st._ts.get(),  123456789);
+
+
+  // done
+  TEST_SUBTEST_END();
+}
+
+void parsers_tests::test_statement_select(const int & n)
+{
+  TEST_SUBTEST_START(n, "statement SELECT FROM METRIC", false);
+  t_statement vst;
+  statement_select st;
+
+  // full
+  vst = statement_query_parse("SELECT * FROM METRIC 'test' BETWEEN 0 and 123456789 GROUP BY 5 mins; ");
+  st = boost::get<statement_select>(vst);
+  TEST_CHECK_EQUAL(st._name,           "test");
+  TEST_CHECK_EQUAL(st._ts_begin,        0);
+  TEST_CHECK_EQUAL(st._ts_end,          123456789);
+  TEST_CHECK(st._group_by);
+  TEST_CHECK_EQUAL(st._group_by.get(),  5 * INTERVAL_MIN);
+
+  // mixed case
+  vst = statement_query_parse("selEct * frOm metrIc 'test' beTWeen 0 aNd 123456789 grOUp By 5 miNs; ");
+  st = boost::get<statement_select>(vst);
+  TEST_CHECK_EQUAL(st._name,           "test");
+  TEST_CHECK_EQUAL(st._ts_begin,        0);
+  TEST_CHECK_EQUAL(st._ts_end,          123456789);
+  TEST_CHECK(st._group_by);
+  TEST_CHECK_EQUAL(st._group_by.get(),  5 * INTERVAL_MIN);
+
+
+  // done
+  TEST_SUBTEST_END();
+}
+
+void parsers_tests::test_statement_show_policy(const int & n)
+{
+  TEST_SUBTEST_START(n, "statement SHOW METRIC POLICY", false);
+  t_statement vst;
+  statement_show_policy st;
+
+  // full
+  vst = statement_query_parse("SHOW METRIC POLICY 'test' ; ");
+  st = boost::get<statement_show_policy>(st);
+  TEST_CHECK_EQUAL(st._name,  "test");
+
+  // mixed case
+  vst = statement_query_parse("sHoW metrIc PolIcy 'test' ; ");
+  st = boost::get<statement_show_policy>(st);
+  TEST_CHECK_EQUAL(st._name,  "test");
+
+  // done
+  TEST_SUBTEST_END();
+}
+
+void parsers_tests::test_statement_show_metrics(const int & n)
+{
+  TEST_SUBTEST_START(n, "statement SHOW METRICS", false);
+  t_statement vst;
+  statement_show_metrics st;
+
+  // full
+  vst = statement_query_parse("SHOW METRICS LIKE 'test';");
+  st = boost::get<statement_show_metrics>(vst);
+  TEST_CHECK(st._like);
+  TEST_CHECK_EQUAL(st._like.get(), "test");
+
+  // mixed case
+  vst = statement_query_parse("sHow mETRics LiKe 'test';");
+  st = boost::get<statement_show_metrics>(vst);
+  TEST_CHECK(st._like);
+  TEST_CHECK_EQUAL(st._like.get(), "test");
+
+  // done
+  TEST_SUBTEST_END();
+}
+
+void parsers_tests::test_statement_show_status(const int & n)
+{
+  TEST_SUBTEST_START(n, "statement SHOW STATUS", false);
+  t_statement vst;
+  statement_show_status st;
+
+  // full
+  vst = statement_query_parse("SHOW STATUS LIKE 'test'; ");
+  st = boost::get<statement_show_status>(vst);
+  TEST_CHECK(st._like);
+  TEST_CHECK_EQUAL(st._like.get(), "test");
+
+  // mixed case
+  vst = statement_query_parse("shOW StAtUs lIkE 'test'; ");
+  st = boost::get<statement_show_status>(vst);
+  TEST_CHECK(st._like);
+  TEST_CHECK_EQUAL(st._like.get(), "test");
 
   // done
   TEST_SUBTEST_END();

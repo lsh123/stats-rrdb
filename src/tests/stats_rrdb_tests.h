@@ -45,7 +45,7 @@
         test_ok = false; \
         std::cerr << "TEST CHECK FAILURE:" \
           << " '" << string_truncate((#a)) << "' " \
-          << "FILE " << __FILE__ << ":" << __LINE__ \
+          << " AT " << __FILE__ << ":" << __LINE__ \
           << std::endl; \
     } else if(test_verbose) { \
           std::cerr << "= TEST OK:" \
@@ -62,7 +62,7 @@
           << " IS NOT EQUAL " \
           << " '" << string_truncate((#b)) << "' " \
           << " = " <<  (b) \
-          << "FILE " << __FILE__ << ":" << __LINE__ \
+          << " AT " << __FILE__ << ":" << __LINE__ \
           << std::endl; \
     } else if(test_verbose) { \
         std::cerr << "= TEST CHECK EQUAL:" \
@@ -81,7 +81,7 @@
           << " IS EQUAL " \
           << " '" << string_truncate((#b)) << "' " \
           << " = " <<  (b) \
-          << "FILE " << __FILE__ << ":" << __LINE__ \
+          << " AT " << __FILE__ << ":" << __LINE__ \
           << std::endl; \
     } else if(test_verbose) { \
         std::cerr << "= TEST CHECK NOT EQUAL:" \
@@ -98,7 +98,7 @@
       std::cerr << "TEST CHECK THROW FAILURE: " \
           << " '" << string_truncate((#expr)) << "' " \
           << " DID NOT THROW " \
-          << "FILE " << __FILE__ << ":" << __LINE__ \
+          << " AT "<< __FILE__ << ":" << __LINE__ \
           << std::endl; \
     } catch(const std::exception & e) { \
         if(std::string(e.what()) != std::string(expected)) { \
@@ -107,6 +107,7 @@
             << " expected = '" << string_truncate(expected) << "' " \
             << " is not equal " \
             << " actual = '" << string_truncate(e.what()) << "' " \
+            << " AT "<< __FILE__ << ":" << __LINE__ \
             << std::endl; \
         } else if(test_verbose) { \
           std::cerr << "= TEST CHECK THROW MESSAGE EQUAL:" \

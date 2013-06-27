@@ -103,59 +103,53 @@ public:
     base_type(_start),
     _name(true) // enable upper case in metric names
   {
+    // there is a bug in boost with handling single member structures:
+    //
+    // http://stackoverflow.com/questions/7770791/spirit-unable-to-assign-attribute-to-single-element-struct-or-fusion-sequence
+    //
+
      _quoted_name %=
-         '"' >> _name >> '"' | "'" >> _name >> "'"
+         ('"' > _name > '"') | ("'" > _name > "'")
      ;
 
      _statement_update %=
-        nocaselit("update") >> -nocaselit("metric") >> _quoted_name
-          >> nocaselit("add") >> qi::double_
-          >> nocaselit("at") >> qi::ulong_
+        nocaselit("update") > -nocaselit("metric") > _quoted_name
+          > nocaselit("add") > qi::double_
+          > nocaselit("at") > qi::ulong_
      ;
 
      _statement_select %=
-        nocaselit("select") >> nocaselit("*")
-          >> nocaselit("from") >> -nocaselit("metric") >> _quoted_name
-          >> nocaselit("between") >> qi::ulong_ >> nocaselit("and") >> qi::ulong_
-          >> -(nocaselit("group") >> nocaselit("by") >> _interval)
+        nocaselit("select") > nocaselit("*")
+          > nocaselit("from") > -nocaselit("metric") > _quoted_name
+          > nocaselit("between") > qi::ulong_ > nocaselit("and") > qi::ulong_
+          > -(nocaselit("group") > nocaselit("by") > _interval)
      ;
 
      _statement_create %=
-        nocaselit("create") >> -nocaselit("metric") >> _quoted_name
-        >> nocaselit("keep") >> _policy
+        nocaselit("create") > -nocaselit("metric") > _quoted_name
+        > nocaselit("keep") > _policy
      ;
 
-    // there is a bug in boost with handling single member structures:
-    //
-    // http://stackoverflow.com/questions/7770791/spirit-unable-to-assign-attribute-to-single-element-struct-or-fusion-sequence
-    //
-    _statement_drop =
-        (nocaselit("drop") >> -nocaselit("metric") >> _quoted_name)
-        [ at_c<0>(qi::_val) = qi::_1 ]
-    ;
-
-    // there is a bug in boost with handling single member structures:
-    //
-    // http://stackoverflow.com/questions/7770791/spirit-unable-to-assign-attribute-to-single-element-struct-or-fusion-sequence
-    //
-    _statement_show_policy =
-        (nocaselit("show") >> -nocaselit("metric") >> nocaselit("policy") >> _quoted_name)
-        [ at_c<0>(qi::_val) = qi::_1 ]
-    ;
-
-    // there is a bug in boost with handling single member structures:
-    //
-    // http://stackoverflow.com/questions/7770791/spirit-unable-to-assign-attribute-to-single-element-struct-or-fusion-sequence
-    //
-    _statement_show_metrics =
-        nocaselit("show") >> nocaselit("metrics")
-        >> -(nocaselit("like") >> _quoted_name)
+    _statement_drop %=
+        nocaselit("drop") > -nocaselit("metric") > _quoted_name
         >> boost::spirit::eps
     ;
 
-    _statement_show_status =
+    _statement_show_policy %=
+        nocaselit("show") >> -nocaselit("metric")
+        >> nocaselit("policy") > _quoted_name
+        >> boost::spirit::eps
+    ;
+
+    _statement_show_metrics %=
+        nocaselit("show") >> nocaselit("metrics")
+        > -(nocaselit("like") > _quoted_name)
+        >> boost::spirit::eps
+    ;
+
+    _statement_show_status %=
         nocaselit("show") >> nocaselit("status")
-        >> -(nocaselit("like") >> _quoted_name)
+        > -(nocaselit("like") > _quoted_name)
         >> boost::spirit::eps
     ;
 
