@@ -99,6 +99,17 @@ void parsers_tests::test_retention_policy(const int & n)
   TEST_CHECK_EQUAL(rp[1]._freq,     6 * INTERVAL_HOUR);
   TEST_CHECK_EQUAL(rp[1]._duration, 3 * INTERVAL_MONTH);
 
+  // parser bad strings
+  TEST_CHECK_THROW(retention_policy_parse(""), "Parser error: expecting <memory size value> at \"\"");
+  TEST_CHECK_THROW(retention_policy_parse("1"), "Parser error: expecting <memory size unit> at \"\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for"), "Parser error: expecting <memory size unit> at \"xyz\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for ,"), "Parser error: expecting <memory size unit> at \"xyz\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2,"), "Parser error: expecting <memory size unit> at \"xyz\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins,"), "Parser error: expecting <memory size unit> at \"xyz\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins 123"), "Parser error: expecting <memory size unit> at \"xyz\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins, 123"), "Parser error: expecting <memory size unit> at \"xyz\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins, abc"), "Parser error: expecting <memory size unit> at \"xyz\"");
+
   // serializer
   rp.clear();
   rp.push_back(t_retention_policy_elem(2 * INTERVAL_SEC, 10 * INTERVAL_MIN));
@@ -127,6 +138,13 @@ void parsers_tests::test_memory_size(const int & n)
   TEST_CHECK_EQUAL(memory_size_parse("3MB"),     3 * MEMORY_SIZE_MEGABYTE);
   TEST_CHECK_EQUAL(memory_size_parse("2 GB"),    2 * MEMORY_SIZE_GIGABYTE);
   TEST_CHECK_EQUAL(memory_size_parse("2GB"),     2 * MEMORY_SIZE_GIGABYTE);
+
+  // parser bad strings
+  TEST_CHECK_THROW(memory_size_parse(""), "Parser error: expecting <memory size value> at \"\"");
+  TEST_CHECK_THROW(memory_size_parse("1"), "Parser error: expecting <memory size unit> at \"\"");
+  TEST_CHECK_THROW(memory_size_parse("1 xyz"), "Parser error: expecting <memory size unit> at \"xyz\"");
+  TEST_CHECK_THROW(memory_size_parse("1MB 123"), "Error parsing interval: unexpected '123'");
+
 
   // serializer
   TEST_CHECK_EQUAL(memory_size_write(100 * MEMORY_SIZE_BYTE),   "100 bytes");
