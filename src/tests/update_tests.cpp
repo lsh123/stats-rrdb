@@ -94,7 +94,7 @@ void update_tests::load_test(const int & n,
 
   //
   snprintf(buf, sizeof(buf), "load test - %lu metrics, %lu threads, %lu tasks", num_metrics, num_threads, num_tasks);
-  TEST_SUBTEST_START(n, buf);
+  TEST_SUBTEST_START(n, buf, false);
 
   // cleanup locally
   this->cleanup(num_metrics);
@@ -122,6 +122,8 @@ void update_tests::load_test(const int & n,
   while(threads->get_load_factor() > 0) {
       boost::this_thread::sleep(boost::posix_time::milliseconds(100));
   }
+
+  TEST_CHECK_EQUAL(threads->get_load_factor(), 0);
 
   // done - print results
   boost::posix_time::ptime ts2 = boost::posix_time::microsec_clock::local_time();

@@ -63,7 +63,7 @@ void files_cache_tests::cleanup()
 
 void files_cache_tests::test_open_file(const int & n)
 {
-  TEST_SUBTEST_START(n, "open_file");
+  TEST_SUBTEST_START(n, "open_file", false);
 
   // "touch" all the files
   for(int ii = 0; ii < FILENAME_MAX_NUM; ++ii) {
@@ -128,7 +128,7 @@ void files_cache_tests::test_open_file(const int & n)
 
 void files_cache_tests::test_delete_file(const int & n)
 {
-  TEST_SUBTEST_START(n, "delete_file");
+  TEST_SUBTEST_START(n, "delete_file", false);
 
   // should have full cache (2) from previous test
   TEST_CHECK_EQUAL(_files_cache->get_cache_size(), 2);

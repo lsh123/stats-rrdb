@@ -57,7 +57,7 @@ void journal_file_tests::test_apply_journal(const int & n)
   my::value_t last_value;
   my::time_t  last_value_ts;
 
-  TEST_SUBTEST_START(n, "apply_journal");
+  TEST_SUBTEST_START(n, "apply_journal", false);
 
   // create metric
   t_retention_policy policy = retention_policy_parse("1 sec for 1 hour, 30 sec for 1 day");
@@ -117,7 +117,7 @@ void journal_file_tests::test_save_and_load_journal(const int & n)
   my::value_t last_value;
   my::time_t  last_value_ts;
 
-  TEST_SUBTEST_START(n, "save_and_load_journal");
+  TEST_SUBTEST_START(n, "save_and_load_journal", false);
 
   // create metric
   t_retention_policy policy = retention_policy_parse("1 sec for 1 hour, 30 sec for 1 day");

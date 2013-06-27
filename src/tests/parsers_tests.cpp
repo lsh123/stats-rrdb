@@ -36,7 +36,7 @@ void parsers_tests::run()
 // tests
 void parsers_tests::test_interval(const int & n)
 {
-  TEST_SUBTEST_START(n, "interval parser/serializer");
+  TEST_SUBTEST_START(n, "interval parser/serializer", false);
 
   // parser
   TEST_CHECK_EQUAL(interval_parse("1 sec"),   1 * INTERVAL_SEC);
@@ -53,6 +53,12 @@ void parsers_tests::test_interval(const int & n)
   TEST_CHECK_EQUAL(interval_parse("5 months"),5 * INTERVAL_MONTH);
   TEST_CHECK_EQUAL(interval_parse("1 year"),  1 * INTERVAL_YEAR);
   TEST_CHECK_EQUAL(interval_parse("3 years"), 3 * INTERVAL_YEAR);
+
+  // parser bad strings
+  TEST_CHECK_THROW(interval_parse(""), "Parser error: expecting <interval value> at \"\"");
+  TEST_CHECK_THROW(interval_parse("1"), "Parser error: expecting <interval unit> at \"\"");
+  TEST_CHECK_THROW(interval_parse("1 xyz"), "Parser error: expecting <interval unit> at \"xyz\"");
+  TEST_CHECK_THROW(interval_parse("1 sec 123"), "Error parsing interval: unexpected '123'");
 
   // serializer
   TEST_CHECK_EQUAL(interval_write(100 * INTERVAL_SEC), "100 secs");
@@ -77,10 +83,8 @@ void parsers_tests::test_interval(const int & n)
 
 void parsers_tests::test_retention_policy(const int & n)
 {
-  TEST_SUBTEST_START(n, "retention_policy parser/serializer");
+  TEST_SUBTEST_START(n, "retention_policy parser/serializer", false);
   t_retention_policy rp;
-
-  retention_policy_parse("1 sec for 3 min,");
 
   // parser
   rp = retention_policy_parse("1 sec for 3 min");
@@ -111,7 +115,7 @@ void parsers_tests::test_retention_policy(const int & n)
 
 void parsers_tests::test_memory_size(const int & n)
 {
-  TEST_SUBTEST_START(n, "memory_size parser/serializer");
+  TEST_SUBTEST_START(n, "memory_size parser/serializer", false);
 
   // parser
   TEST_CHECK_EQUAL(memory_size_parse("100"),     100 * MEMORY_SIZE_BYTE);

@@ -76,6 +76,12 @@ void test_parse_csv_data(const t_memory_buffer_data & data, t_test_csv_data & re
   };
 }
 
+std::string string_truncate(const std::string & str, const my::size_t & num)
+{
+  CHECK_AND_THROW(num > 10);
+
+  return (str.length() < num) ? str : str.substr(0, num - 3) + "...";
+}
 
 int main(int argc, char ** argv)
 {

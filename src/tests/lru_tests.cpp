@@ -25,7 +25,7 @@ lru_tests::~lru_tests()
 
 void lru_tests::test0_insert()
 {
-  TEST_SUBTEST_START(0, "insert()");
+  TEST_SUBTEST_START(0, "insert()", false);
 
   // insert some data
   _cache.insert("key-0", "value-0", _start_ts);
@@ -60,7 +60,7 @@ void lru_tests::test0_insert()
 
 void lru_tests::test1_find_and_use()
 {
-  TEST_SUBTEST_START(1, "find() and use()");
+  TEST_SUBTEST_START(1, "find() and use()", false);
 
   // check size
   my::size_t size = _cache.get_size();
@@ -94,7 +94,7 @@ void lru_tests::test1_find_and_use()
 
 void lru_tests::test2_erase()
 {
-  TEST_SUBTEST_START(2, "erase()");
+  TEST_SUBTEST_START(2, "erase()", false);
 
   // check size
   my::size_t size = _cache.get_size();

@@ -52,7 +52,7 @@ void query_tests::cleanup()
 
 void query_tests::test_create(const int & n)
 {
-  TEST_SUBTEST_START(n, "create()");
+  TEST_SUBTEST_START(n, "create()", false);
 
   boost::intrusive_ptr<rrdb_metric> metric;
 
@@ -83,7 +83,7 @@ void query_tests::test_create(const int & n)
 
 void query_tests::test_select_all(const int & n)
 {
-  TEST_SUBTEST_START(n, "select ALL data");
+  TEST_SUBTEST_START(n, "select ALL data", false);
 
   char buf[1024];
   snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu ; ",
@@ -117,7 +117,7 @@ void query_tests::test_select_all(const int & n)
 
 void query_tests::test_select_5_sec(const int & n)
 {
-  TEST_SUBTEST_START(n, "select last 5 sec");
+  TEST_SUBTEST_START(n, "select last 5 sec", false);
 
   char buf[1024];
   snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu ; ",
@@ -151,7 +151,7 @@ void query_tests::test_select_5_sec(const int & n)
 
 void query_tests::test_select_all_group_by(const int & n, const my::size_t & group_by, const std::string & msg)
 {
-  TEST_SUBTEST_START(n, msg);
+  TEST_SUBTEST_START(n, msg, false);
 
   char buf[1024];
   snprintf(buf, sizeof(buf),  "select * from '%s' between %lu and %lu group by %lu secs; ",
@@ -207,7 +207,7 @@ void query_tests::test_select_all_group_by(const int & n, const my::size_t & gro
 /*
 void query_tests::test_template(const int & n)
 {
-  TEST_SUBTEST_START(n, "select 5_sec data");
+  TEST_SUBTEST_START(n, "select 5_sec data", false);
 
 
   // done

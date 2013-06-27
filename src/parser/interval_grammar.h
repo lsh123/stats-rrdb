@@ -50,7 +50,8 @@ public:
       | nocaselit("year")    [ qi::_val = INTERVAL_YEAR ]
      );
     _start =
-        _value               [ qi::_val = qi::_1 ]
+        qi::eps
+      > _value               [ qi::_val = qi::_1 ]
       > _unit                [ qi::_val *= qi::_1 ]
      ;
 
