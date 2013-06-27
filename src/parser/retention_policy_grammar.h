@@ -39,7 +39,7 @@ public:
   {
     // rule definitions
     _elem  %= _freq > nocaselit("for") >  _duration;
-    _start %= qi::eps >  +(nocaselit(",") > _elem );
+    _start %= qi::eps > _elem >> *(nocaselit(",") > _elem );
 
     // rule names
     _start.name("retention policy");

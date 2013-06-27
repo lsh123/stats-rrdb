@@ -58,7 +58,7 @@ void parsers_tests::test_interval(const int & n)
   TEST_CHECK_THROW(interval_parse(""), "Parser error: expecting <interval value> at \"\"");
   TEST_CHECK_THROW(interval_parse("1"), "Parser error: expecting <interval unit> at \"\"");
   TEST_CHECK_THROW(interval_parse("1 xyz"), "Parser error: expecting <interval unit> at \"xyz\"");
-  TEST_CHECK_THROW(interval_parse("1 sec 123"), "Error parsing interval: unexpected '123'");
+  TEST_CHECK_THROW(interval_parse("1 sec 123"), "Parser error: 'interval' unexpected '123'");
 
   // serializer
   TEST_CHECK_EQUAL(interval_write(100 * INTERVAL_SEC), "100 secs");
@@ -100,15 +100,15 @@ void parsers_tests::test_retention_policy(const int & n)
   TEST_CHECK_EQUAL(rp[1]._duration, 3 * INTERVAL_MONTH);
 
   // parser bad strings
-  TEST_CHECK_THROW(retention_policy_parse(""), "Parser error: expecting <memory size value> at \"\"");
-  TEST_CHECK_THROW(retention_policy_parse("1"), "Parser error: expecting <memory size unit> at \"\"");
-  TEST_CHECK_THROW(retention_policy_parse("1 sec for"), "Parser error: expecting <memory size unit> at \"xyz\"");
-  TEST_CHECK_THROW(retention_policy_parse("1 sec for ,"), "Parser error: expecting <memory size unit> at \"xyz\"");
-  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2,"), "Parser error: expecting <memory size unit> at \"xyz\"");
-  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins,"), "Parser error: expecting <memory size unit> at \"xyz\"");
-  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins 123"), "Parser error: expecting <memory size unit> at \"xyz\"");
-  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins, 123"), "Parser error: expecting <memory size unit> at \"xyz\"");
-  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins, abc"), "Parser error: expecting <memory size unit> at \"xyz\"");
+  TEST_CHECK_THROW(retention_policy_parse(""), "Parser error: expecting <interval value> at \"\"");
+  TEST_CHECK_THROW(retention_policy_parse("1"), "Parser error: expecting <interval unit> at \"\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for"), "Parser error: expecting <interval value> at \"\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for ,"), "Parser error: expecting <interval value> at \",\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2,"), "Parser error: expecting <interval unit> at \",\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins,"), "Parser error: expecting <interval value> at \"\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins 123"), "Parser error: 'retention policy' unexpected '1 sec for 2 mins 123'");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins, 123"), "Parser error: expecting <interval unit> at \"\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins, abc"), "Parser error: expecting <interval value> at \"abc\"");
 
   // serializer
   rp.clear();
@@ -141,10 +141,8 @@ void parsers_tests::test_memory_size(const int & n)
 
   // parser bad strings
   TEST_CHECK_THROW(memory_size_parse(""), "Parser error: expecting <memory size value> at \"\"");
-  TEST_CHECK_THROW(memory_size_parse("1"), "Parser error: expecting <memory size unit> at \"\"");
-  TEST_CHECK_THROW(memory_size_parse("1 xyz"), "Parser error: expecting <memory size unit> at \"xyz\"");
-  TEST_CHECK_THROW(memory_size_parse("1MB 123"), "Error parsing interval: unexpected '123'");
-
+  TEST_CHECK_THROW(memory_size_parse("1 xyz"), "Parser error: 'memory size' unexpected 'xyz'");
+  TEST_CHECK_THROW(memory_size_parse("1MB 123"), "Parser error: 'memory size' unexpected '123'");
 
   // serializer
   TEST_CHECK_EQUAL(memory_size_write(100 * MEMORY_SIZE_BYTE),   "100 bytes");

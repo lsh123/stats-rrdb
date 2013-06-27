@@ -43,7 +43,8 @@ public:
       | qi::eps            [ qi::_val = MEMORY_SIZE_BYTE ]
     );
     _start =
-      qi::uint_            [ qi::_val = qi::_1 ]
+        qi::eps
+      > _value             [ qi::_val = qi::_1 ]
       > _unit              [ qi::_val *= qi::_1 ]
     ;
 

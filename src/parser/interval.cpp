@@ -21,7 +21,7 @@ my::interval_t interval_parse(const std::string & str)
   std::string::const_iterator end = str.end();
   phrase_parse(beg, end, grammar, ascii::space, ret);
   if (beg != end) {
-      throw exception("Error parsing interval: unexpected '%s'", std::string(beg, end).c_str());
+      throw exception("Parser error: 'interval' unexpected '%s'", std::string(beg, end).c_str());
   }
 
   return ret;
