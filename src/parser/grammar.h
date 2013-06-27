@@ -50,7 +50,7 @@ struct grammar_error_handler_impl
    operator ()(B beg, E end, W where, I const & info) const
    {
      std::ostringstream res;
-     res << "Error parsing "
+     res << "Parser error: expecting "
          << info
          << " at \""
          << std::string(where, end)

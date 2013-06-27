@@ -38,8 +38,6 @@ void parsers_tests::test_interval(const int & n)
 {
   TEST_SUBTEST_START(n, "interval parser/serializer");
 
-  // std::cerr << "RESULT: " << interval_parse("10sdfasdf") << std::endl;
-
   // parser
   TEST_CHECK_EQUAL(interval_parse("1 sec"),   1 * INTERVAL_SEC);
   TEST_CHECK_EQUAL(interval_parse("5 secs"),  5 * INTERVAL_SEC);
@@ -80,8 +78,32 @@ void parsers_tests::test_interval(const int & n)
 void parsers_tests::test_retention_policy(const int & n)
 {
   TEST_SUBTEST_START(n, "retention_policy parser/serializer");
+  t_retention_policy rp;
 
-  // TODO: add retention policy tests
+  retention_policy_parse("1 sec for 3 min,");
+
+  // parser
+  rp = retention_policy_parse("1 sec for 3 min");
+  TEST_CHECK_EQUAL(rp.size(), 1);
+  TEST_CHECK_EQUAL(rp[0]._freq,     1 * INTERVAL_SEC);
+  TEST_CHECK_EQUAL(rp[0]._duration, 3 * INTERVAL_MIN);
+
+  rp = retention_policy_parse("2 hours for 1 day, 6 hours for 3 months");
+  TEST_CHECK_EQUAL(rp.size(), 2);
+  TEST_CHECK_EQUAL(rp[0]._freq,     2 * INTERVAL_HOUR);
+  TEST_CHECK_EQUAL(rp[0]._duration, 1 * INTERVAL_DAY);
+  TEST_CHECK_EQUAL(rp[1]._freq,     6 * INTERVAL_HOUR);
+  TEST_CHECK_EQUAL(rp[1]._duration, 3 * INTERVAL_MONTH);
+
+  // serializer
+  rp.clear();
+  rp.push_back(t_retention_policy_elem(2 * INTERVAL_SEC, 10 * INTERVAL_MIN));
+  TEST_CHECK_EQUAL(retention_policy_write(rp), "2 secs for 10 mins");
+
+  rp.clear();
+  rp.push_back(t_retention_policy_elem(3 * INTERVAL_HOUR, 2 * INTERVAL_DAY));
+  rp.push_back(t_retention_policy_elem(6 * INTERVAL_HOUR, 1 * INTERVAL_YEAR));
+  TEST_CHECK_EQUAL(retention_policy_write(rp), "3 hours for 2 days, 6 hours for 1 year");
 
   // done
   TEST_SUBTEST_END();

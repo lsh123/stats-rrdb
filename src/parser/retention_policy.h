@@ -21,6 +21,16 @@ typedef struct t_retention_policy_elem_
 {
   my::interval_t _freq;
   my::interval_t _duration;
+
+
+  inline t_retention_policy_elem_(
+      const my::interval_t & freq = 0,
+      const my::interval_t & duration = 0
+  ) :
+    _freq(freq),
+    _duration(duration)
+  {
+  }
 } t_retention_policy_elem;
 typedef std::vector<t_retention_policy_elem> t_retention_policy;
 

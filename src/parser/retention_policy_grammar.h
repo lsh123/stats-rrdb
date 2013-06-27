@@ -30,15 +30,24 @@ class t_retention_policy_grammar:
 private:
   qi::rule < Iterator, t_retention_policy(), ascii::space_type >      _start;
   qi::rule < Iterator, t_retention_policy_elem(), ascii::space_type > _elem;
-  interval_grammar< Iterator > _interval;
+  interval_grammar< Iterator > _freq;
+  interval_grammar< Iterator > _duration;
 
 public:
   t_retention_policy_grammar():
-    base_type(_start)
+    base_type(_start, "retention policy")
   {
-    _elem  %= _interval >> nocaselit("for") >> _interval;
-    _start %= _elem  >> *( nocaselit(",") >> _elem );
+    // rule definitions
+    _elem  %= _freq > nocaselit("for") >  _duration;
+    _start %= _elem  >> *( nocaselit(",") > _elem );
 
+    // rule names
+    _start.name("retention policy");
+    _elem.name("retention policy element");
+    _freq.name("retention policy element frequency");
+    _duration.name("retention policy element duration");
+
+    // errors
     qi::on_error<qi::fail> (
         _start,
         grammar_error_handler(qi::_1, qi::_2, qi::_3, qi::_4)
