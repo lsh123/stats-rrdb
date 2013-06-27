@@ -113,31 +113,35 @@ public:
      ;
 
      _statement_update %=
-        nocaselit("update") > -nocaselit("metric") > _quoted_name
-          > nocaselit("add") > qi::double_
-          > nocaselit("at") > qi::ulong_
+        nocaselit("update") > -nocaselit("metric")
+        > _quoted_name
+        > nocaselit("add") > qi::double_
+        > nocaselit("at") > qi::ulong_
      ;
 
      _statement_select %=
         nocaselit("select") > nocaselit("*")
-          > nocaselit("from") > -nocaselit("metric") > _quoted_name
-          > nocaselit("between") > qi::ulong_ > nocaselit("and") > qi::ulong_
-          > -(nocaselit("group") > nocaselit("by") > _interval)
+        > nocaselit("from") > -nocaselit("metric")
+        > _quoted_name
+        > nocaselit("between") > qi::ulong_ > nocaselit("and") > qi::ulong_
+        > -(nocaselit("group") > nocaselit("by") > _interval)
      ;
 
      _statement_create %=
-        nocaselit("create") > -nocaselit("metric") > _quoted_name
+        nocaselit("create") > -nocaselit("metric")
+        > _quoted_name
         > nocaselit("keep") > _policy
      ;
 
     _statement_drop %=
-        nocaselit("drop") > -nocaselit("metric") > _quoted_name
+        nocaselit("drop") > -nocaselit("metric")
+        > _quoted_name
         >> boost::spirit::eps
     ;
 
     _statement_show_policy %=
-        nocaselit("show") >> -nocaselit("metric")
-        >> nocaselit("policy") > _quoted_name
+        nocaselit("show") >> -nocaselit("metric") >> nocaselit("policy")
+        > _quoted_name
         >> boost::spirit::eps
     ;
 

@@ -288,12 +288,12 @@ void parsers_tests::test_statement_show_policy(const int & n)
 
   // full
   vst = statement_query_parse("SHOW METRIC POLICY 'test' ; ");
-  st = boost::get<statement_show_policy>(st);
+  st = boost::get<statement_show_policy>(vst);
   TEST_CHECK_EQUAL(st._name,  "test");
 
   // mixed case
   vst = statement_query_parse("sHoW metrIc PolIcy 'test' ; ");
-  st = boost::get<statement_show_policy>(st);
+  st = boost::get<statement_show_policy>(vst);
   TEST_CHECK_EQUAL(st._name,  "test");
 
   // done
