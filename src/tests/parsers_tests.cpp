@@ -434,9 +434,9 @@ void parsers_tests::test_statement_show_metrics(const int & n)
 
   // errors
   TEST_CHECK_THROW(statement_query_parse("SHOW"), "Parser error: 'query statement' unexpected  'SHOW'");
-  TEST_CHECK_THROW(statement_query_parse("SHOW LIKE"), "Parser error: expecting \"metrics\" at \" SHOW ^^^^^ \"");
-  TEST_CHECK_THROW(statement_query_parse("SHOW LIKE 'test'"), "Parser error: expecting \";\" at \" 'test' ^^^^^ \"");
-  TEST_CHECK_THROW(statement_query_parse("SHOW LIKE 'test';xxx"), "Parser error: 'query statement' unexpected  'xxx'");
+  TEST_CHECK_THROW(statement_query_parse("SHOW LIKE"), "Parser error: 'query statement' unexpected  'SHOW LIKE'");
+  TEST_CHECK_THROW(statement_query_parse("SHOW METRICS LIKE 'test'"), "Parser error: expecting \";\" at \" 'test' ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("SHOW METRICS LIKE 'test';xxx"), "Parser error: 'query statement' unexpected  'xxx'");
 
   // done
   TEST_SUBTEST_END();
@@ -459,6 +459,17 @@ void parsers_tests::test_statement_show_status(const int & n)
   st = boost::get<statement_show_status>(vst);
   TEST_CHECK(st._like);
   TEST_CHECK_EQUAL(st._like.get(), "test");
+
+  // no "like ..."
+  vst = statement_query_parse("SHOW STATUS; ");
+  st = boost::get<statement_show_status>(vst);
+  TEST_CHECK(!st._like);
+
+  // errors
+  TEST_CHECK_THROW(statement_query_parse("SHOW"), "Parser error: 'query statement' unexpected  'SHOW'");
+  TEST_CHECK_THROW(statement_query_parse("SHOW LIKE"), "Parser error: 'query statement' unexpected  'SHOW LIKE'");
+  TEST_CHECK_THROW(statement_query_parse("SHOW STATUS LIKE 'test'"), "Parser error: expecting \";\" at \" 'test' ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("SHOW STATUS LIKE 'test';xxx"), "Parser error: 'query statement' unexpected  'xxx'");
 
   // done
   TEST_SUBTEST_END();
