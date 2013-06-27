@@ -58,7 +58,7 @@ void parsers_tests::test_memory_size(const int & n)
   TEST_CHECK_EQUAL(memory_size_parse("2GB"),     2 * MEMORY_SIZE_GIGABYTE);
 
   // parser bad strings
-  TEST_CHECK_THROW(memory_size_parse(""), "Parser error: expecting <memory size value> at \"\"");
+  TEST_CHECK_THROW(memory_size_parse(""), "Parser error: expecting <memory size value> at the end");
   TEST_CHECK_THROW(memory_size_parse("1 xyz"), "Parser error: 'memory size' unexpected 'xyz'");
   TEST_CHECK_THROW(memory_size_parse("1MB 123"), "Parser error: 'memory size' unexpected '123'");
 
@@ -96,9 +96,9 @@ void parsers_tests::test_interval(const int & n)
   TEST_CHECK_EQUAL(interval_parse("3 years"), 3 * INTERVAL_YEAR);
 
   // parser bad strings
-  TEST_CHECK_THROW(interval_parse(""), "Parser error: expecting <interval value> at \"\"");
-  TEST_CHECK_THROW(interval_parse("1"), "Parser error: expecting <interval unit> at \"\"");
-  TEST_CHECK_THROW(interval_parse("1 xyz"), "Parser error: expecting <interval unit> at \"xyz\"");
+  TEST_CHECK_THROW(interval_parse(""), "Parser error: expecting <interval value> at the end");
+  TEST_CHECK_THROW(interval_parse("1"), "Parser error: expecting <interval unit> at \"1 ^^^^^ \"");
+  TEST_CHECK_THROW(interval_parse("1 xyz"), "Parser error: expecting <interval unit> at \"  ^^^^^ xyz\"");
   TEST_CHECK_THROW(interval_parse("1 sec 123"), "Parser error: 'interval' unexpected '123'");
 
   // serializer
@@ -146,15 +146,15 @@ void parsers_tests::test_retention_policy(const int & n)
   TEST_CHECK_EQUAL(rp[1]._duration, 3 * INTERVAL_MONTH);
 
   // parser bad strings
-  TEST_CHECK_THROW(retention_policy_parse(""), "Parser error: expecting <interval value> at \"\"");
-  TEST_CHECK_THROW(retention_policy_parse("1"), "Parser error: expecting <interval unit> at \"\"");
-  TEST_CHECK_THROW(retention_policy_parse("1 sec for"), "Parser error: expecting <interval value> at \"\"");
-  TEST_CHECK_THROW(retention_policy_parse("1 sec for ,"), "Parser error: expecting <interval value> at \",\"");
-  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2,"), "Parser error: expecting <interval unit> at \",\"");
-  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins,"), "Parser error: expecting <interval value> at \"\"");
+  TEST_CHECK_THROW(retention_policy_parse(""), "Parser error: expecting <interval value> at the end");
+  TEST_CHECK_THROW(retention_policy_parse("1"), "Parser error: expecting <interval unit> at \"1 ^^^^^ \"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for"), "Parser error: expecting <interval value> at the end");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for ,"), "Parser error: expecting <interval value> at \"  ^^^^^ ,\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2,"), "Parser error: expecting <interval unit> at \" 2 ^^^^^ ,\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins,"), "Parser error: expecting <interval value> at the end");
   TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins 123"), "Parser error: 'retention policy' unexpected '1 sec for 2 mins 123'");
-  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins, 123"), "Parser error: expecting <interval unit> at \"\"");
-  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins, abc"), "Parser error: expecting <interval value> at \"abc\"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins, 123"), "Parser error: expecting <interval unit> at \" 123 ^^^^^ \"");
+  TEST_CHECK_THROW(retention_policy_parse("1 sec for 2 mins, abc"), "Parser error: expecting <interval value> at \"  ^^^^^ abc\"");
 
   // serializer
   rp.clear();
@@ -211,14 +211,14 @@ void parsers_tests::test_statement_create(const int & n)
   // TODO: implement optional retention policy and test it here
 
   // errors
-  TEST_CHECK_THROW(statement_query_parse("CREATE"), "Parser error: expecting <quoted metric name> at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("CREATE xxx"), "Parser error: expecting <quoted metric name> at \"xxx\"");
-  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC"), "Parser error: expecting <quoted metric name> at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC KEEP"), "Parser error: expecting <quoted metric name> at \" KEEP\"");
-  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC 'test' KEEP"), "Parser error: expecting <interval value> at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC 'test' KEEP 3 sec"), "Parser error: expecting \"for\" at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC 'test' KEEP 3 sec for 2 days"), "Parser error: expecting \";\" at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC 'test' KEEP 3 sec for 2 days,"), "Parser error: expecting <interval value> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE"), "Parser error: expecting <quoted metric name> at \"CREATE ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE xxx"), "Parser error: expecting <quoted metric name> at \"  ^^^^^ xxx\"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC"), "Parser error: expecting <quoted metric name> at \" METRIC ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC KEEP"), "Parser error: expecting <quoted metric name> at \" METRIC ^^^^^  KEEP\"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC 'test' KEEP"), "Parser error: expecting <interval value> at the end");
+  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC 'test' KEEP 3 sec"), "Parser error: expecting \"for\" at \" sec ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC 'test' KEEP 3 sec for 2 days"), "Parser error: expecting \";\" at \" days ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC 'test' KEEP 3 sec for 2 days,"), "Parser error: expecting <interval value> at the end");
   TEST_CHECK_THROW(statement_query_parse("CREATE METRIC 'test' KEEP 3 sec for 2 days; xxx"), "Parser error: 'query statement' unexpected  'xxx'");
 
   // done
@@ -247,9 +247,9 @@ void parsers_tests::test_statement_drop(const int & n)
   TEST_CHECK_EQUAL(st._name,  "test");
 
   // errors
-  TEST_CHECK_THROW(statement_query_parse("DROP"), "Parser error: expecting <quoted metric name> at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("DROP METRIC"), "Parser error: expecting <quoted metric name> at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("DROP METRIC 'test'"), "Parser error: expecting \";\" at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("DROP"), "Parser error: expecting <quoted metric name> at \"DROP ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("DROP METRIC"), "Parser error: expecting <quoted metric name> at \" METRIC ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("DROP METRIC 'test'"), "Parser error: expecting \";\" at \" 'test' ^^^^^ \"");
   TEST_CHECK_THROW(statement_query_parse("DROP METRIC 'test';xxx"), "Parser error: 'query statement' unexpected  'xxx'");
 
   // done
@@ -301,14 +301,13 @@ void parsers_tests::test_statement_update(const int & n)
   TEST_CHECK(!st._ts);
 
   // errors
-  TEST_CHECK_THROW(statement_query_parse("UPDATE"), "Parser error: expecting <quoted metric name> at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC"), "Parser error: expecting <quoted metric name> at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC 'test'"), "Parser error: expecting \"add\" at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC 'test' ADD"), "Parser error: expecting <real> at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC 'test' ADD 1.0"), "Parser error: expecting \";\" at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC 'test' ADD 1.0 AT"), "Parser error: expecting <unsigned-integer> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("UPDATE"), "Parser error: expecting <quoted metric name> at \"UPDATE ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC"), "Parser error: expecting <quoted metric name> at \" METRIC ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC 'test'"), "Parser error: expecting \"add\" at \" 'test' ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC 'test' ADD"), "Parser error: expecting <real> at \" ADD ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC 'test' ADD 1.0"), "Parser error: expecting \";\" at \" 1.0 ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC 'test' ADD 1.0 AT"), "Parser error: expecting <unsigned-integer> at \" AT ^^^^^ \"");
   TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC 'test' ADD 1.0 AT 123456789;xxx"), "Parser error: 'query statement' unexpected  'xxx'");
-
 
   // done
   TEST_SUBTEST_END();
@@ -366,13 +365,14 @@ void parsers_tests::test_statement_select(const int & n)
   TEST_CHECK(!st._group_by);
 
   // errors
-  TEST_CHECK_THROW(statement_query_parse("SELECT"), "'Parser error: expecting \"*\" at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("SELECT FROM"), "Parser error: expecting \"*\" at \"FROM\"");
-  TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test'"), "Parser error: expecting \"add\" at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test' BETWEEN"), "Parser error: expecting <unsigned-integer> at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test' BETWEEN 0"), "Parser error: expecting \"and\" at \"\"");
-  TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test' BETWEEN 0 and"), "Parser error: expecting <unsigned-integer> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("SELECT"), "Parser error: expecting \"*\" at \"SELECT ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("SELECT FROM"), "Parser error: expecting \"*\" at \"  ^^^^^ FROM\"");
+  TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test'"), "Parser error: expecting \"between\" at \" 'test' ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test' BETWEEN"), "Parser error: expecting <unsigned-integer> at \" BETWEEN ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test' BETWEEN 0"), "Parser error: expecting \"and\" at \" 0 ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test' BETWEEN 0 and"), "Parser error: expecting <unsigned-integer> at \" and ^^^^^ \"");
   TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test' BETWEEN 0 and 123456;xxx"), "Parser error: 'query statement' unexpected  'xxx'");
+
 
   // done
   TEST_SUBTEST_END();
@@ -393,6 +393,17 @@ void parsers_tests::test_statement_show_policy(const int & n)
   vst = statement_query_parse("sHoW metrIc PolIcy 'test' ; ");
   st = boost::get<statement_show_policy>(vst);
   TEST_CHECK_EQUAL(st._name,  "test");
+
+  // no "metric"
+  vst = statement_query_parse("SHOW POLICY 'test' ; ");
+  st = boost::get<statement_show_policy>(vst);
+  TEST_CHECK_EQUAL(st._name,  "test");
+
+  // errors
+  TEST_CHECK_THROW(statement_query_parse("SHOW"), "Parser error: 'query statement' unexpected  'SHOW'");
+  TEST_CHECK_THROW(statement_query_parse("SHOW POLICY"), "Parser error: expecting <quoted metric name> at \" POLICY ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("SHOW POLICY 'test'"), "Parser error: expecting \";\" at \" 'test' ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("SHOW POLICY 'test';xxx"), "Parser error: 'query statement' unexpected  'xxx'");
 
   // done
   TEST_SUBTEST_END();
@@ -415,6 +426,17 @@ void parsers_tests::test_statement_show_metrics(const int & n)
   st = boost::get<statement_show_metrics>(vst);
   TEST_CHECK(st._like);
   TEST_CHECK_EQUAL(st._like.get(), "test");
+
+  // no "like ..."
+  vst = statement_query_parse("SHOW METRICS;");
+  st = boost::get<statement_show_metrics>(vst);
+  TEST_CHECK(!st._like);
+
+  // errors
+  TEST_CHECK_THROW(statement_query_parse("SHOW"), "Parser error: 'query statement' unexpected  'SHOW'");
+  TEST_CHECK_THROW(statement_query_parse("SHOW LIKE"), "Parser error: expecting \"metrics\" at \" SHOW ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("SHOW LIKE 'test'"), "Parser error: expecting \";\" at \" 'test' ^^^^^ \"");
+  TEST_CHECK_THROW(statement_query_parse("SHOW LIKE 'test';xxx"), "Parser error: 'query statement' unexpected  'xxx'");
 
   // done
   TEST_SUBTEST_END();
