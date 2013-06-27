@@ -179,15 +179,7 @@ public:
 
     qi::on_error<qi::fail> (
         _start,
-        grammar_error_handler("Error parsing statement", qi::_1, qi::_2, qi::_3, qi::_4)
-    );
-    qi::on_error<qi::fail> (
-        _statement,
-        grammar_error_handler("Error parsing statement", qi::_1, qi::_2, qi::_3, qi::_4)
-    );
-    qi::on_error<qi::fail> (
-        _statement_select,
-        grammar_error_handler("Error parsing SELECT statement", qi::_1, qi::_2, qi::_3, qi::_4)
+        grammar_error_handler(qi::_1, qi::_2, qi::_3, qi::_4)
     );
 
   }

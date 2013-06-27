@@ -41,7 +41,7 @@ public:
 
     qi::on_error<qi::fail> (
         _start,
-        grammar_error_handler("Error parsing retention policy", qi::_1, qi::_2, qi::_3, qi::_4)
+        grammar_error_handler(qi::_1, qi::_2, qi::_3, qi::_4)
     );
   }
 }; // t_retention_policy_grammar

@@ -42,20 +42,19 @@ inline nocaselit_return_type nocaselit(const std::string& keyword)
 //
 struct grammar_error_handler_impl
 {
-   template <class, class, class, class, class>
+   template <class, class, class, class>
    struct result { typedef void type; };
  
-   template <class M, class B, class E, class W, class I>
+   template <class B, class E, class W, class I>
    void
-   operator ()(const M & msg, B beg, E end, W where, I const & info) const
+   operator ()(B beg, E end, W where, I const & info) const
    {
      std::ostringstream res;
-     res
-       << msg
-       << info
-       << " at \""
-       << phoenix::construct<std::string>(where, end)
-       << "\""
+     res << "Error parsing "
+         << info
+         << " at \""
+         << std::string(where, end)
+         << "\""
      ;
      throw exception(res.str());
    }

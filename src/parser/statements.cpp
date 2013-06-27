@@ -17,7 +17,23 @@
 #include "common/exception.h"
 #include "common/log.h"
 
-// TODO: better error handled
+
+// check the metric name
+bool statement_check_metric_name(const std::string & str, bool allow_upper_case)
+{
+  std::string ret;
+  metric_name_grammar<std::string::const_iterator> grammar(allow_upper_case);
+  std::string::const_iterator beg(str.begin());
+  std::string::const_iterator end(str.end());
+  phrase_parse(beg, end, grammar, ascii::space, ret);
+  if (beg != end) {
+      return false;
+  }
+
+  return true;
+}
+
+// main parser
 t_statement statement_query_parse(const std::string & str)
 {
   t_statement ret;
@@ -26,7 +42,7 @@ t_statement statement_query_parse(const std::string & str)
   std::string::const_iterator end(str.end());
   phrase_parse(beg, end, grammar, ascii::space, ret);
   if (beg != end) {
-      throw exception("Unable to parse the statement '%s'", std::string(beg, end).c_str());
+      throw exception("Error parsing query statement: unexpected  '%s'", std::string(beg, end).c_str());
   }
 
   return ret;
@@ -84,17 +100,3 @@ t_statement statement_update_parse(const std::string & str)
   throw exception("Invalid request: command '%s' is unknow", cmd.c_str());
 }
 
-// check the metric name
-bool statement_check_metric_name(const std::string & str, bool allow_upper_case)
-{
-  std::string ret;
-  metric_name_grammar<std::string::const_iterator> grammar(allow_upper_case);
-  std::string::const_iterator beg(str.begin());
-  std::string::const_iterator end(str.end());
-  phrase_parse(beg, end, grammar, ascii::space, ret);
-  if (beg != end) {
-      return false;
-  }
-
-  return true;
-}

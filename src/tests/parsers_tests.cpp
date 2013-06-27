@@ -38,8 +38,9 @@ void parsers_tests::test_interval(const int & n)
 {
   TEST_SUBTEST_START(n, "interval parser/serializer");
 
+  // std::cerr << "RESULT: " << interval_parse("10sdfasdf") << std::endl;
+
   // parser
-  TEST_CHECK_EQUAL(interval_parse("100"),     100 * INTERVAL_SEC);
   TEST_CHECK_EQUAL(interval_parse("1 sec"),   1 * INTERVAL_SEC);
   TEST_CHECK_EQUAL(interval_parse("5 secs"),  5 * INTERVAL_SEC);
   TEST_CHECK_EQUAL(interval_parse("1 min"),   1 * INTERVAL_MIN);
