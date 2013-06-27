@@ -320,6 +320,8 @@ void parsers_tests::test_statement_select(const int & n)
   t_statement vst;
   statement_select st;
 
+  // TODO: support no BETWEEN and write test for it
+
   // full
   vst = statement_query_parse("SELECT * FROM METRIC 'test' BETWEEN 0 and 123456789 GROUP BY 5 mins; ");
   st = boost::get<statement_select>(vst);
@@ -338,6 +340,39 @@ void parsers_tests::test_statement_select(const int & n)
   TEST_CHECK(st._group_by);
   TEST_CHECK_EQUAL(st._group_by.get(),  5 * INTERVAL_MIN);
 
+  // no "metric"
+  vst = statement_query_parse("SELECT * FROM 'test' BETWEEN 0 and 123456789 GROUP BY 5 mins; ");
+  st = boost::get<statement_select>(vst);
+  TEST_CHECK_EQUAL(st._name,           "test");
+  TEST_CHECK_EQUAL(st._ts_begin,        0);
+  TEST_CHECK_EQUAL(st._ts_end,          123456789);
+  TEST_CHECK(st._group_by);
+  TEST_CHECK_EQUAL(st._group_by.get(),  5 * INTERVAL_MIN);
+
+  // no GROUP BY
+  vst = statement_query_parse("SELECT * FROM METRIC 'test' BETWEEN 0 and 123456789 ; ");
+  st = boost::get<statement_select>(vst);
+  TEST_CHECK_EQUAL(st._name,           "test");
+  TEST_CHECK_EQUAL(st._ts_begin,        0);
+  TEST_CHECK_EQUAL(st._ts_end,          123456789);
+  TEST_CHECK(!st._group_by);
+
+  // no "metric" and no GROUP BY
+  vst = statement_query_parse("SELECT * FROM 'test' BETWEEN 0 and 123456789; ");
+  st = boost::get<statement_select>(vst);
+  TEST_CHECK_EQUAL(st._name,           "test");
+  TEST_CHECK_EQUAL(st._ts_begin,        0);
+  TEST_CHECK_EQUAL(st._ts_end,          123456789);
+  TEST_CHECK(!st._group_by);
+
+  // errors
+  TEST_CHECK_THROW(statement_query_parse("SELECT"), "'Parser error: expecting \"*\" at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("SELECT FROM"), "Parser error: expecting \"*\" at \"FROM\"");
+  TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test'"), "Parser error: expecting \"add\" at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test' BETWEEN"), "Parser error: expecting <unsigned-integer> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test' BETWEEN 0"), "Parser error: expecting \"and\" at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test' BETWEEN 0 and"), "Parser error: expecting <unsigned-integer> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test' BETWEEN 0 and 123456;xxx"), "Parser error: 'query statement' unexpected  'xxx'");
 
   // done
   TEST_SUBTEST_END();

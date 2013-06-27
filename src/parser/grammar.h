@@ -50,13 +50,29 @@ struct grammar_error_handler_impl
    operator ()(B beg, E end, W where, I const & info) const
    {
      std::ostringstream res;
-     res << "Parser error: expecting "
-         << info
-         << " at \""
-         << std::string(where, end)
-         << "\""
-     ;
+
+     res << "Parser error: expecting " << info << " at " ;
+     grammar_error_handler_impl::create_at(res, beg, end, where);
+
+
      throw exception(res.str());
+   }
+
+   template <class B, class E, class W>
+   static void create_at(std::ostringstream & res, B beg, E end, W where)
+   {
+     // go back one keyword
+     W backtrack = where;
+     while(backtrack != beg && isspace(*backtrack)) --backtrack;
+     while(backtrack != beg && !isspace(*backtrack)) --backtrack;
+
+     if(backtrack != where) {
+         res << "\"" << std::string(backtrack, where) << " ^^^^^ " << std::string(where, end) << "\"";
+     } else if(where != end){
+         res << "\" ^^^^^ " << std::string(where, end) << "\"";
+     } else {
+         res << "the end";
+     }
    }
 };
 
