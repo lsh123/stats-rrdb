@@ -200,6 +200,27 @@ void parsers_tests::test_statement_create(const int & n)
   TEST_CHECK_EQUAL(st._policy[0]._freq,     3 * INTERVAL_SEC);
   TEST_CHECK_EQUAL(st._policy[0]._duration, 2 * INTERVAL_DAY);
 
+  // no "metric"
+  vst = statement_query_parse("CREATE 'test' KEEP 3 sec for 2 days; ");
+  st = boost::get<statement_create>(vst);
+  TEST_CHECK_EQUAL(st._name,  "test");
+  TEST_CHECK_EQUAL(st._policy.size(), 1);
+  TEST_CHECK_EQUAL(st._policy[0]._freq,     3 * INTERVAL_SEC);
+  TEST_CHECK_EQUAL(st._policy[0]._duration, 2 * INTERVAL_DAY);
+
+  // TODO: implement optional retention policy and test it here
+
+  // errors
+  TEST_CHECK_THROW(statement_query_parse("CREATE"), "Parser error: expecting <quoted metric name> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE xxx"), "Parser error: expecting <quoted metric name> at \"xxx\"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC"), "Parser error: expecting <quoted metric name> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC KEEP"), "Parser error: expecting <quoted metric name> at \" KEEP\"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC 'test' KEEP"), "Parser error: expecting <interval value> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC 'test' KEEP 3 sec"), "Parser error: expecting \"for\" at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC 'test' KEEP 3 sec for 2 days"), "Parser error: expecting \";\" at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC 'test' KEEP 3 sec for 2 days,"), "Parser error: expecting <interval value> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("CREATE METRIC 'test' KEEP 3 sec for 2 days; xxx"), "Parser error: 'query statement' unexpected  'xxx'");
+
   // done
   TEST_SUBTEST_END();
 }
@@ -219,6 +240,17 @@ void parsers_tests::test_statement_drop(const int & n)
   vst = statement_query_parse("Drop mETric 'test';");
   st = boost::get<statement_drop>(vst);
   TEST_CHECK_EQUAL(st._name,  "test");
+
+  // no metric
+  vst = statement_query_parse("DROP 'test' ; ");
+  st = boost::get<statement_drop>(vst);
+  TEST_CHECK_EQUAL(st._name,  "test");
+
+  // errors
+  TEST_CHECK_THROW(statement_query_parse("DROP"), "Parser error: expecting <quoted metric name> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("DROP METRIC"), "Parser error: expecting <quoted metric name> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("DROP METRIC 'test'"), "Parser error: expecting \";\" at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("DROP METRIC 'test';xxx"), "Parser error: 'query statement' unexpected  'xxx'");
 
   // done
   TEST_SUBTEST_END();
@@ -245,6 +277,37 @@ void parsers_tests::test_statement_update(const int & n)
   TEST_CHECK_EQUAL(st._value,     1.0);
   TEST_CHECK(st._ts);
   TEST_CHECK_EQUAL(st._ts.get(),  123456789);
+
+  // no "metric"
+  vst = statement_query_parse("UPDATE 'test' ADD 1.0 AT 123456789; ");
+  st = boost::get<statement_update>(vst);
+  TEST_CHECK_EQUAL(st._name,     "test");
+  TEST_CHECK_EQUAL(st._value,     1.0);
+  TEST_CHECK(st._ts);
+  TEST_CHECK_EQUAL(st._ts.get(),  123456789);
+
+  // no "AT ...."
+  vst = statement_query_parse("UPDATE METRIC 'test' ADD 1.0 ; ");
+  st = boost::get<statement_update>(vst);
+  TEST_CHECK_EQUAL(st._name,     "test");
+  TEST_CHECK_EQUAL(st._value,     1.0);
+  TEST_CHECK(!st._ts);
+
+  // no "metric" and "AT ...."
+  vst = statement_query_parse("UPDATE 'test' ADD 1.0 ; ");
+  st = boost::get<statement_update>(vst);
+  TEST_CHECK_EQUAL(st._name,     "test");
+  TEST_CHECK_EQUAL(st._value,     1.0);
+  TEST_CHECK(!st._ts);
+
+  // errors
+  TEST_CHECK_THROW(statement_query_parse("UPDATE"), "Parser error: expecting <quoted metric name> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC"), "Parser error: expecting <quoted metric name> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC 'test'"), "Parser error: expecting \"add\" at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC 'test' ADD"), "Parser error: expecting <real> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC 'test' ADD 1.0"), "Parser error: expecting \";\" at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC 'test' ADD 1.0 AT"), "Parser error: expecting <unsigned-integer> at \"\"");
+  TEST_CHECK_THROW(statement_query_parse("UPDATE METRIC 'test' ADD 1.0 AT 123456789;xxx"), "Parser error: 'query statement' unexpected  'xxx'");
 
 
   // done

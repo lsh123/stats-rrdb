@@ -64,15 +64,56 @@ private:
 
 public:
   metric_name_grammar(bool enable_upper_case):
-    base_type(_start)
+    base_type(_start, "metric name")
   {
+    // rule definitions
     if(enable_upper_case) {
         _start %= +qi::char_("a-zA-Z0-9._-");
     } else {
         _start %= +qi::char_("a-z0-9._-");
     }
+
+    // rule names
+    _start.name("metric name");
+
+    // errors
+    qi::on_error<qi::fail> (
+        _start,
+        grammar_error_handler(qi::_1, qi::_2, qi::_3, qi::_4)
+    );
   }
 }; // metric_name_grammar
+
+template<typename Iterator>
+class metric_quoted_name_grammar:
+    public qi::grammar < Iterator, std::string(), ascii::space_type >
+{
+  typedef qi::grammar < Iterator, std::string(), ascii::space_type > base_type;
+
+private:
+  metric_name_grammar< Iterator >                              _name;
+  qi::rule < Iterator, std::string(), ascii::space_type >      _start;
+
+public:
+  metric_quoted_name_grammar(bool enable_upper_case):
+    base_type(_start, "quoted metric name"),
+    _name(enable_upper_case)
+  {
+    // rule definitions
+    _start %=
+        ('"' > _name > '"') | ("'" > _name > "'")
+    ;
+
+    // rule names
+    _start.name("quoted metric name");
+
+    // errors
+    qi::on_error<qi::fail> (
+        _start,
+        grammar_error_handler(qi::_1, qi::_2, qi::_3, qi::_4)
+    );
+  }
+}; // metric_quoted_name_grammar
 
 
 template<typename Iterator>
@@ -82,14 +123,11 @@ class statement_grammar:
   typedef qi::grammar < Iterator, t_statement(), ascii::space_type > base_type;
 
 private:
-  qi::rule < Iterator, t_statement(), ascii::space_type >      _start;
-
-  metric_name_grammar< Iterator >                              _name;
-  qi::rule < Iterator, std::string(), ascii::space_type >      _quoted_name;
+  metric_quoted_name_grammar< Iterator >                       _quoted_name;
+  metric_quoted_name_grammar< Iterator >                       _quoted_like;
   t_retention_policy_grammar<Iterator>                         _policy;
   interval_grammar< Iterator >                                 _interval;
 
-  qi::rule < Iterator, t_statement(),            ascii::space_type > _statement;
   qi::rule < Iterator, statement_create(),       ascii::space_type > _statement_create;
   qi::rule < Iterator, statement_drop(),         ascii::space_type > _statement_drop;
   qi::rule < Iterator, statement_update(),       ascii::space_type > _statement_update;
@@ -97,29 +135,28 @@ private:
   qi::rule < Iterator, statement_show_policy(),  ascii::space_type > _statement_show_policy;
   qi::rule < Iterator, statement_show_metrics(), ascii::space_type > _statement_show_metrics;
   qi::rule < Iterator, statement_show_status(),  ascii::space_type > _statement_show_status;
+  qi::rule < Iterator, t_statement(),            ascii::space_type > _statement;
+
+  qi::rule < Iterator, t_statement(), ascii::space_type >      _start;
 
 public:
   statement_grammar():
     base_type(_start),
-    _name(true) // enable upper case in metric names
+    _quoted_name(true), // enable upper case in metric names
+    _quoted_like(true)  // enable upper case in metric names
   {
     // there is a bug in boost with handling single member structures:
-    //
     // http://stackoverflow.com/questions/7770791/spirit-unable-to-assign-attribute-to-single-element-struct-or-fusion-sequence
-    //
 
-     _quoted_name %=
-         ('"' > _name > '"') | ("'" > _name > "'")
-     ;
-
-     _statement_update %=
+    // rule definitions
+    _statement_update %=
         nocaselit("update") > -nocaselit("metric")
         > _quoted_name
         > nocaselit("add") > qi::double_
-        > nocaselit("at") > qi::ulong_
-     ;
+        > -(nocaselit("at") > qi::ulong_)
+    ;
 
-     _statement_select %=
+    _statement_select %=
         nocaselit("select") > nocaselit("*")
         > nocaselit("from") > -nocaselit("metric")
         > _quoted_name
@@ -134,26 +171,34 @@ public:
      ;
 
     _statement_drop %=
-        nocaselit("drop") > -nocaselit("metric")
-        > _quoted_name
+        (
+            nocaselit("drop") > -nocaselit("metric")
+            > _quoted_name
+        )
         >> boost::spirit::eps
     ;
 
     _statement_show_policy %=
-        nocaselit("show") >> -nocaselit("metric") >> nocaselit("policy")
-        > _quoted_name
+        (
+            nocaselit("show") >> -nocaselit("metric") >> nocaselit("policy")
+            > _quoted_name
+        )
         >> boost::spirit::eps
     ;
 
     _statement_show_metrics %=
-        nocaselit("show") >> nocaselit("metrics")
-        > -(nocaselit("like") > _quoted_name)
+        (
+            nocaselit("show") >> nocaselit("metrics")
+            > -(nocaselit("like") > _quoted_name)
+        )
         >> boost::spirit::eps
     ;
 
     _statement_show_status %=
-        nocaselit("show") >> nocaselit("status")
-        > -(nocaselit("like") > _quoted_name)
+        (
+            nocaselit("show") >> nocaselit("status")
+            > -(nocaselit("like") > _quoted_name)
+        )
         >> boost::spirit::eps
     ;
 
@@ -171,10 +216,28 @@ public:
             _statement_show_metrics  |
             _statement_show_status
         )
-        >> nocaselit(";")
+        > nocaselit(";")
     ;
     _start %= _statement;
 
+    // rule names
+
+   _quoted_name.name("quoted metric name");
+   _quoted_like.name("quoted metric name pattern");
+   _policy.name("retention policy");
+   _interval.name("interval");
+
+   _statement_create.name("'create metric' statement");
+   _statement_drop.name("'drop metric' statement");
+   _statement_update.name("'update metric' statement");
+   _statement_select.name("'select' statement");
+   _statement_show_policy.name("'show policy' statement");
+   _statement_show_metrics.name("'show metrics' statement");
+   _statement_show_status.name("'show status' statement");
+   _statement.name("statement");
+   _start.name("statement");
+
+    // errors
     qi::on_error<qi::fail> (
         _start,
         grammar_error_handler(qi::_1, qi::_2, qi::_3, qi::_4)
