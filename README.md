@@ -18,6 +18,7 @@ to make it run fast and efficient:
 - Data blocks cache: only frequently accessed data blocks are loaded in memory
 - Open file handles cache: set open files limit high in the OS and save time on re-opening files all the time
 - Journal file: never lose your data
+- Easy integration with your favorite charting package ([Google Charts example](examples/php/index.php))
 
 
 Why do we need yet another statsd? 
@@ -48,6 +49,4 @@ For installation instructions see [Install](INSTALL.md).
 Roadmap
 ---------
 * 	1.x.0 - query language updates: "select min, avg, max from ..." (instead of "select * from ..."), 
-	query multiple metrics in the same time, multipl updates in one UDP packet, multiple queries in 
-	one TCP request
-
+	joins - query multiple metrics in the same time, etc.

@@ -92,7 +92,7 @@ exit 0
 # %{_libdir}/lib%{name}.so
 # %{_libdir}/lib%{name}.so.*
 
-%doc AUTHORS ChangeLog COPYING NEWS README.md LANGUAGE.md
+%doc AUTHORS ChangeLog COPYING NEWS README.md LANGUAGE.md examples/
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 

@@ -15,6 +15,7 @@ EXTRA_DIST = \
 	LANGUAGE.md \
 	README.md \
 	misc \
+	examples \
 	stats-rrdb.spec \
 	$(NULL)
 
