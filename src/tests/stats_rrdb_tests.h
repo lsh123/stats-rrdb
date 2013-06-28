@@ -27,10 +27,22 @@
 
 
 #define TEST_SUBTEST_END() \
-     std::cout << ((test_ok) ? "OK" : "ERROR") << std::endl;
+    ++test_cases_total_count; \
+    if(!test_ok) { \
+      ++test_cases_bad_count; \
+      std::cout << "ERROR" << std::endl; \
+    } else { \
+      std::cout << "OK" << std::endl; \
+    }
 
 #define TEST_SUBTEST_END2( msg ) \
-     std::cout << ((test_ok) ? "OK" : "ERROR") << " - " << msg << std::endl;
+    ++test_cases_total_count; \
+    if(!test_ok) { \
+      ++test_cases_bad_count; \
+      std::cout << "ERROR"  << " - " << msg << std::endl; \
+    } else { \
+      std::cout << "OK"  << " - " << msg << std::endl; \
+    }
 
 
 #define TEST_DATA( name, data ) \
@@ -41,7 +53,9 @@
 
 //
 #define TEST_CHECK( a ) \
+    ++test_checks_total_count; \
     if( !( a ) ) { \
+        ++test_checks_bad_count; \
         test_ok = false; \
         std::cerr << "TEST CHECK FAILURE:" \
           << " '" << string_truncate((#a)) << "' " \
@@ -54,7 +68,9 @@
     }
 
 #define TEST_CHECK_EQUAL( a, b ) \
+    ++test_checks_total_count; \
     if( (a) != (b) ) { \
+        ++test_checks_bad_count; \
         test_ok = false; \
         std::cerr << "TEST CHECK EQUAL FAILURE: " \
           << " '" << string_truncate((#a)) << "' " \
@@ -73,7 +89,9 @@
     }
 
 #define TEST_CHECK_NOT_EQUAL( a, b ) \
+    ++test_checks_total_count; \
     if( (a) == (b) ) { \
+        ++test_checks_bad_count; \
         test_ok = false; \
         std::cerr << "TEST CHECK NOT EQUAL FAILURE: " \
           << " '" << string_truncate((#a)) << "' " \
@@ -92,8 +110,10 @@
     }
 
 #define TEST_CHECK_THROW( expr, expected ) \
+    ++test_checks_total_count; \
     try { \
       expr ; \
+      ++test_checks_bad_count; \
       test_ok = false; \
       std::cerr << "TEST CHECK THROW FAILURE: " \
           << " '" << string_truncate((#expr)) << "' " \
@@ -103,6 +123,7 @@
     } catch(const std::exception & e) { \
         if(std::string(e.what()) != std::string(expected)) { \
            test_ok = false; \
+           ++test_checks_bad_count; \
            std::cerr << "= TEST CHECK THROW MESSAGE NOT EQUAL:" \
             << " expected = '" << string_truncate(expected) << "' " \
             << " is not equal " \
@@ -130,5 +151,11 @@ boost::shared_ptr<config> test_setup_config(const std::string & path, const t_te
 //
 typedef std::vector< std::vector<std::string> > t_test_csv_data;
 void test_parse_csv_data(const t_memory_buffer_data & data, t_test_csv_data & res);
+
+// Counters
+extern int test_cases_total_count;
+extern int test_cases_bad_count;
+extern int test_checks_total_count;
+extern int test_checks_bad_count;
 
 #endif /* STATS_RRDB_TESTS_H_ */

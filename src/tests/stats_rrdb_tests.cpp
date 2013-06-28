@@ -33,6 +33,12 @@
 #include "tests/update_tests.h"
 #include "tests/parsers_tests.h"
 
+// Counters
+int test_cases_total_count = 0;
+int test_cases_bad_count = 0;
+int test_checks_total_count = 0;
+int test_checks_bad_count = 0;
+
 boost::shared_ptr<config> test_setup_config(const std::string & path, const t_test_config_data & data)
 {
   // ensure top folder exists
@@ -155,5 +161,15 @@ int main(int argc, char ** argv)
     throw;
   }
 
-  return(0);
+  // results
+  std::cout << std::endl << std::endl;
+  std::cout << "Executed " << test_cases_total_count << " test cases (" << test_cases_bad_count << " failed)" << std::endl;
+  std::cout << "Including " << test_checks_total_count << " test checks (" << test_checks_bad_count << " failed)" << std::endl;
+  if(test_cases_bad_count == 0 && test_checks_bad_count == 0) {
+      std::cout << "Life is good!" << std::endl;
+      return(0);
+  } else {
+      std::cout << "Time to fix tests!" << std::endl;
+      return(test_cases_bad_count + test_checks_bad_count);
+  }
 }
