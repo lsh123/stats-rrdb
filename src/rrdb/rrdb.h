@@ -97,6 +97,10 @@ public:
   {
     return _tuples_cache;
   }
+  const t_retention_policy & get_default_policy() const
+  {
+    return _default_policy;
+  }
 
 private:
   void flush_to_disk_thread();
@@ -107,7 +111,7 @@ private:
 private:
   // config
   my::interval_t          _flush_interval;
-  t_retention_policy        _default_policy;
+  t_retention_policy      _default_policy;
 
   t_metrics_map           _metrics;
   spinlock                _metrics_lock;

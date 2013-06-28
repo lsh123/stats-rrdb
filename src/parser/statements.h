@@ -27,7 +27,7 @@ class statement_create
 {
 public:
   std::string      _name;
-  t_retention_policy _policy;
+  boost::optional<t_retention_policy> _policy;
 };
 
 /**

@@ -33,6 +33,9 @@ bool statement_check_metric_name(const std::string & str, bool allow_upper_case)
   return true;
 }
 
+// TODO: implement SELECT * FROM 'xxx' ;  (no BETWEEN)
+// TODO: implement SELECT min,max FROM ...
+
 // main parser
 t_statement statement_query_parse(const std::string & str)
 {

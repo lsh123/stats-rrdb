@@ -20,7 +20,7 @@
 BOOST_FUSION_ADAPT_STRUCT(
     statement_create,
     (std::string,      _name)
-    (t_retention_policy, _policy)
+    (boost::optional<t_retention_policy>, _policy)
 )
 BOOST_FUSION_ADAPT_STRUCT(
     statement_drop,
@@ -165,9 +165,12 @@ public:
      ;
 
      _statement_create %=
-        nocaselit("create") > -nocaselit("metric")
-        > _quoted_name
-        > nocaselit("keep") > _policy
+         (
+            nocaselit("create") > -nocaselit("metric")
+            > _quoted_name
+            > -(nocaselit("keep") > _policy)
+         )
+         >> boost::spirit::eps
      ;
 
     _statement_drop %=

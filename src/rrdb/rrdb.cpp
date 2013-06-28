@@ -275,7 +275,11 @@ public:
 public:
   void operator()(const statement_create & st) const
   {
-    _rrdb.create_metric(st._name, st._policy);
+    if(st._policy) {
+        _rrdb.create_metric(st._name, st._policy.get());
+    } else {
+        _rrdb.create_metric(st._name, _rrdb.get_default_policy());
+    }
   }
 
   void operator()(const statement_drop & st) const

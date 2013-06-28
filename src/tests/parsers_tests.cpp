@@ -180,35 +180,49 @@ void parsers_tests::test_statement_create(const int & n)
   vst = statement_query_parse("CREATE METRIC 'test' KEEP 3 sec for 2 days; ");
   st = boost::get<statement_create>(vst);
   TEST_CHECK_EQUAL(st._name,  "test");
-  TEST_CHECK_EQUAL(st._policy.size(), 1);
-  TEST_CHECK_EQUAL(st._policy[0]._freq,     3 * INTERVAL_SEC);
-  TEST_CHECK_EQUAL(st._policy[0]._duration, 2 * INTERVAL_DAY);
+  TEST_CHECK(st._policy);
+  TEST_CHECK_EQUAL(st._policy.get().size(), 1);
+  TEST_CHECK_EQUAL(st._policy.get()[0]._freq,     3 * INTERVAL_SEC);
+  TEST_CHECK_EQUAL(st._policy.get()[0]._duration, 2 * INTERVAL_DAY);
 
   // different quotes
   vst = statement_query_parse("CREATE METRIC \"test\" KEEP 3 sec for 2 days; ");
   st = boost::get<statement_create>(vst);
   TEST_CHECK_EQUAL(st._name,  "test");
-  TEST_CHECK_EQUAL(st._policy.size(), 1);
-  TEST_CHECK_EQUAL(st._policy[0]._freq,     3 * INTERVAL_SEC);
-  TEST_CHECK_EQUAL(st._policy[0]._duration, 2 * INTERVAL_DAY);
+  TEST_CHECK(st._policy);
+  TEST_CHECK_EQUAL(st._policy.get().size(), 1);
+  TEST_CHECK_EQUAL(st._policy.get()[0]._freq,     3 * INTERVAL_SEC);
+  TEST_CHECK_EQUAL(st._policy.get()[0]._duration, 2 * INTERVAL_DAY);
 
   // mixed case
   vst = statement_query_parse("cReate meTrIc 'test' kEEp 3 SEC fOr 2 DaYs; ");
   st = boost::get<statement_create>(vst);
   TEST_CHECK_EQUAL(st._name,  "test");
-  TEST_CHECK_EQUAL(st._policy.size(), 1);
-  TEST_CHECK_EQUAL(st._policy[0]._freq,     3 * INTERVAL_SEC);
-  TEST_CHECK_EQUAL(st._policy[0]._duration, 2 * INTERVAL_DAY);
+  TEST_CHECK(st._policy);
+  TEST_CHECK_EQUAL(st._policy.get().size(), 1);
+  TEST_CHECK_EQUAL(st._policy.get()[0]._freq,     3 * INTERVAL_SEC);
+  TEST_CHECK_EQUAL(st._policy.get()[0]._duration, 2 * INTERVAL_DAY);
 
   // no "metric"
   vst = statement_query_parse("CREATE 'test' KEEP 3 sec for 2 days; ");
   st = boost::get<statement_create>(vst);
   TEST_CHECK_EQUAL(st._name,  "test");
-  TEST_CHECK_EQUAL(st._policy.size(), 1);
-  TEST_CHECK_EQUAL(st._policy[0]._freq,     3 * INTERVAL_SEC);
-  TEST_CHECK_EQUAL(st._policy[0]._duration, 2 * INTERVAL_DAY);
+  TEST_CHECK(st._policy);
+  TEST_CHECK_EQUAL(st._policy.get().size(), 1);
+  TEST_CHECK_EQUAL(st._policy.get()[0]._freq,     3 * INTERVAL_SEC);
+  TEST_CHECK_EQUAL(st._policy.get()[0]._duration, 2 * INTERVAL_DAY);
 
-  // TODO: implement optional retention policy and test it here
+  // no "keep ..."
+  vst = statement_query_parse("CREATE METRIC 'test' ;");
+  st = boost::get<statement_create>(vst);
+  TEST_CHECK_EQUAL(st._name,  "test");
+  TEST_CHECK(!st._policy);
+
+  // no "metric" and no "keep ..."
+  vst = statement_query_parse("CREATE 'test' ;");
+  st = boost::get<statement_create>(vst);
+  TEST_CHECK_EQUAL(st._name,  "test");
+  TEST_CHECK(!st._policy);
 
   // errors
   TEST_CHECK_THROW(statement_query_parse("CREATE"), "Parser error: expecting <quoted metric name> at \"CREATE ^^^^^ \"");
@@ -318,8 +332,6 @@ void parsers_tests::test_statement_select(const int & n)
   TEST_SUBTEST_START(n, "statement SELECT FROM METRIC", false);
   t_statement vst;
   statement_select st;
-
-  // TODO: support no BETWEEN and write test for it
 
   // full
   vst = statement_query_parse("SELECT * FROM METRIC 'test' BETWEEN 0 and 123456789 GROUP BY 5 mins; ");
