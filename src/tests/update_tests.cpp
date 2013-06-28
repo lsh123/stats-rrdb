@@ -7,8 +7,12 @@
 #include "tests/update_tests.h"
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/filesystem.hpp>
 
 #include "rrdb/rrdb.h"
+#include "rrdb/rrdb_journal_file.h"
+#include "rrdb/rrdb_files_cache.h"
+#include "rrdb/rrdb_metric_tuples_cache.h"
 #include "rrdb/rrdb_metric.h"
 
 #include "common/thread_pool.h"
@@ -140,6 +144,60 @@ void update_tests::load_test(const int & n,
   this->cleanup(num_metrics);
 }
 
+void update_tests::last_block_test(const int & n)
+{
+  TEST_SUBTEST_START(n, "Test last block", false);
+  my::time_t ts = time(NULL);
+
+  // important we start clean
+  this->cleanup(1);
+
+  // create and save metric
+  char buf[1024];
+  snprintf(buf, sizeof(buf), METRIC_NAME_TEMPLATE, (my::size_t)0);
+  t_retention_policy policy = retention_policy_parse("1 sec for 5 secs, 5 secs for 1 min");
+  boost::intrusive_ptr<rrdb_metric> metric(new rrdb_metric());
+  metric->create(buf, policy);
+  my::filename_t filename = metric->get_filename();
+  std::string fullpath = _rrdb->get_files_cache()->get_full_path(filename);
+
+  // save and reset
+  metric->save_file(_rrdb->get_files_cache());
+  metric.reset();
+
+  // ok, write some tuples
+  for(my::time_t ii = 0; ii < (1 * INTERVAL_MIN) / (5 * INTERVAL_SEC) + 3; ++ii) {
+      std::cout << "Iteration " << ii << ": file size " << boost::filesystem::file_size( fullpath ) << " bytes" << std::endl;
+
+      // load metric
+      metric.reset(new rrdb_metric(filename));
+      metric->load_file(_rrdb->get_files_cache());
+
+      // update
+      metric->update(_rrdb->get_tuples_cache(), ts + ii * (5 * INTERVAL_SEC), 1.0);
+      metric->update(_rrdb->get_tuples_cache(), ts + ii * (5 * INTERVAL_SEC) + 1, 1.0);
+      TEST_CHECK_EQUAL(metric->is_dirty(), true);
+
+      // save metric
+      metric->save_dirty_blocks(_rrdb->get_files_cache(), _rrdb->get_journal_file());
+      metric.reset();
+
+      // write data to the journal file
+      _rrdb->get_journal_file()->save_journal_file();
+
+      // write data to the metric's file - we expect the metric file to already exist
+      _rrdb->get_journal_file()->apply_journal(filename);
+
+      // reset everything
+      _rrdb->get_files_cache()->clear();
+      _rrdb->get_tuples_cache()->clear();
+      _rrdb->get_journal_file()->clear();
+  }
+
+  // done
+  TEST_SUBTEST_END2("Done");
+}
+
 void update_tests::run(const std::string & path)
 {
   // setup
@@ -148,10 +206,13 @@ void update_tests::run(const std::string & path)
   test.cleanup(10);
 
   // tests
-  test.load_test(0,   1, 5, 50000);
-  test.load_test(1,   5, 5, 50000);
-  test.load_test(2, 10,  5, 50000);
-  test.load_test(3, 10, 50, 50000);
+  int n = 0;
+  test.last_block_test(n++);
+
+  test.load_test(n++,   1, 5, 50000);
+  test.load_test(n++,   5, 5, 50000);
+  test.load_test(n++, 10,  5, 50000);
+  test.load_test(n++, 10, 50, 50000);
 
   // cleanup
   test.cleanup();

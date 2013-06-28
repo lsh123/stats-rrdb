@@ -23,6 +23,8 @@ public:
   static void run(const std::string & path);
 
 private:
+  void last_block_test(const int & n);
+
   void load_test(const int & n,
       const my::size_t & num_metrics,
       const my::size_t & num_threads,

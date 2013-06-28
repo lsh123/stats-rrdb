@@ -97,6 +97,10 @@ public:
   {
     return _tuples_cache;
   }
+  const boost::shared_ptr<rrdb_journal_file> & get_journal_file() const
+  {
+    return _journal_file;
+  }
   const t_retention_policy & get_default_policy() const
   {
     return _default_policy;

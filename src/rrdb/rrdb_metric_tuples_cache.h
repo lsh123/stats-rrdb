@@ -17,6 +17,7 @@
 
 class config;
 class rrdb_files_cache;
+class rrdb_metric_block;
 class rrdb_metric_tuples_cache_impl;
 
 
