@@ -331,7 +331,6 @@ public:
   }
 
 private:
-  // TODO: can we get rid of these mutables?
   mutable rrdb & _rrdb;
   mutable t_memory_buffer & _res;
 };
