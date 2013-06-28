@@ -43,14 +43,14 @@ typedef struct t_rrdb_metric_block_header_ {
   my::size_t                _offset;            // current offset in the file
   my::size_t                _data_size;         // current size (bytes) in the file
 
-  my::interval_t            _freq;             // frequency of collections in secs
+  my::interval_t            _freq;              // frequency of collections in secs
   my::interval_t            _duration;          // for how long we store data (_freq * _count)
   rrdb_metric_block_pos_t   _count;             // number of data tuples
   rrdb_metric_block_pos_t   _pos;               // current position for circular buffer
 
   my::time_t                _pos_ts;            // current start time for this block
+  rrdb_metric_block_pos_t   _max_pos;
   boost::uint32_t           _unused2;
-  boost::uint32_t           _unused3;
 } t_rrdb_metric_block_header;
 
 
@@ -88,6 +88,11 @@ public:
 
 
 public:
+  enum {
+    Status_LastBlock = 0x0001
+  };
+
+public:
   rrdb_metric_block(
       const rrdb_metric_block_pos_t & freq = 0,
       const rrdb_metric_block_pos_t & count = 0,
@@ -100,19 +105,13 @@ public:
   {
     return _modified_tuples;
   }
-
-  // DATA STUFF
-  inline my::size_t get_offset() const {
-    return _header._offset;
+  inline bool is_last_block() const
+  {
+    return my::bitmask_check<boost::uint16_t>(_header._status, Status_LastBlock);
   }
-  inline my::size_t get_offset_to_data() const {
-    return _header._offset + sizeof(_header);
-  }
-  inline my::size_t get_data_size() const {
-    return _header._data_size;
-  }
-  inline my::size_t get_size() const {
-    return _header._data_size + sizeof(_header);
+  inline void set_last_block()
+  {
+    my::bitmask_set<boost::uint16_t>(_header._status, Status_LastBlock);
   }
 
   // BLOCK POLICY STUFF
@@ -124,6 +123,14 @@ public:
   }
   inline rrdb_metric_block_pos_t get_count() const {
     return _header._count;
+  }
+
+  // DISK LAYOUT
+  inline my::size_t get_offset() const {
+    return _header._offset;
+  }
+  inline my::size_t get_max_disk_size() const {
+    return _header._data_size + sizeof(_header);
   }
 
   // TIMESTAMPS STUFF
@@ -187,6 +194,17 @@ private:
   }
   inline rrdb_metric_block_pos_t get_prev_pos(const rrdb_metric_block_pos_t & pos) const {
     return (pos > 0) ? (pos - 1) : (_header._count - 1);
+  }
+
+  // DATA STUFF
+  inline my::size_t get_offset_to_data() const {
+    return _header._offset + sizeof(_header);
+  }
+  inline my::size_t get_data_size() const {
+    return _header._data_size;
+  }
+  inline my::size_t get_disk_data_size() const {
+    return this->is_last_block() ? (sizeof(t_rrdb_metric_tuple) * ( _header._max_pos + 1)) : _header._data_size;
   }
 
 private:

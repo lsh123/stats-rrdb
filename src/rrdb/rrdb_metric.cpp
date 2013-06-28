@@ -125,6 +125,7 @@ void rrdb_metric::create(const std::string & name, const t_retention_policy & po
   if(!statement_check_metric_name(name, false)) {
       throw exception("Invalid name '%s'", name.c_str());
   }
+  CHECK_AND_THROW(!policy.empty());
 
   // good, let's do it!
   boost::lock_guard<spinlock> guard(_lock);
@@ -148,8 +149,12 @@ void rrdb_metric::create(const std::string & name, const t_retention_policy & po
         new rrdb_metric_block(elem._freq, elem._duration / elem._freq, offset)
     );
     _blocks.push_back(block);
-    offset += block->get_size();
+    offset += block->get_max_disk_size(); // the last block might be LESS but we don't care!
   }
+
+  // mark last block
+  CHECK_AND_THROW(!_blocks.empty());
+  _blocks.back()->set_last_block();
 
   // done
   LOG(log::LEVEL_DEBUG3, "Created metric '%s'", name.c_str());

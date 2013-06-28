@@ -262,13 +262,19 @@ my::size_t rrdb_metric_block::write_block(std::ostream & os)
   LOG(log::LEVEL_DEBUG3, "RRDB writing block at offset %ld, size %ld", _header._offset, _header._data_size);
   my::size_t written_bytes(0);
 
+  // update max pos
+  if(_header._max_pos < _header._pos) {
+      _header._max_pos =_header._pos;
+  }
+  CHECK_AND_THROW(_modified_tuples->get_memory_size() >= this->get_disk_data_size());
+
   // write header
   os.write((const char*)&_header, sizeof(_header));
   written_bytes += sizeof(_header);
 
   // write data
-  os.write((const char*)_modified_tuples->get(), _modified_tuples->get_memory_size());
-  written_bytes += _modified_tuples->get_memory_size();
+  os.write((const char*)_modified_tuples->get(), this->get_disk_data_size());
+  written_bytes += this->get_disk_data_size();
 
   // modified tuples no longer needed
   _modified_tuples.reset();
@@ -298,7 +304,13 @@ void rrdb_metric_block::read_block(std::istream & is, bool skip_data)
       throw exception("Unexpected rrdb metric block duration: %u (expected %u)", _header._duration, _header._freq * _header._count);
   }
   if(_header._pos >= _header._count) {
-      throw exception("Unexpected rrdb metric block pos: %u", _header._pos);
+      throw exception("Unexpected rrdb metric block pos: %u and count: %u", _header._pos, _header._count);
+  }
+  if(_header._max_pos >= _header._count) {
+      throw exception("Unexpected rrdb metric block max pos: %u and count: %u", _header._max_pos, _header._count);
+  }
+  if(_header._max_pos > 0 && _header._pos > _header._max_pos) {
+      throw exception("Unexpected rrdb metric block pos: %u and max_pos: %u", _header._pos, _header._max_pos);
   }
   if(_header._offset != offset) {
       throw exception("Unexpected rrdb metric block offset: %lu (expected %lu)", _header._offset, offset);
@@ -310,7 +322,7 @@ void rrdb_metric_block::read_block(std::istream & is, bool skip_data)
   // skip data block - we load it async
   if(skip_data) {
       LOG(log::LEVEL_DEBUG3, "RRDB metric block data: seek %ld", _header._data_size);
-      is.seekg(_header._data_size, is.cur);
+      is.seekg(this->get_disk_data_size(), is.cur);
       _modified_tuples.reset();
   } else {
       _modified_tuples = this->read_block_data(is);
@@ -331,9 +343,13 @@ t_rrdb_metric_tuples_ptr rrdb_metric_block::read_block_data(std::istream & is) c
   CHECK_AND_THROW(the_tuples->get());
   CHECK_AND_THROW(the_tuples->get_size() == _header._count);
   CHECK_AND_THROW(the_tuples->get_memory_size() == _header._data_size);
+  CHECK_AND_THROW(the_tuples->get_memory_size() >= this->get_disk_data_size());
+  CHECK_AND_THROW(this->get_disk_data_size());
+
+  LOG(log::LEVEL_DEBUG3, "Reading %lu bytes (memory size %lu)", this->get_disk_data_size(), the_tuples->get_memory_size());
 
   // read data
-  is.read((char*)the_tuples->get(), the_tuples->get_memory_size());
+  is.read((char*)the_tuples->get(), this->get_disk_data_size());
 
   // check data
   if((*the_tuples)[_header._pos]._ts != _header._pos_ts) {
