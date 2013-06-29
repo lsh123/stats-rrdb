@@ -159,7 +159,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
         CHECK_AND_THROW(_group_by > 0);
         CHECK_AND_THROW(select._ts_begin < select._ts_end);
 
-        LOG(log::LEVEL_INFO, "Start select with group by %lu", _group_by);
+        // LOG(log::LEVEL_DEBUG3, "Start select with group by %lu", _group_by);
 
         // we want to put the "end" of the first interval at
         //
@@ -601,7 +601,7 @@ void rrdb::drop_metric(const std::string & name)
     boost::lock_guard<spinlock> guard(_metrics_lock);
     t_metrics_map::const_iterator it = _metrics.find(name_normalized);
     if(it == _metrics.end()) {
-        throw exception("The metric '%s' does not exists", name.c_str());
+        throw exception("The metric '%s' does not exist", name.c_str());
     }
 
     res = (*it).second;

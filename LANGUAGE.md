@@ -219,7 +219,7 @@ The following commands are supported:
 	value to be recorded, and &lt;timestamp&gt; is the Unix epoch timestamp. If
 	&lt;timestamp&gt; is not specified then the current server time is used.
 	
-	If the metric does not exists then it will be create using the default retention
+	If the metric does not exist then it will be create using the default retention
 	policy specified in the Stats-RRDB server config file.
 	
 	For example, the following UDP command will update metric "system.cpu.load" 
