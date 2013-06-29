@@ -110,6 +110,9 @@ public:
       const std::string & path,
       rrdb::t_metrics_map & metrics
   );
+  static void create_directories(
+      const std::string & path
+  );
   static my::filename_t construct_filename(
       const std::string & metric_name
   );

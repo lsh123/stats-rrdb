@@ -33,7 +33,7 @@ private:
   void test_select_5_sec(const int & n);
   void test_select_all_group_by(const int & n, const my::size_t & group_by, const std::string & msg);
 
-
+  void partial_interval_test(const int & n);
 
 private:
   boost::shared_ptr<rrdb> _rrdb;

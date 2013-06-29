@@ -574,6 +574,21 @@ void rrdb_metric::read_header(std::istream & is)
 }
 
 /**
+ * rrdb_metric::create_directories
+ *
+ * Creates metrics' subfolders
+ */
+void rrdb_metric::create_directories(
+    const std::string & path
+) {
+  char buf[64];
+  for(my::size_t ii = 0; ii < RRDB_METRIC_SUBFOLDERS_NUM; ++ii) {
+      snprintf(buf, sizeof(buf), "%lu", SIZE_T_CAST ii);
+      boost::filesystem::create_directories(path + buf);
+  }
+
+}
+/**
  * rrdb_metric::load_metrics
  *
  * Loads all the metrics meta-data into the memory cache.
@@ -586,13 +601,6 @@ void rrdb_metric::load_metrics(
 {
   // ensure folders exist
   boost::filesystem::create_directories(path);
-
-  // create subfolders for metrics
-  char buf[64];
-  for(my::size_t ii = 0; ii < RRDB_METRIC_SUBFOLDERS_NUM; ++ii) {
-      snprintf(buf, sizeof(buf), "%lu", SIZE_T_CAST ii);
-      boost::filesystem::create_directories(path + buf);
-  }
 
   // check all files and folders
   my::size_t count = 0;

@@ -22,7 +22,10 @@
 #include "common/log.h"
 #include "common/config.h"
 #include "common/exception.h"
+
 #include "server/server.h"
+
+#include "rrdb/rrdb_metric.h"
 
 #include "tests/stats_rrdb_tests.h"
 
@@ -96,6 +99,7 @@ int main(int argc, char ** argv)
   try {
     // init
     srand(time(NULL));
+    rrdb_metric::create_directories(path);
 
     //
     // setup log

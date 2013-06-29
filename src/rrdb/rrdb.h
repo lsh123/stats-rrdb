@@ -79,6 +79,7 @@ public:
 
   void get_metrics(const boost::optional<std::string> & like, metrics_walker & walker);
   void get_status_metrics(const boost::optional<std::string> & like, metrics_walker & walker);
+  my::size_t get_metrics_num() const;
 
   // values
   void update_metric(const std::string & name, const my::time_t & ts, const my::value_t & value);
@@ -118,7 +119,7 @@ private:
   t_retention_policy      _default_policy;
 
   t_metrics_map           _metrics;
-  spinlock                _metrics_lock;
+  mutable spinlock        _metrics_lock;
 
   boost::shared_ptr<rrdb_files_cache>         _files_cache;
   boost::shared_ptr<rrdb_metric_tuples_cache> _tuples_cache;

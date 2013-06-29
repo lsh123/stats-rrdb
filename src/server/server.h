@@ -59,8 +59,10 @@ private:
 
   boost::asio::signal_set          _exit_signals;
 
-  my::interval_t                         _status_update_interval;
+  my::interval_t                     _status_update_interval;
   boost::shared_ptr< boost::thread > _status_update_thread;
+
+  my::time_t                         _start_time;
 }; // class server
 
 #endif /* SERVER_H_ */

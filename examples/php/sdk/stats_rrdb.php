@@ -7,9 +7,6 @@
  */
 
 class StatsRRDB {
-	const Mode_Udp = "udp";
-	const Mode_Tcp = "tcp";
-
 	private $_host;
 	private $_port;
 	private $_buf_size;
@@ -37,7 +34,7 @@ class StatsRRDB {
 		if($ts === false) {
 			$ts = $_SERVER['REQUEST_TIME'];
 		}			
-		return $this->send_udp_command("u|{$metric_name}|{$value}|{$ts}");
+		$this->send_udp_command("u|{$metric_name}|{$value}|{$ts}");
 	}
 	
 	/**
@@ -85,7 +82,7 @@ class StatsRRDB {
 	/**
 	 * Queries the server status
 	 */
-	static function show_status($like = false) {
+	public function show_status($like = false) {
 		// construct query
 		$query = "show status";
 		if(!empty($like)) {
@@ -116,7 +113,7 @@ class StatsRRDB {
 		if(!empty($retention_policy)) {
 			$query .= " KEEP $retention_policy";
 		}
-	
+		
 		// execute query
 		return $this->send_tcp_command("{$query};");
 	}
@@ -131,7 +128,18 @@ class StatsRRDB {
 		// execute query
 		return $this->send_tcp_command("{$query};");
 	}
-			
+	
+	/**
+	 * Show metric policy
+	 */
+	public function show_metric_policy($name) {
+		// construct query
+		$query = "show metric policy '{$name}'";
+	
+		// execute query
+		return $this->send_tcp_command("{$query};");
+	}
+				
 	/**
 	 * Sends a TCP command
 	 */

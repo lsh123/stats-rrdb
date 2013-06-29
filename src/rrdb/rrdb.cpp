@@ -159,6 +159,8 @@ class statement_execute_visitor : public boost::static_visitor<void>
         CHECK_AND_THROW(_group_by > 0);
         CHECK_AND_THROW(select._ts_begin < select._ts_end);
 
+        LOG(log::LEVEL_INFO, "Start select with group by %lu", _group_by);
+
         // we want to put the "end" of the first interval at
         //
         //      select._ts_begin + N*_group_by >= select._ts_end
@@ -180,15 +182,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
       // rrdb::data_walker
       void append(const t_rrdb_metric_tuple & tuple, const my::interval_t & interval)
       {
-        /*
-        std::cout
-          << "Tuple: "  << tuple._ts
-          << " to: "    << tuple._ts + interval
-          << " beg: "   << _ts_beg
-          << " end: "   << _ts_end
-          << " ts: "    << _ts
-          << std::endl;
-       */
+        // LOG(log::LEVEL_DEBUG3, "cur ts: %lu, tuple ts: %lu, interval: %lu, count: %f", _ts, tuple._ts, interval, tuple._count);
 
         // while there is no overlap yet (i.e. [tuple) < [_ts_beg, _ts_end) )
         // flush tuple and move to the next one
@@ -200,14 +194,11 @@ class statement_execute_visitor : public boost::static_visitor<void>
 
         // check if tuple is newer than "group by" interval (for example from lower resolution
         // blocks stuffed in later). otherwise we will get duplicate data
-        my::time_t overlap;
-        while(tuple._ts < _ts && _select._ts_begin <= _ts_beg) {
-            // there is an overlap since tuple.b < _ts <= _ts_end && _ts_beg < tuple.e
-            if(tuple_end <= _ts) {
-                overlap = tuple_end - _ts_beg;
-            } else {
-                overlap = _ts - tuple._ts;
-            }
+        while(tuple._ts < _ts && _select._ts_begin < _ts) {
+            // there is an overlap since tuple.b < _ts <= _ts_end && _ts_beg < _ts <= tuple.e
+            my::time_t lower_bound = std::max(tuple._ts, _ts_beg);
+            my::time_t upper_bound = std::min(tuple_end, _ts);
+            my::time_t overlap = upper_bound - lower_bound;
             if(_group_by < overlap) {
                 overlap = _group_by;
             }
@@ -215,7 +206,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
             // check if tuple is "inside" the the current "group by" interval
             if(overlap >= interval) {
                 rrdb_metric_tuple_update(_cur_tuple, tuple);
-            } else {
+            } else if(overlap > 0) {
                 // calculate the contribution of the tuple based
                 // simple proportion
                 rrdb_metric_tuple_update(_cur_tuple, tuple, overlap / (double)interval);
@@ -246,7 +237,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
          // shift the interval, initially _ts is set to the _ts_end
          _ts     = new_ts_end;
          _ts_end = new_ts_end;
-         _ts_beg = new_ts_end - _group_by;
+         _ts_beg = std::max(new_ts_end - _group_by, _select._ts_begin);
 
           // reset the tuple, tuple starts at _beg of the interval
           memset(&_cur_tuple, 0, sizeof(_cur_tuple));
@@ -400,9 +391,14 @@ void rrdb::start()
   {
     LOG(log::LEVEL_INFO, "Loading metrics");
     boost::lock_guard<spinlock> guard(_metrics_lock);
+
+    rrdb_metric::create_directories(_files_cache->get_path());
     rrdb_metric::load_metrics(_files_cache, _files_cache->get_path(), _metrics);
     LOG(log::LEVEL_INFO, "Loaded metrics");
   }
+
+
+
 
   // start flush thread
   _flush_to_disk_thread.reset(new boost::thread(boost::bind(&rrdb::flush_to_disk_thread, this)));
@@ -444,9 +440,11 @@ void rrdb::update_status(const time_t & now)
 
   this->update_metric("self.blocks_cache.max_used_memory", now,   _tuples_cache->get_max_used_memory());
   this->update_metric("self.blocks_cache.used_memory", now,       _tuples_cache->get_cache_used_memory());
-  this->update_metric("self.blocks_cache.size", now,   _tuples_cache->get_cache_size());
-  this->update_metric("self.blocks_cache.hits", now,   _tuples_cache->get_cache_hits(true));
-  this->update_metric("self.blocks_cache.misses", now, _tuples_cache->get_cache_misses(true));
+  this->update_metric("self.blocks_cache.size", now,              _tuples_cache->get_cache_size());
+  this->update_metric("self.blocks_cache.hits", now,              _tuples_cache->get_cache_hits(true));
+  this->update_metric("self.blocks_cache.misses", now,            _tuples_cache->get_cache_misses(true));
+
+  this->update_metric("self.metrics.count", now, this->get_metrics_num());
 }
 
 void rrdb::flush_to_disk_thread()
@@ -518,6 +516,12 @@ void rrdb::flush_to_disk()
   _journal_file->delete_journal_file();
 
   LOG(log::LEVEL_DEBUG2, "Flushed to disk");
+}
+
+my::size_t rrdb::get_metrics_num() const
+{
+  boost::lock_guard<spinlock> guard(_metrics_lock);
+  return _metrics.size();
 }
 
 boost::intrusive_ptr<rrdb_metric> rrdb::find_metric(const std::string & name)

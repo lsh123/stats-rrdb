@@ -62,11 +62,13 @@ public:
         LOG(log::LEVEL_ERROR, "Exception executing long rrdb command: %s", e.what());
 
         res.clear();
+        _output_buffer.clear();
         res << "ERROR: " << e.what();
     } catch(...) {
         LOG(log::LEVEL_ERROR, "Unknown exception long short rrdb command");
 
         res.clear();
+        _output_buffer.clear();
         res << "ERROR: " << "unhandled exception";
     }
     res.flush();

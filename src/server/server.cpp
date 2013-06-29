@@ -16,6 +16,8 @@
 #include "common/config.h"
 #include "common/thread_pool.h"
 
+#include "parser/interval.h"
+
 #include "rrdb/rrdb.h"
 
 #include "server/server_udp.h"
@@ -23,7 +25,8 @@
 
 server::server() :
   _exit_signals(_io_service),
-  _status_update_interval(1) // 1 sec
+  _status_update_interval(1), // 1 sec
+  _start_time(time(NULL))
 {
 }
 
@@ -232,9 +235,13 @@ void server::update_status()
 {
   // TODO: add more stats (e.g. uptime)
   time_t now = time(NULL);
+
   _server_udp->update_status(now);
   _server_tcp->update_status(now);
   _rrdb->update_status(now);
+
+  _rrdb->update_metric("self.uptime.secs", now, now - _start_time);
+  _rrdb->update_metric("self.uptime.days", now, (now - _start_time) / INTERVAL_DAY);
 }
 
 void server::status_update_thread()

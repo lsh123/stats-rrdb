@@ -96,6 +96,8 @@ t_rrdb_metric_tuple * rrdb_metric_block::find_tuple(
   CHECK_AND_THROW(_header._freq > 0);
 
   const my::time_t & ts(in.get_ts());
+  // LOG(log::LEVEL_DEBUG3, "Looking for tuple in block for ts: %lu", ts);
+
   if(this->get_latest_possible_ts() <= ts) {
       // complete shift forward, notify about rollup
       // copy data here because we are going to destroy these tuples next
@@ -198,10 +200,14 @@ void rrdb_metric_block::update(
   // update our tuple
   switch(in._state) {
   case UpdateState_Value:
+    // LOG(log::LEVEL_DEBUG3, "Update block with single value: tuple ts: %lu, value ts: %lu, value: %f", tuple->_ts, in._ts, in._value);
+
     // we have single value
     rrdb_metric_tuple_update(*tuple, in._value);
     break;
   case UpdateState_Tuple:
+    // LOG(log::LEVEL_DEBUG3, "Update block with another value tuple: tuple ts: %lu, value tuple ts: %lu, value tuple count: %f", tuple->_ts, in._tuple._ts, in._tuple._count);
+
     // we have another tuple
     rrdb_metric_tuple_update(*tuple, in._tuple);
     break;
