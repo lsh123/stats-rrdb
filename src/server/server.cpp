@@ -216,16 +216,17 @@ void server::stop()
 {
   _io_service.stop();
 
-  // stop networking
-  _server_udp->stop();
-  _server_tcp->stop();
-
   // stop status update thread
   if(_status_update_thread) {
       _status_update_thread->interrupt();
       _status_update_thread->join();
       _status_update_thread.reset();
   }
+
+  // stop networking
+  _server_udp->stop();
+  _server_tcp->stop();
+
 
   // stop rrdb (should be last - we flush data)
   _rrdb->stop();
