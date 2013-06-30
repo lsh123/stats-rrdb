@@ -254,10 +254,10 @@ void query_tests::partial_interval_test(const int & n)
   // check the data row
   const std::vector<std::string> & row(parsed_data[1]);
   TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(row[0]),  start_ts);
-  // this is the key: we shifted by 5 secs thus the first 5 tuples will be for the interval
-  // that overlaps by 5 secs. Thus, it will contribute 5 * (5 sec / 10 sec) = 2.5 to the count
-  // and the total will be (15 - 5) + 2.5 = 12.5
-  TEST_CHECK_EQUAL(boost::lexical_cast<my::value_t>(row[1]), 12.5);
+  // this is the key check: we "shifted" the start ts but we should have aligned
+  // blocks by the first block so we get back exactly the count we put in
+  // w/o any partial interval adjustments
+  TEST_CHECK_EQUAL(boost::lexical_cast<my::value_t>(row[1]), end_ts - start_ts);
 
   // done
   TEST_SUBTEST_END();

@@ -146,6 +146,9 @@ public:
   inline my::time_t get_latest_possible_ts() const {
     return _header._pos_ts + _header._duration;
   }
+  inline my::time_t get_normalized_ts(const my::time_t & ts) const {
+    return ts - (ts % _header._freq);
+  }
 
   //
   // SELECT or UPDATE - main operations: should be called by the rrdb_metric only
@@ -183,10 +186,6 @@ private:
   t_rrdb_metric_tuples_ptr read_block_data(
       std::istream & is
   ) const;
-
-  inline my::time_t normalize_ts(const my::time_t & ts) const {
-    return ts - (ts % _header._freq);
-  }
 
   inline rrdb_metric_block_pos_t get_next_pos(const rrdb_metric_block_pos_t & pos) const {
     rrdb_metric_block_pos_t new_pos = pos + 1;

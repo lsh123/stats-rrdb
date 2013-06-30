@@ -201,7 +201,7 @@ void rrdb_metric::update(
   //
   rrdb_metric_block::t_update_ctx one, two;
   one._state = rrdb_metric_block::UpdateState_Value;
-  one._ts    = ts;
+  one._ts    = _blocks.front()->get_normalized_ts(ts); // we want to make sure that blocks are "aligned" by the first block
   one._value = value;
   my::size_t ii(1); // start from block 1
   BOOST_FOREACH(boost::intrusive_ptr<rrdb_metric_block> & block, _blocks) {

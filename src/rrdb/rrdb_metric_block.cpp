@@ -109,7 +109,7 @@ t_rrdb_metric_tuple * rrdb_metric_block::find_tuple(
       the_tuples->zero();
       t_rrdb_metric_tuple * tuple = the_tuples->get_at(0);
       _header._pos      = 0;
-      _header._pos_ts   = tuple->_ts = this->normalize_ts(ts);
+      _header._pos_ts   = tuple->_ts = ts;
 
       // done
       return tuple;
