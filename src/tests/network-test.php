@@ -12,6 +12,11 @@ $PORT = 9876;
 $TEST_FOLDER = "/tmp/stats-rrdb.test";
 $PID_FILE = "$TEST_FOLDER/stats-rrdb.pid";
 
+/**
+ * Test counts
+ */
+$good_tests = $bad_tests = 0;
+
 function start_server() {
 	global $ROOT_FOLDER, $TEST_FOLDER, $CONFIG_FILE, $PID_FILE;
 
@@ -41,9 +46,13 @@ function restart_server() {
 }
 
 function check_result($actual, $expected) {
+	global $good_tests, $bad_tests;
+	
 	if($actual == $expected) {
+		++$good_tests;
 		echo "MATCH: $actual\n";
 	} else {
+		++$bad_tests;
 		echo "!!!!! NO MATCH: '$actual' (expected '$expected')\n";
 	}
 }
@@ -155,7 +164,7 @@ try {
 	// select all one line
 	start_test("SELECT * FROM METRIC 'test1'");
 	$resp = $stats_rrdb->select('test1', 'all', $start_ts, $start_ts + 2*$num + 1, "0 secs");
-	check_result(count($resp), min(10 / 1, 2*$num / 1 - 1) + min(30 / 10, 2*$num / 10 - 1) +  min(10*60 / 30, 2*$num / 30 - 2) + 1); // +1 for the header row, 10  - per sec, $num / 10 - per 10 secs excluding last one
+	check_result(count($resp), min(10 / 1, 2*$num / 1 - 1) + min(30 / 10, 2*$num / 10 - 2) +  min(10*60 / 30, 2*$num / 30 - 2) + 1); // +1 for the header row, 10  - per sec, $num / 10 - per 10 secs excluding last one
 	
 	// select all 5 sec intervals
 	start_test("SELECT * FROM METRIC 'test1'  GROUP BY 5 sec");
@@ -208,9 +217,17 @@ try {
 	check_result(count($resp), 3); // this will fail often
 			
 } catch(Exception $e) {
+	// didn't expect this.... 
+	++$bad_tests;
 	echo "Exception: " . $e->getMessage() . "\n";
 }
 
 stop_server();
+
+// done, report results and exit with the appropriate error code
+echo "\n\n==========================================\n";
+echo "Executed {$good_tests} succesfully and {$bad_tests} failed\n";
+
+exit($bad_tests);
 
 

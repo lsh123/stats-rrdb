@@ -46,6 +46,7 @@ EXTRA_DIST = \
 	tests/query_tests.h \
 	tests/update_tests.h \
 	tests/stats_rrdb_tests.h \
+	tests/network-test.php \
 	$(NULL)
 
 
@@ -150,3 +151,10 @@ stats_rrdb_tests_LDADD= \
 	libstats-rrdb.la \
 	$(NULL)
 
+
+#
+# Extra rules
+#
+check: stats-rrdb stats-rrdb-tests 
+	./stats-rrdb-tests
+	php ./tests/network-test.php
