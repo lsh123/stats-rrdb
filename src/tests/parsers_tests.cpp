@@ -5,12 +5,16 @@
  *      Author: aleksey
  */
 
+#include <boost/foreach.hpp>
+
 #include "tests/parsers_tests.h"
 
 #include "parser/interval.h"
 #include "parser/retention_policy.h"
 #include "parser/memory_size.h"
 #include "parser/statements.h"
+
+#include "rrdb/rrdb_metric_tuple.h"
 
 #include "tests/stats_rrdb_tests.h"
 
@@ -337,6 +341,7 @@ void parsers_tests::test_statement_select(const int & n)
   vst = statement_query_parse("SELECT * FROM METRIC 'test' BETWEEN 0 and 123456789 GROUP BY 5 mins; ");
   st = boost::get<statement_select>(vst);
   TEST_CHECK_EQUAL(st._result.size(),  1);
+  TEST_CHECK(st._result[0] == &rrdb_metric_tuple_write_all);
   TEST_CHECK_EQUAL(st._name,           "test");
   TEST_CHECK_EQUAL(st._ts_begin,        0);
   TEST_CHECK_EQUAL(st._ts_end,          123456789);
@@ -347,6 +352,7 @@ void parsers_tests::test_statement_select(const int & n)
   vst = statement_query_parse("selEct * frOm metrIc 'test' beTWeen 0 aNd 123456789 grOUp By 5 miNs; ");
   st = boost::get<statement_select>(vst);
   TEST_CHECK_EQUAL(st._result.size(),  1);
+  TEST_CHECK(st._result[0] == &rrdb_metric_tuple_write_all);
   TEST_CHECK_EQUAL(st._name,           "test");
   TEST_CHECK_EQUAL(st._ts_begin,        0);
   TEST_CHECK_EQUAL(st._ts_end,          123456789);
@@ -357,6 +363,7 @@ void parsers_tests::test_statement_select(const int & n)
   vst = statement_query_parse("SELECT * FROM 'test' BETWEEN 0 and 123456789 GROUP BY 5 mins; ");
   st = boost::get<statement_select>(vst);
   TEST_CHECK_EQUAL(st._result.size(),  1);
+  TEST_CHECK(st._result[0] == &rrdb_metric_tuple_write_all);
   TEST_CHECK_EQUAL(st._name,           "test");
   TEST_CHECK_EQUAL(st._ts_begin,        0);
   TEST_CHECK_EQUAL(st._ts_end,          123456789);
@@ -367,6 +374,7 @@ void parsers_tests::test_statement_select(const int & n)
   vst = statement_query_parse("SELECT * FROM METRIC 'test' BETWEEN 0 and 123456789 ; ");
   st = boost::get<statement_select>(vst);
   TEST_CHECK_EQUAL(st._result.size(),  1);
+  TEST_CHECK(st._result[0] == &rrdb_metric_tuple_write_all);
   TEST_CHECK_EQUAL(st._name,           "test");
   TEST_CHECK_EQUAL(st._ts_begin,        0);
   TEST_CHECK_EQUAL(st._ts_end,          123456789);
@@ -376,10 +384,50 @@ void parsers_tests::test_statement_select(const int & n)
   vst = statement_query_parse("SELECT * FROM 'test' BETWEEN 0 and 123456789; ");
   st = boost::get<statement_select>(vst);
   TEST_CHECK_EQUAL(st._result.size(),  1);
+  TEST_CHECK(st._result[0] == &rrdb_metric_tuple_write_all);
   TEST_CHECK_EQUAL(st._name,           "test");
   TEST_CHECK_EQUAL(st._ts_begin,        0);
   TEST_CHECK_EQUAL(st._ts_end,          123456789);
   TEST_CHECK(!st._group_by);
+
+  // one field
+  vst = statement_query_parse("SELECT min FROM METRIC 'test' BETWEEN 0 and 123456789 GROUP BY 5 mins; ");
+  st = boost::get<statement_select>(vst);
+  TEST_CHECK_EQUAL(st._result.size(),  1);
+  TEST_CHECK(st._result[0] == &rrdb_metric_tuple_write_min);
+  TEST_CHECK_EQUAL(st._name,           "test");
+  TEST_CHECK_EQUAL(st._ts_begin,        0);
+  TEST_CHECK_EQUAL(st._ts_end,          123456789);
+  TEST_CHECK(st._group_by);
+  TEST_CHECK_EQUAL(st._group_by.get(),  5 * INTERVAL_MIN);
+
+  // two fields
+  vst = statement_query_parse("SELECT min, max FROM METRIC 'test' BETWEEN 0 and 123456789 GROUP BY 5 mins; ");
+  st = boost::get<statement_select>(vst);
+  TEST_CHECK_EQUAL(st._result.size(),  2);
+  TEST_CHECK(st._result[0] == &rrdb_metric_tuple_write_min);
+  TEST_CHECK(st._result[1] == &rrdb_metric_tuple_write_max);
+  TEST_CHECK_EQUAL(st._name,           "test");
+  TEST_CHECK_EQUAL(st._ts_begin,        0);
+  TEST_CHECK_EQUAL(st._ts_end,          123456789);
+  TEST_CHECK(st._group_by);
+  TEST_CHECK_EQUAL(st._group_by.get(),  5 * INTERVAL_MIN);
+
+  // many fields
+  vst = statement_query_parse("SELECT min, max, count, sum, avg, stddev FROM METRIC 'test' BETWEEN 0 and 123456789 GROUP BY 5 mins; ");
+  st = boost::get<statement_select>(vst);
+  TEST_CHECK_EQUAL(st._result.size(),  6);
+  TEST_CHECK(st._result[0] == &rrdb_metric_tuple_write_min);
+  TEST_CHECK(st._result[1] == &rrdb_metric_tuple_write_max);
+  TEST_CHECK(st._result[2] == &rrdb_metric_tuple_write_count);
+  TEST_CHECK(st._result[3] == &rrdb_metric_tuple_write_sum);
+  TEST_CHECK(st._result[4] == &rrdb_metric_tuple_write_avg);
+  TEST_CHECK(st._result[5] == &rrdb_metric_tuple_write_stddev);
+  TEST_CHECK_EQUAL(st._name,           "test");
+  TEST_CHECK_EQUAL(st._ts_begin,        0);
+  TEST_CHECK_EQUAL(st._ts_end,          123456789);
+  TEST_CHECK(st._group_by);
+  TEST_CHECK_EQUAL(st._group_by.get(),  5 * INTERVAL_MIN);
 
   // errors
   TEST_CHECK_THROW(statement_query_parse("SELECT"), "Parser error: expecting <sequence><select field><expect>\",\"<select field> at the end");

@@ -299,6 +299,9 @@ void query_tests::run(const std::string & path)
   test.test_select_all_group_by(ii++, 24*60*60, "select all group by 1 day");
   test.test_select_all_group_by(ii++, 365*24*60*60, "select all group by 1 year");
 
+  // TODO: tests for "SELECT min,max" (i.e. not "select *")
+
+
   // need new metric
   test.cleanup();
   test.partial_interval_test(ii++);

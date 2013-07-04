@@ -110,8 +110,11 @@ private:
 // and the actual thing we are going to use
 typedef boost::intrusive_ptr< t_rrdb_metric_tuples > t_rrdb_metric_tuples_ptr;
 
-// this is how we calculate results
-typedef boost::function< void (t_rrdb_metric_tuple const * tuple, t_memory_buffer & res) > t_tuple_field_extractor;
+//
+// this is how we calculate query results - no boost::function<> here to make sure
+// it is fast (we will make calls to extractors a LOT)
+//
+typedef void (*t_tuple_field_extractor)(t_rrdb_metric_tuple const * tuple, t_memory_buffer & res);
 typedef std::vector<t_tuple_field_extractor> t_tuple_expr_list;
 
 // helper functions for updating tuple values
