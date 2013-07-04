@@ -125,7 +125,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
       // but do we want this tuple? we might have lower resolution data in subsequent
       // blocks so we just use our last_ts to figure it out
       if(_select._ts_begin <= tuple._ts && tuple._ts < _last_ts && tuple._count > 0) {
-        rrdb_metric_tuple_write(tuple, _res);
+        rrdb_metric_tuple_write_tuple(_select._result, tuple, _res);
         _last_ts = tuple._ts;
       }
     }
@@ -227,7 +227,8 @@ class statement_execute_visitor : public boost::static_visitor<void>
       virtual void flush()
       {
         if(_cur_tuple._count > 0) {
-            rrdb_metric_tuple_write(_cur_tuple, _res);
+            rrdb_metric_tuple_write_tuple(_select._result, _cur_tuple, _res);
+            _res << std::endl;
         }
       }
 
@@ -286,7 +287,7 @@ public:
   void operator()(const statement_select & st) const
   {
     // write header
-    rrdb_metric_tuple_write_header(_res);
+    rrdb_metric_tuple_write_header(st._result, _res);
 
     if(st._ts_begin < st._ts_end) {
       if(st._group_by && (*st._group_by)) {
@@ -394,11 +395,7 @@ void rrdb::start()
 
     rrdb_metric::create_directories(_files_cache->get_path());
     rrdb_metric::load_metrics(_files_cache, _files_cache->get_path(), _metrics);
-    LOG(log::LEVEL_INFO, "Loaded metrics");
   }
-
-
-
 
   // start flush thread
   _flush_to_disk_thread.reset(new boost::thread(boost::bind(&rrdb::flush_to_disk_thread, this)));

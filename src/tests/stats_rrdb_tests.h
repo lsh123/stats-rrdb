@@ -53,92 +53,116 @@
 
 //
 #define TEST_CHECK( a ) \
-    ++test_checks_total_count; \
-    if( !( a ) ) { \
+    try { \
+        ++test_checks_total_count; \
+        if( !( a ) ) { \
+            ++test_checks_bad_count; \
+            test_ok = false; \
+            std::cerr << "TEST CHECK FAILURE:" \
+              << " '" << string_truncate((#a)) << "' " \
+              << " AT " << __FILE__ << ":" << __LINE__ \
+              << std::endl; \
+        } else if(test_verbose) { \
+              std::cerr << "= TEST OK:" \
+                << " '" << string_truncate((#a)) << "' " \
+                << std::endl; \
+        } \
+    } catch(const std::exception & e) { \
         ++test_checks_bad_count; \
-        test_ok = false; \
-        std::cerr << "TEST CHECK FAILURE:" \
-          << " '" << string_truncate((#a)) << "' " \
-          << " AT " << __FILE__ << ":" << __LINE__ \
-          << std::endl; \
-    } else if(test_verbose) { \
-          std::cerr << "= TEST OK:" \
-            << " '" << string_truncate((#a)) << "' " \
-            << std::endl; \
+        std::cerr << "TEST CHECK EXCEPTION: " \
+                    << " '" << string_truncate(e.what()) << "' " \
+                    << " AT " << __FILE__ << ":" << __LINE__ \
+                    << std::endl; \
     }
 
 #define TEST_CHECK_EQUAL( a, b ) \
-    ++test_checks_total_count; \
-    if( (a) != (b) ) { \
-        ++test_checks_bad_count; \
-        test_ok = false; \
-        std::cerr << "TEST CHECK EQUAL FAILURE: " \
-          << " '" << string_truncate((#a)) << "' " \
-          << " = " <<  (a)  \
-          << " IS NOT EQUAL " \
-          << " '" << string_truncate((#b)) << "' " \
-          << " = " <<  (b) \
-          << " AT " << __FILE__ << ":" << __LINE__ \
-          << std::endl; \
-    } else if(test_verbose) { \
-        std::cerr << "= TEST CHECK EQUAL:" \
-          << " '" << string_truncate((#a)) << "' " \
-          << " is equal " \
-          << " '" << string_truncate((#b)) << "' " \
-          << std::endl; \
-    }
+    try { \
+        ++test_checks_total_count; \
+        if( (a) != (b) ) { \
+            ++test_checks_bad_count; \
+            test_ok = false; \
+            std::cerr << "TEST CHECK EQUAL FAILURE: " \
+              << " '" << string_truncate((#a)) << "' " \
+              << " = " <<  (a)  \
+              << " IS NOT EQUAL " \
+              << " '" << string_truncate((#b)) << "' " \
+              << " = " <<  (b) \
+              << " AT " << __FILE__ << ":" << __LINE__ \
+              << std::endl; \
+        } else if(test_verbose) { \
+            std::cerr << "= TEST CHECK EQUAL:" \
+              << " '" << string_truncate((#a)) << "' " \
+              << " is equal " \
+              << " '" << string_truncate((#b)) << "' " \
+              << std::endl; \
+        } \
+  } catch(const std::exception & e) { \
+      ++test_checks_bad_count; \
+      std::cerr << "TEST CHECK EQUAL EXCEPTION: " \
+                  << " '" << string_truncate(e.what()) << "' " \
+                  << " AT " << __FILE__ << ":" << __LINE__ \
+                  << std::endl; \
+  }
 
 #define TEST_CHECK_NOT_EQUAL( a, b ) \
-    ++test_checks_total_count; \
-    if( (a) == (b) ) { \
-        ++test_checks_bad_count; \
-        test_ok = false; \
-        std::cerr << "TEST CHECK NOT EQUAL FAILURE: " \
-          << " '" << string_truncate((#a)) << "' " \
-          << " = " <<  (a) \
-          << " IS EQUAL " \
-          << " '" << string_truncate((#b)) << "' " \
-          << " = " <<  (b) \
-          << " AT " << __FILE__ << ":" << __LINE__ \
-          << std::endl; \
-    } else if(test_verbose) { \
-        std::cerr << "= TEST CHECK NOT EQUAL:" \
-          << " '" << string_truncate((#a)) << "' " \
-          << " is not equal " \
-          << " '" << string_truncate((#b)) << "' " \
-          << std::endl; \
-    }
+    try { \
+        ++test_checks_total_count; \
+        if( (a) == (b) ) { \
+            ++test_checks_bad_count; \
+            test_ok = false; \
+            std::cerr << "TEST CHECK NOT EQUAL FAILURE: " \
+              << " '" << string_truncate((#a)) << "' " \
+              << " = " <<  (a) \
+              << " IS EQUAL " \
+              << " '" << string_truncate((#b)) << "' " \
+              << " = " <<  (b) \
+              << " AT " << __FILE__ << ":" << __LINE__ \
+              << std::endl; \
+        } else if(test_verbose) { \
+            std::cerr << "= TEST CHECK NOT EQUAL:" \
+              << " '" << string_truncate((#a)) << "' " \
+              << " is not equal " \
+              << " '" << string_truncate((#b)) << "' " \
+              << std::endl; \
+        } \
+  } catch(const std::exception & e) { \
+      ++test_checks_bad_count; \
+      std::cerr << "TEST CHECK NOT EQUAL EXCEPTION: " \
+                  << " '" << string_truncate(e.what()) << "' " \
+                  << " AT " << __FILE__ << ":" << __LINE__ \
+                  << std::endl; \
+  }
 
 #define TEST_CHECK_THROW( expr, expected ) \
     ++test_checks_total_count; \
     try { \
-      expr ; \
-      ++test_checks_bad_count; \
-      test_ok = false; \
-      std::cerr << "TEST CHECK THROW FAILURE: " \
-          << " '" << string_truncate((#expr)) << "' " \
-          << " DID NOT THROW " \
-          << " AT "<< __FILE__ << ":" << __LINE__ \
-          << std::endl; \
+        expr ; \
+        ++test_checks_bad_count; \
+        test_ok = false; \
+        std::cerr << "TEST CHECK THROW FAILURE: " \
+            << " '" << string_truncate((#expr)) << "' " \
+            << " DID NOT THROW " \
+            << " AT "<< __FILE__ << ":" << __LINE__ \
+            << std::endl; \
     } catch(const std::exception & e) { \
         if(std::string(e.what()) != std::string(expected)) { \
            test_ok = false; \
            ++test_checks_bad_count; \
            std::cerr << "= TEST CHECK THROW MESSAGE NOT EQUAL:" \
-            << " expected = '" << string_truncate(expected) << "' " \
-            << " is not equal " \
-            << " actual = '" << string_truncate(e.what()) << "' " \
-            << " AT "<< __FILE__ << ":" << __LINE__ \
-            << std::endl; \
+              << " expected = '" << string_truncate(expected) << "' " \
+              << " is not equal " \
+              << " actual = '" << string_truncate(e.what()) << "' " \
+              << " AT "<< __FILE__ << ":" << __LINE__ \
+              << std::endl; \
         } else if(test_verbose) { \
-          std::cerr << "= TEST CHECK THROW MESSAGE EQUAL:" \
-            << " '" << string_truncate(expected) << "' " \
-            << std::endl; \
+            std::cerr << "= TEST CHECK THROW MESSAGE EQUAL:" \
+              << " '" << string_truncate(expected) << "' " \
+              << std::endl; \
         } \
     }
 
 //
-std::string string_truncate(const std::string & str, const my::size_t & num = 80);
+std::string string_truncate(const std::string & str, const my::size_t & num = 100);
 
 //
 // Config helpers

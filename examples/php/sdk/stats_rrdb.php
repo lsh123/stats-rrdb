@@ -40,13 +40,13 @@ class StatsRRDB {
 	/**
 	 * Queries data from metric
 	 */
-	public function select($metric_name, $column, $from_ts, $to_ts, $group_by = false) {
+	public function select($metric_name, $columns, $from_ts, $to_ts, $group_by = false) {
 		// construct query
-		$query = "select * from '{$metric_name}' between {$from_ts} and {$to_ts}";
+		$query = "select {$columns} from '{$metric_name}' between {$from_ts} and {$to_ts}";
 		if(!empty($group_by)) {
 			$query .= " group by {$group_by} ";
 		}
-	
+		
 		// execute query
 		$res = $this->send_tcp_command("{$query};");
 		if(!$res) {
@@ -54,7 +54,7 @@ class StatsRRDB {
 		}
 	
 		// process results: just parse CSV and extract the column
-		return self::parse_csv($res, $column);
+		return self::parse_csv($res);
 	}
 	
 	/**
@@ -202,7 +202,7 @@ class StatsRRDB {
 	/**
 	 * Parses CSV data and extracts a specified column (if needed)
 	 */
-	private static function parse_csv(&$string, $column = 'all') {
+	private static function parse_csv(&$string) {
 		// break into lines
 		$lines = preg_split("/\n/", $string);
 		if(empty($lines)) {
@@ -211,18 +211,13 @@ class StatsRRDB {
 		unset($string);
 		
 		// and then break each line into pieces
-		$column_pos = false;
-		$ret = array();
 		$ii = 0;
+		$ret = array();
 		foreach($lines as $line) {
 			$data = preg_split('/,/', $line, -1, PREG_SPLIT_NO_EMPTY);
 			if(empty($data)) continue;
-		
-			// TODO: move column select into the rrdb server
-			if($ii == 0 && $column != 'all') {
-				$column_pos = array_search ($column, $data) ;
-			}
-			$ret[] = ($column_pos !== false) ? array($data[0], $data[$column_pos]) : $data;
+
+			$ret[] = $data;
 			++$ii;
 		}
 		

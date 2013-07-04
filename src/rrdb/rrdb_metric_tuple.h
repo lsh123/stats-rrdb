@@ -9,6 +9,8 @@
 #define RRDB_METRIC_TUPLE_H_
 
 #include <boost/cstdint.hpp>
+#include <boost/function.hpp>
+
 
 #include "common/types.h"
 #include "common/exception.h"
@@ -108,11 +110,37 @@ private:
 // and the actual thing we are going to use
 typedef boost::intrusive_ptr< t_rrdb_metric_tuples > t_rrdb_metric_tuples_ptr;
 
+// this is how we calculate results
+typedef boost::function< void (t_rrdb_metric_tuple const * tuple, t_memory_buffer & res) > t_tuple_field_extractor;
+typedef std::vector<t_tuple_field_extractor> t_tuple_expr_list;
+
+// helper functions for updating tuple values
 void rrdb_metric_tuple_update(t_rrdb_metric_tuple & tuple, const my::value_t & value);
 void rrdb_metric_tuple_update(t_rrdb_metric_tuple & tuple, const t_rrdb_metric_tuple & other);
 void rrdb_metric_tuple_update(t_rrdb_metric_tuple & tuple, const t_rrdb_metric_tuple & other, const my::value_t & factor);
 
-void rrdb_metric_tuple_write_header(t_memory_buffer & res);
-void rrdb_metric_tuple_write(const t_rrdb_metric_tuple & tuple, t_memory_buffer & res);
+// helper function for writing tuple out
+void rrdb_metric_tuple_write_header(
+    const t_tuple_expr_list & expr_list,
+    t_memory_buffer & res
+);
+void rrdb_metric_tuple_write_tuple(
+    const t_tuple_expr_list & expr_list,
+    const t_rrdb_metric_tuple & tuple,
+    t_memory_buffer & res
+);
+
+
+//
+// these functions must match t_tuple_field_extractor declaration
+//
+void rrdb_metric_tuple_write_all(t_rrdb_metric_tuple const * tuple, t_memory_buffer & res);
+void rrdb_metric_tuple_write_min(t_rrdb_metric_tuple const * tuple, t_memory_buffer & res);
+void rrdb_metric_tuple_write_max(t_rrdb_metric_tuple const * tuple, t_memory_buffer & res);
+void rrdb_metric_tuple_write_avg(t_rrdb_metric_tuple const * tuple, t_memory_buffer & res);
+void rrdb_metric_tuple_write_sum(t_rrdb_metric_tuple const * tuple, t_memory_buffer & res);
+void rrdb_metric_tuple_write_count(t_rrdb_metric_tuple const * tuple, t_memory_buffer & res);
+void rrdb_metric_tuple_write_stddev(t_rrdb_metric_tuple const * tuple, t_memory_buffer & res);
+
 
 #endif /* RRDB_METRIC_TUPLE_H_ */

@@ -14,8 +14,10 @@
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 
-#include "interval.h"
-#include "retention_policy.h"
+#include "rrdb/rrdb_metric_tuple.h"
+
+#include "parser/interval.h"
+#include "parser/retention_policy.h"
 
 /**
  * CREATE statement string representation:
@@ -61,12 +63,13 @@ public:
 /**
  * SELECT statement string representation:
  *
- * SELECT * FROM [METRIC] "<name>" BETWEEN <timestamp1> AND <timestamp2> [ GROUP BY <interval> ];
+ * SELECT *| (min,max, ..) FROM [METRIC] "<name>" BETWEEN <timestamp1> AND <timestamp2> [ GROUP BY <interval> ];
  *
  */
 class statement_select
 {
 public:
+  t_tuple_expr_list               _result;
   std::string                     _name;
   my::time_t                      _ts_begin;
   my::time_t                      _ts_end;

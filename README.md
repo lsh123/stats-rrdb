@@ -48,5 +48,4 @@ For installation instructions see [Install](INSTALL.md).
 
 Roadmap
 ---------
-* 	1.x.0 - query language updates: "select min, avg, max from ..." (instead of "select * from ..."), 
-	joins - query multiple metrics in the same time, etc.
+* 	1.x.0 - query language joins to query multiple metrics in the same time

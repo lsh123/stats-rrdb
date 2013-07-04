@@ -163,7 +163,10 @@ allow user to create/view/delete metrics, update metrics with data, and query me
 * 	The SELECT * FROM METRIC statement returns the stored data between two 
 	timestamps, aggregated with the given precision:
 
-		SELECT * FROM [METRIC] "<name>" BETWEEN <timestamp1> AND <timestamp2> GROUP BY <interval> ;
+		SELECT <select-expr> FROM [METRIC] "<name>" BETWEEN <timestamp1> AND <timestamp2> GROUP BY <interval> ;
+	
+	where <select-expr> is either '*' (select everything) or a comma separated list
+	of the following columns: min, max, sum, count, avg, stddev
 
 	The data is returned in CSV format with a header line describing the returned 
 	columns and the most recent data first. If the metric with the given name does
@@ -182,6 +185,19 @@ allow user to create/view/delete metrics, update metrics with data, and query me
 		1371278990,1000,1436,1.436,0.35,0.4,1.9\n
 		....
 
+	For another example, the following SELECT FROM METRIC statement will return only 
+	'min' and 'max' values for metric "system.cpu.load" between 1371270000 (Sat, 15 Jun 
+	2013 04:20:00 GMT) and 1371279000 (Sat, 15 Jun 2013 06:50:00 GMT) aggregated in 10 
+	secs "buckets":
+
+		SELECT min,max FROM METRIC "system.cpu.load" BETWEEN 1371270000 AND 1371279000 GROUP BY 10 secs ;
+
+	The returned CSV data will look as follows:
+
+		ts,min,max\n
+		1371279000,0.1,1.6\n
+		1371278990,0.4,1.9\n
+		....
 
 Update Language (UDP connections)
 ---------

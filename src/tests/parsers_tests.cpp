@@ -336,6 +336,7 @@ void parsers_tests::test_statement_select(const int & n)
   // full
   vst = statement_query_parse("SELECT * FROM METRIC 'test' BETWEEN 0 and 123456789 GROUP BY 5 mins; ");
   st = boost::get<statement_select>(vst);
+  TEST_CHECK_EQUAL(st._result.size(),  1);
   TEST_CHECK_EQUAL(st._name,           "test");
   TEST_CHECK_EQUAL(st._ts_begin,        0);
   TEST_CHECK_EQUAL(st._ts_end,          123456789);
@@ -345,6 +346,7 @@ void parsers_tests::test_statement_select(const int & n)
   // mixed case
   vst = statement_query_parse("selEct * frOm metrIc 'test' beTWeen 0 aNd 123456789 grOUp By 5 miNs; ");
   st = boost::get<statement_select>(vst);
+  TEST_CHECK_EQUAL(st._result.size(),  1);
   TEST_CHECK_EQUAL(st._name,           "test");
   TEST_CHECK_EQUAL(st._ts_begin,        0);
   TEST_CHECK_EQUAL(st._ts_end,          123456789);
@@ -354,6 +356,7 @@ void parsers_tests::test_statement_select(const int & n)
   // no "metric"
   vst = statement_query_parse("SELECT * FROM 'test' BETWEEN 0 and 123456789 GROUP BY 5 mins; ");
   st = boost::get<statement_select>(vst);
+  TEST_CHECK_EQUAL(st._result.size(),  1);
   TEST_CHECK_EQUAL(st._name,           "test");
   TEST_CHECK_EQUAL(st._ts_begin,        0);
   TEST_CHECK_EQUAL(st._ts_end,          123456789);
@@ -363,6 +366,7 @@ void parsers_tests::test_statement_select(const int & n)
   // no GROUP BY
   vst = statement_query_parse("SELECT * FROM METRIC 'test' BETWEEN 0 and 123456789 ; ");
   st = boost::get<statement_select>(vst);
+  TEST_CHECK_EQUAL(st._result.size(),  1);
   TEST_CHECK_EQUAL(st._name,           "test");
   TEST_CHECK_EQUAL(st._ts_begin,        0);
   TEST_CHECK_EQUAL(st._ts_end,          123456789);
@@ -371,14 +375,15 @@ void parsers_tests::test_statement_select(const int & n)
   // no "metric" and no GROUP BY
   vst = statement_query_parse("SELECT * FROM 'test' BETWEEN 0 and 123456789; ");
   st = boost::get<statement_select>(vst);
+  TEST_CHECK_EQUAL(st._result.size(),  1);
   TEST_CHECK_EQUAL(st._name,           "test");
   TEST_CHECK_EQUAL(st._ts_begin,        0);
   TEST_CHECK_EQUAL(st._ts_end,          123456789);
   TEST_CHECK(!st._group_by);
 
   // errors
-  TEST_CHECK_THROW(statement_query_parse("SELECT"), "Parser error: expecting \"*\" at \"SELECT ^^^^^ \"");
-  TEST_CHECK_THROW(statement_query_parse("SELECT FROM"), "Parser error: expecting \"*\" at \"  ^^^^^ FROM\"");
+  TEST_CHECK_THROW(statement_query_parse("SELECT"), "Parser error: expecting <sequence><select field><expect>\",\"<select field> at the end");
+  TEST_CHECK_THROW(statement_query_parse("SELECT FROM"), "Parser error: expecting <sequence><select field><expect>\",\"<select field> at \"  ^^^^^ FROM\"");
   TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test'"), "Parser error: expecting \"between\" at \" 'test' ^^^^^ \"");
   TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test' BETWEEN"), "Parser error: expecting <unsigned-integer> at \" BETWEEN ^^^^^ \"");
   TEST_CHECK_THROW(statement_query_parse("SELECT * FROM 'test' BETWEEN 0"), "Parser error: expecting \"and\" at \" 0 ^^^^^ \"");

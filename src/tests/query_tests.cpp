@@ -187,7 +187,7 @@ void query_tests::test_select_all_group_by(const int & n, const my::size_t & gro
       if(ii == 1 && _count % group_by > 0) {
           row_count = _count % group_by;
       }
-      // std::cerr << "ROW: " << ii << " TS: " << ts << " expected: " << row_count << std::endl;
+      // std::cerr << "ROW: " << ii << " " << row[0] << " " << row[1] << std::endl;
 
       TEST_CHECK_EQUAL(boost::lexical_cast<my::time_t>(row[0]),  ts); // ts
       TEST_CHECK_EQUAL(boost::lexical_cast<my::value_t>(row[1]), row_count);  // count = "group_by"

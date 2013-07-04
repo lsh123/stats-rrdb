@@ -8,6 +8,8 @@
 #ifndef STATEMENTS_GRAMMAR_H_
 #define STATEMENTS_GRAMMAR_H_
 
+
+
 #include "grammar.h"
 #include "interval.h"
 #include "common/exception.h"
@@ -34,9 +36,10 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 BOOST_FUSION_ADAPT_STRUCT(
     statement_select,
-    (std::string,      _name)
-    (my::time_t,   _ts_begin)
-    (my::time_t,   _ts_end)
+    (t_tuple_expr_list, _result)
+    (std::string,     _name)
+    (my::time_t,      _ts_begin)
+    (my::time_t,      _ts_end)
     (boost::optional<my::interval_t>,     _group_by)
 )
 BOOST_FUSION_ADAPT_STRUCT(
@@ -52,7 +55,9 @@ BOOST_FUSION_ADAPT_STRUCT(
     (boost::optional<std::string>,      _like)
 )
 
-
+//
+// Name
+//
 template<typename Iterator>
 class metric_name_grammar:
     public qi::grammar < Iterator, std::string(), ascii::space_type >
@@ -84,6 +89,9 @@ public:
   }
 }; // metric_name_grammar
 
+//
+// "Quoted" name
+//
 template<typename Iterator>
 class metric_quoted_name_grammar:
     public qi::grammar < Iterator, std::string(), ascii::space_type >
@@ -115,7 +123,51 @@ public:
   }
 }; // metric_quoted_name_grammar
 
+//
+// SELECT field (e.g. "*" - everything or "min", "max", etc.
+//
+template<typename Iterator>
+class select_result_grammar:
+    public qi::grammar < Iterator, t_tuple_expr_list(), ascii::space_type >
+{
+  typedef qi::grammar < Iterator, t_tuple_expr_list(), ascii::space_type > base_type;
 
+private:
+  qi::rule < Iterator, t_tuple_field_extractor(), ascii::space_type >      _field;
+  qi::rule < Iterator, t_tuple_expr_list(), ascii::space_type >     _start;
+
+public:
+  select_result_grammar():
+    base_type(_start, "select result")
+  {
+    // rule definitions
+    _field =
+        (nocaselit("min")    [ qi::_val = &rrdb_metric_tuple_write_min ]) |
+        (nocaselit("max")    [ qi::_val = &rrdb_metric_tuple_write_max ]) |
+        (nocaselit("sum")    [ qi::_val = &rrdb_metric_tuple_write_sum ]) |
+        (nocaselit("avg")    [ qi::_val = &rrdb_metric_tuple_write_avg ]) |
+        (nocaselit("count")  [ qi::_val = &rrdb_metric_tuple_write_count ]) |
+        (nocaselit("stddev") [ qi::_val = &rrdb_metric_tuple_write_stddev ]) |
+        (nocaselit("*")      [ qi::_val = &rrdb_metric_tuple_write_all ])
+    ;
+    _start %= qi::eps > _field >> *(nocaselit(",") > _field);
+
+    // rule names
+    _field.name("select field");
+    _start.name("select result");
+
+    // errors
+    qi::on_error<qi::fail> (
+        _start,
+        grammar_error_handler(qi::_1, qi::_2, qi::_3, qi::_4)
+    );
+  }
+}; // select_result_grammar
+
+
+//
+// Main - statements
+//
 template<typename Iterator>
 class statement_grammar:
     public qi::grammar < Iterator, t_statement(), ascii::space_type >
@@ -127,6 +179,7 @@ private:
   metric_quoted_name_grammar< Iterator >                       _quoted_like;
   t_retention_policy_grammar<Iterator>                         _policy;
   interval_grammar< Iterator >                                 _interval;
+  select_result_grammar< Iterator >                            _select_result;
 
   qi::rule < Iterator, statement_create(),       ascii::space_type > _statement_create;
   qi::rule < Iterator, statement_drop(),         ascii::space_type > _statement_drop;
@@ -157,9 +210,9 @@ public:
     ;
 
     _statement_select %=
-        nocaselit("select") > nocaselit("*")
-        > nocaselit("from") > -nocaselit("metric")
-        > _quoted_name
+        nocaselit("select")
+        > _select_result
+        > nocaselit("from") > -nocaselit("metric") > _quoted_name
         > nocaselit("between") > qi::ulong_ > nocaselit("and") > qi::ulong_
         > -(nocaselit("group") > nocaselit("by") > _interval)
      ;
@@ -229,6 +282,7 @@ public:
    _quoted_like.name("quoted metric name pattern");
    _policy.name("retention policy");
    _interval.name("interval");
+   _select_result.name("select result");
 
    _statement_create.name("'create metric' statement");
    _statement_drop.name("'drop metric' statement");

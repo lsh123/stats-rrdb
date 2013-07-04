@@ -110,17 +110,17 @@ try {
 
 	// select all one line
 	start_test("SELECT * FROM METRIC 'test1'");
-	$resp = $stats_rrdb->select('test1', 'all', $start_ts, $start_ts + $num + 1, "0 secs");
+	$resp = $stats_rrdb->select('test1', '*', $start_ts, $start_ts + $num + 1, "0 secs");
 	check_result(count($resp), min(10 / 1, $num / 1) + min(30 / 10, $num / 10 - 1) + 1); // +1 for the header row, 10  - per sec, $num / 10 - per 10 secs excluding last one
 	
 	// select all 5 sec intervals
 	start_test("SELECT * FROM METRIC 'test1'  GROUP BY 5 sec");
-	$resp = $stats_rrdb->select('test1', 'all', $start_ts, $start_ts + $num + 1, "5 secs");
+	$resp = $stats_rrdb->select('test1', '*', $start_ts, $start_ts + $num + 1, "5 secs");
 	check_result(count($resp), $num / 5 + 1); // +1 for the header row
 
 	// select all 1 year -> result is one line
 	start_test("SELECT * FROM METRIC 'test1' GROUP BY 1 year");
-	$resp = $stats_rrdb->select('test1', 'all', $start_ts, $start_ts + $num + 1, "1 year");
+	$resp = $stats_rrdb->select('test1', '*', $start_ts, $start_ts + $num + 1, "1 year");
 	check_result(count($resp), 1 + 1); // +1 for the header row
 	check_result($resp[1][0], $start_ts); // ts
 	check_result($resp[1][1], $num);      // count
@@ -132,7 +132,7 @@ try {
 
 	// test 2 is empty
 	start_test("SELECT * FROM METRIC 'test2'");
-	$resp = $stats_rrdb->select('test2', 'all', $start_ts, $start_ts + 2*$num + 1);
+	$resp = $stats_rrdb->select('test2', '*', $start_ts, $start_ts + 2*$num + 1);
 	check_result(count($resp), 1); // +1 for the header row
 		
 	/////////////////
@@ -163,17 +163,17 @@ try {
 	
 	// select all one line
 	start_test("SELECT * FROM METRIC 'test1'");
-	$resp = $stats_rrdb->select('test1', 'all', $start_ts, $start_ts + 2*$num + 1, "0 secs");
+	$resp = $stats_rrdb->select('test1', '*', $start_ts, $start_ts + 2*$num + 1, "0 secs");
 	check_result(count($resp), min(10 / 1, 2*$num / 1 - 1) + min(30 / 10, 2*$num / 10 - 2) +  min(10*60 / 30, 2*$num / 30 - 2) + 1); // +1 for the header row, 10  - per sec, $num / 10 - per 10 secs excluding last one
 	
 	// select all 5 sec intervals
 	start_test("SELECT * FROM METRIC 'test1'  GROUP BY 5 sec");
-	$resp = $stats_rrdb->select('test1', 'all', $start_ts, $start_ts + 2*$num + 1, "5 secs");
+	$resp = $stats_rrdb->select('test1', '*', $start_ts, $start_ts + 2*$num + 1, "5 secs");
 	check_result(count($resp), 2*$num / 5 + 1); // +1 for the header row
 	
 	// select all 1 year -> result is one line
 	start_test("SELECT * FROM METRIC 'test1' GROUP BY 1 year");
-	$resp = $stats_rrdb->select('test1', 'all', $start_ts, $start_ts + 2*$num + 1, "1 year");
+	$resp = $stats_rrdb->select('test1', '*', $start_ts, $start_ts + 2*$num + 1, "1 year");
 	check_result(count($resp), 1 + 1); // +1 for the header row
 	check_result($resp[1][0], $start_ts); // ts
 	check_result($resp[1][1], 2*$num);      // count
@@ -185,14 +185,14 @@ try {
 
 	// test 2 is still empty
 	start_test("SELECT * FROM METRIC 'test2'");
-	$resp = $stats_rrdb->select('test2', 'all', $start_ts, $start_ts + 2*$num + 1);
+	$resp = $stats_rrdb->select('test2', '*', $start_ts, $start_ts + 2*$num + 1);
 	check_result(count($resp), 1); // +1 for the header row
 	
 	// check that we get an error
 	start_test("SELECT METRIC 'xxx' (error)");
 	$error = "";
 	try {
-		$resp = $stats_rrdb->select('xxx', 'all', $start_ts, $start_ts + 2*$num + 1);
+		$resp = $stats_rrdb->select('xxx', '*', $start_ts, $start_ts + 2*$num + 1);
 		print_r($resp);
 	} catch(Exception $e) {
 		$error = $e->getMessage();

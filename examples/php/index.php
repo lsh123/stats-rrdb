@@ -29,7 +29,7 @@ try {
 // get request data
 $now          = $_SERVER['REQUEST_TIME'];
 $the_metric   = query_get('metric', $metrics[0]);
-$the_column   = query_get('column', 'all');
+$the_column   = query_get('column', '*');
 $the_ts1      = query_get('ts1', '1 day ago');
 $the_ts2      = query_get('ts2', 'now');
 $the_group_by = query_get('group_by', '1 min');
@@ -51,7 +51,7 @@ try {
 
 // prep select options
 $display_modes = array('table' => 'Table', 'line-graph' => 'Line Graph', 'column-chart' => 'Column Chart', 'bar-chart' => 'Bar Chart' );
-$columns       = array('all' => 'All', 'count' => 'Count', 'sum' => 'Sum', 'avg' => 'Avg', 'stddev' => 'StdDev', 'min' => 'Min', 'max' => 'Max');
+$columns       = array('*' => 'All', 'count' => 'Count', 'sum' => 'Sum', 'avg' => 'Avg', 'stddev' => 'StdDev', 'min' => 'Min', 'max' => 'Max');
 ?>
 <!DOCTYPE html>
 <html>
@@ -60,14 +60,12 @@ $columns       = array('all' => 'All', 'count' => 'Count', 'sum' => 'Sum', 'avg'
 	<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet"></link>
 </head>
 <body>
-
-
 <h1 class="offset1">Stats-RRDB Example Page</h1>
 
 <div class="container-fluid fill offset1">
 <?php if(!empty($error)):?>
 <div class="row-fluid">
-<p class="text-error"><?php echo $error; ?></p>
+<p class="text-error"><?php echo htmlspecialchars($error); ?></p>
 </div>
 <?php endif?>
 
@@ -159,7 +157,7 @@ $columns       = array('all' => 'All', 'count' => 'Count', 'sum' => 'Sum', 'avg'
 			<?php foreach($values as $row): ?>
 			<tr>
 			    <?php for($ii = 0; $ii < count($row); $ii++): ?>
-				<td><?php echo  ($ii == 0 ? date("m/d/Y h:m:s e", $row[$ii]) : $row[$ii]); ?></td>
+				<td><?php echo  ($ii == 0 ? date("m/d/Y h:i:s e", $row[$ii]) : $row[$ii]); ?></td>
 			    <?php endfor; ?>
 			</tr>
 			<?php endforeach; ?>
