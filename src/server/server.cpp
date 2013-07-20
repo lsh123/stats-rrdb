@@ -264,7 +264,7 @@ void server::status_update_thread()
       LOG(log::LEVEL_DEBUG, "Server status update thread was interrupted");
   } catch (std::exception & e) {
       LOG(log::LEVEL_ERROR, "Server status update thread exception: %s", e.what());
-      throw e;
+      throw;
   } catch (...) {
       LOG(log::LEVEL_ERROR, "Server status update thread un-handled exception");
       throw;

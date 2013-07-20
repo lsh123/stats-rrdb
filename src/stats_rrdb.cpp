@@ -41,7 +41,7 @@ int main(int argc, const char ** argv)
         main_server->daemonize(cfg->get<std::string>("daemon"));
     }
     if(cfg->has("server.user")) {
-        main_server->setuid_user(cfg->get<std::string>("server.user"));
+        server::setuid_user(cfg->get<std::string>("server.user"));
     }
     main_server->run();
 

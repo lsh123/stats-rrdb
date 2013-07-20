@@ -36,7 +36,7 @@ public:
 
   void initialize(boost::shared_ptr<config> config);
   void daemonize(const std::string & pid_file = std::string());
-  void setuid_user(const std::string & user);
+  static void setuid_user(const std::string & user);
 
   void run();
   void stop();

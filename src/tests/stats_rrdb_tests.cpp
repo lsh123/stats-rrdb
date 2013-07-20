@@ -50,7 +50,7 @@ boost::shared_ptr<config> test_setup_config(const std::string & path, const t_te
   // create config
   std::string config_path = path + "./stats_rrdb_test.conf";
   std::fstream fs(config_path.c_str(), std::ios_base::out | std::ios_base::trunc);
-  fs.exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
+  fs.exceptions(std::ifstream::badbit | std::ifstream::failbit); // throw exceptions when error occurs
   BOOST_FOREACH(const t_test_config_data::value_type & v, data) {
     fs << v.first << "=" << v.second << std::endl;
   }

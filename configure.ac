@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59)
-AC_INIT(stats-rrdb, 0.9.7)
+AC_INIT(stats-rrdb, 0.9.8)
 
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE()
@@ -16,8 +16,8 @@ BOOST_FILESYSTEM([mt])
 BOOST_PROGRAM_OPTIONS([mt])
 
 dnl Setup pedantic compilation
-CFLAGS="$CFLAGS -pedantic -Wall -Werror -Wformat=2 -Wno-variadic-macros"
-CPPFLAGS="$CPPFLAGS -pedantic -Wall -Werror -Wformat=2 -Wno-variadic-macros"
+CFLAGS="$CFLAGS -pedantic -Wall -Werror -Wformat=2 -Wno-variadic-macros -fstack-protector --param=ssp-buffer-size=4 -fexceptions"
+CPPFLAGS="$CPPFLAGS -pedantic -Wall -Werror -Wformat=2 -Wno-variadic-macros -fstack-protector --param=ssp-buffer-size=4 -fexceptions"
 
 dnl Add grpof option
 AC_ARG_ENABLE(gprof,

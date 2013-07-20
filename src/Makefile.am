@@ -158,3 +158,7 @@ stats_rrdb_tests_LDADD= \
 check: stats-rrdb stats-rrdb-tests 
 	./stats-rrdb-tests
 	php ./tests/network-test.php
+	
+cppcheck:
+	cppcheck --enable=all --inconclusive --std=c99  -I src/ .
+	

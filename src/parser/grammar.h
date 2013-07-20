@@ -52,8 +52,7 @@ struct grammar_error_handler_impl
      std::ostringstream res;
 
      res << "Parser error: expecting " << info << " at " ;
-     grammar_error_handler_impl::create_at(res, beg, end, where);
-
+     create_at(res, beg, end, where);
 
      throw exception(res.str());
    }

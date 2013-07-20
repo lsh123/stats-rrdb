@@ -175,7 +175,7 @@ rrdb_files_cache::fstream_ptr rrdb_files_cache::open_file(
 
   try {
       fstream_ptr fs(new std::fstream(full_path.c_str(), std::ios_base::binary | std::ios_base::out | std::ios_base::in | mode));
-      fs->exceptions(std::ifstream::failbit | std::ifstream::failbit); // throw exceptions when error occurs
+      fs->exceptions(std::ifstream::badbit | std::ifstream::failbit); // throw exceptions when error occurs
       return fs;
   } catch(const std::exception & e) {
       throw exception("Unable to open file '%s': %s", full_path.c_str(), e.what());

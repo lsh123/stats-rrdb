@@ -158,6 +158,7 @@ class statement_execute_visitor : public boost::static_visitor<void>
       {
         CHECK_AND_THROW(_group_by > 0);
         CHECK_AND_THROW(select._ts_begin < select._ts_end);
+        memset(&_cur_tuple, 0, sizeof(_cur_tuple));
 
         // LOG(log::LEVEL_DEBUG3, "Start select with group by %lu", _group_by);
 
@@ -469,7 +470,7 @@ void rrdb::flush_to_disk_thread()
       LOG(log::LEVEL_DEBUG, "RRDB Flush thread was interrupted");
   } catch (std::exception & e) {
       LOG(log::LEVEL_ERROR, "RRDB Flush thread exception: %s", e.what());
-      throw e;
+      throw;
   } catch (...) {
       LOG(log::LEVEL_ERROR, "RRDB Flush thread un-handled exception");
       throw;

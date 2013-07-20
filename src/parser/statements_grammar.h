@@ -267,7 +267,6 @@ public:
             _statement_drop   |
             _statement_update |
             _statement_select |
-            _statement_create |
             _statement_show_policy   |
             _statement_show_metrics  |
             _statement_show_status

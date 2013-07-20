@@ -42,7 +42,7 @@ private:
   {
   public:
     change_time_type(const T & t) : _t(t) { }
-    void operator()(value_type & vt) { vt._t = _t; }
+    void operator()(value_type & vt) const { vt._t = _t; }
   private:
     T _t;
   }; // change_time_type
